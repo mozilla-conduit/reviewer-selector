@@ -17,7 +17,8 @@ Reviewer = tuple[str, bool]  # (target, is_group)
 
 def main() -> None:
     args: argparse.Namespace = parse_args()
-    rules_data: RulesData = json.load(open(args.rules_file))
+    with open(args.rules_file) as f:
+        rules_data: RulesData = json.load(f)
     changed_files: Sequence[str] = parse_diff(sys.stdin.read())
     reviewers: Iterable[Reviewer] = collect_reviewers(rules_data, changed_files, args.repo)
     resolved: Iterable[str] = resolve_reviewers(reviewers, rules_data, args.group_prefix)
@@ -34,7 +35,10 @@ def parse_args() -> argparse.Namespace:
 
 def parse_diff(diff_text: str) -> Sequence[str]:
     """Extract file paths from git diff."""
-    pass
+    if not diff_text:
+        return []
+    diffs = get_diffs(diff_text)
+    return [d["filename"] for d in diffs]
 
 
 def collect_reviewers(rules_data: RulesData, changed_files: Iterable[str], repos: Iterable[str]) -> Iterable[Reviewer]:
@@ -50,22 +54,46 @@ def collect_reviewers(rules_data: RulesData, changed_files: Iterable[str], repos
 
 def matches_repo_filter(rule: Rule, repos: Iterable[str]) -> bool:
     """Check if rule passes repository filter."""
-    pass
+    repos_list = list(repos)
+    if not repos_list:
+        return True
+    for cond in rule.get("conditions", []):
+        if cond.get("type") == "repository":
+            rule_repos = cond.get("value", [])
+            return any(r in rule_repos for r in repos_list)
+    return True
 
 
 def matches_files(rule: Rule, changed_files: Iterable[str]) -> bool:
     """Check if any changed file matches rule's regex."""
-    pass
+    for cond in rule.get("conditions", []):
+        if cond.get("type") == "differential-affected-files":
+            pattern = cond.get("value", "")
+            regex = re.compile(pattern)
+            return any(regex.search(f) for f in changed_files)
+    return False
 
 
 def get_rule_reviewers(rule: Rule) -> Iterable[Reviewer]:
     """Extract reviewers from rule's add-reviewers action."""
-    pass
+    result: list[Reviewer] = []
+    for action in rule.get("actions", []):
+        if action.get("type") == "add-reviewers":
+            for reviewer in action.get("reviewers", []):
+                result.append((reviewer["target"], reviewer.get("is_group", False)))
+    return result
 
 
 def resolve_reviewers(reviewers: Iterable[Reviewer], rules_data: RulesData, group_prefix: str) -> Iterable[str]:
     """Convert to GitHub usernames, prefix groups."""
-    pass
+    github_users = rules_data.get("github_users", {})
+    result: set[str] = set()
+    for target, is_group in reviewers:
+        if is_group:
+            result.add(f"{group_prefix}{target}")
+        elif target in github_users:
+            result.add(github_users[target]["username"])
+    return result
 
 
 if __name__ == "__main__":
