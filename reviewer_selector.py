@@ -5,20 +5,26 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
 from rs_parsepatch import get_diffs
 
+RulesData = Mapping[str, Any]
+Rule = Mapping[str, Any]
+Reviewer = tuple[str, bool]  # (target, is_group)
 
-def main():
-    args = parse_args()
-    rules_data = json.load(open(args.rules_file))
-    changed_files = parse_diff(sys.stdin.read())
-    reviewers = collect_reviewers(rules_data, changed_files, args.repo)
-    resolved = resolve_reviewers(reviewers, rules_data, args.group_prefix)
+
+def main() -> None:
+    args: argparse.Namespace = parse_args()
+    rules_data: RulesData = json.load(open(args.rules_file))
+    changed_files: Sequence[str] = parse_diff(sys.stdin.read())
+    reviewers: Iterable[Reviewer] = collect_reviewers(rules_data, changed_files, args.repo)
+    resolved: Iterable[str] = resolve_reviewers(reviewers, rules_data, args.group_prefix)
     print(" ".join(sorted(resolved)))
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Select reviewers from Herald rules and git diff")
     parser.add_argument("rules_file", help="Path to JSON rules file")
     parser.add_argument("--repo", action="append", default=[], help="Filter by repository (repeatable)")
@@ -26,14 +32,14 @@ def parse_args():
     return parser.parse_args()
 
 
-def parse_diff(diff_text):
-    """Extract file paths from git diff. Returns list of file paths."""
+def parse_diff(diff_text: str) -> Sequence[str]:
+    """Extract file paths from git diff."""
     pass
 
 
-def collect_reviewers(rules_data, changed_files, repos):
+def collect_reviewers(rules_data: RulesData, changed_files: Iterable[str], repos: Iterable[str]) -> Iterable[Reviewer]:
     """Return set of (target, is_group) tuples from matching rules."""
-    reviewers = set()
+    reviewers: set[Reviewer] = set()
     for rule in rules_data["rules"]:
         if not matches_repo_filter(rule, repos):
             continue
@@ -42,23 +48,23 @@ def collect_reviewers(rules_data, changed_files, repos):
     return reviewers
 
 
-def matches_repo_filter(rule, repos):
-    """Check if rule passes repository filter. Returns bool."""
+def matches_repo_filter(rule: Rule, repos: Iterable[str]) -> bool:
+    """Check if rule passes repository filter."""
     pass
 
 
-def matches_files(rule, changed_files):
-    """Check if any changed file matches rule's regex. Returns bool."""
+def matches_files(rule: Rule, changed_files: Iterable[str]) -> bool:
+    """Check if any changed file matches rule's regex."""
     pass
 
 
-def get_rule_reviewers(rule):
-    """Extract reviewers from rule's add-reviewers action. Returns set of (target, is_group) tuples."""
+def get_rule_reviewers(rule: Rule) -> Iterable[Reviewer]:
+    """Extract reviewers from rule's add-reviewers action."""
     pass
 
 
-def resolve_reviewers(reviewers, rules_data, group_prefix):
-    """Convert to GitHub usernames, prefix groups. Returns set of strings."""
+def resolve_reviewers(reviewers: Iterable[Reviewer], rules_data: RulesData, group_prefix: str) -> Iterable[str]:
+    """Convert to GitHub usernames, prefix groups."""
     pass
 
 
