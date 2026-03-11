@@ -24,9 +24,9 @@ def main() -> None:
     resolved: Iterable[str] = resolve_reviewers(reviewers, rules_data, args.group_prefix)
     print(" ".join(sorted(resolved)))
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Select reviewers from Herald rules and git diff")
+    parser.epilog = f"Example:\n\tcurl https://github.com/mozilla-firefox/infra-testing/pull/30.diff | {parser.prog} herald_rules.json"
     parser.add_argument("rules_file", help="Path to JSON rules file")
     parser.add_argument("--repo", action="append", default=[], help="Filter by repository (repeatable)")
     parser.add_argument("--group-prefix", default="#", help="Prefix for group names in output")
