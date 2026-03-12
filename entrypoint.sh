@@ -14,16 +14,16 @@ fi
 
 REVIEWERS=$(cat "${DIFF}" \
 	| /app/reviewer_selector.py \
-    ${REPO:+--repo "${REPO}"} \
+    ${REPO_NAME:+--repo "${REPO_NAME}"} \
     --group-prefix @ --reviewer-separator , \
     "${HERALD_RULES_JSON}" \
 )
 
-if [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${PR:-}" ]; then
-	echo "Adding reviewers to ${PR} ..." >&2
-	gh pr edit "${PR}" --add-reviewer "${REVIEWERS}"
+if [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${PR_URL:-}" ]; then
+	echo "Adding reviewers to ${PR_URL} ..." >&2
+	gh pr edit "${PR_URL}" --add-reviewer "${REVIEWERS}"
 
 else
-	echo "No PR or GITHUB_TOKEN in environment, outputing to stdout ..." >&2
+	echo "No PR_URL or GITHUB_TOKEN in environment, outputing to stdout ..." >&2
   echo "${REVIEWERS}"
 fi

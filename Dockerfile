@@ -4,7 +4,7 @@
 # Usage:
 #     curl -L https://github.com/mozilla-firefox/infra-testing/pull/30.diff | docker run --rm -i reviewer-selector:latest
 # or
-#     docker run --rm -i -e PR=https://github.com/mozilla-firefox/infra-testing/pull/30 -e DIFF_URL=https://github.com/mozilla-firefox/infra-testing/pull/30.diff -e GITHUB_TOKEN=eee reviewer-selector
+#     docker run --rm -i -e PR_URL=https://github.com/mozilla-firefox/infra-testing/pull/30 -e DIFF_URL=https://github.com/mozilla-firefox/infra-testing/pull/30.diff -e GITHUB_TOKEN=[REDACTED] reviewer-selector
 #
 FROM python:3.14
 
