@@ -19,7 +19,7 @@ WORKDIR /app
 RUN --mount=type=bind,src=requirements.txt,target=/app/requirements.txt pip install -r requirements.txt
 
 COPY reviewer_selector.py entrypoint.sh /app/
-COPY herald_rules.json /app/
+COPY herald_rules.sample.json /app/herald_rules.json
 
 CMD [ "herald_rules.json" ]
 

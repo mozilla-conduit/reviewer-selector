@@ -1,0 +1,11 @@
+diff --git a/mobile/android/fenix/test b/mobile/android/fenix/test
+new file mode 100644
+index 0000000000000..72d744a556e27
+--- /dev/null
++++ b/mobile/android/fenix/test
+@@ -0,0 +1 @@
++e09216b2-8702-4ec9-a289-ef042b759de8
+diff --git a/mobile/android/fenix/test.bin b/mobile/android/fenix/test.bin
+new file mode 100644
+index 0000000000000..a73d652742b17
+Binary files /dev/null and b/mobile/android/fenix/test.bin differ

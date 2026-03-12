@@ -1,0 +1,100 @@
+{
+  "rules": [
+    {
+      "id": "H1",
+      "name": "example rule",
+      "author": "shtrom",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "test$"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "shtrom",
+              "blocking": false,
+              "is_group": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H2",
+      "name": "Blocked by example-group",
+      "author": "shtrom",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-reviewers",
+          "operator": "include-none-of",
+          "value": [
+            "example-group"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/?mobile/android/(fenix|focus-android|android-components)"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "example-group",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": {
+    "example-group": {
+      "id": "example-group",
+      "display_name": "example-group",
+      "members": [
+          "example-user"
+      ]
+    }
+  },
+  "github_users": {
+    "Mardak": {
+      "username": "example-user",
+      "user_id": 0
+    },
+    "shtrom": {
+      "username": "shtrom",
+      "user_id": 160280
+    }
+  }
+}
