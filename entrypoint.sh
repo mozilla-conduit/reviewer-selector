@@ -12,8 +12,11 @@ else
 
 fi
 
-REVIEWERS=$( cat "${DIFF}" \
-	| /app/reviewer_selector.py --group-prefix @ --reviewer-separator , "${HERALD_RULES_JSON}" \
+REVIEWERS=$(cat "${DIFF}" \
+	| /app/reviewer_selector.py \
+    ${REPO:+--repo "${REPO}"} \
+    --group-prefix @ --reviewer-separator , \
+    "${HERALD_RULES_JSON}" \
 )
 
 if [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${PR:-}" ]; then
