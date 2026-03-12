@@ -22,7 +22,7 @@ def main() -> None:
     changed_files: Sequence[str] = parse_diff(sys.stdin.read())
     reviewers: Iterable[Reviewer] = collect_reviewers(rules_data, changed_files, args.repo)
     resolved: Iterable[str] = resolve_reviewers(reviewers, rules_data, args.group_prefix)
-    print(" ".join(sorted(resolved)))
+    print(args.reviewer_separator.join(sorted(resolved)))
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Select reviewers from Herald rules and git diff")
@@ -30,6 +30,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("rules_file", help="Path to JSON rules file")
     parser.add_argument("--repo", action="append", default=[], help="Filter by repository (repeatable)")
     parser.add_argument("--group-prefix", default="#", help="Prefix for group names in output")
+    parser.add_argument("--reviewer-separator", default=" ", help="Separator for reviewer names in output")
     return parser.parse_args()
 
 
