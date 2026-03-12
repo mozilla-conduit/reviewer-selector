@@ -1,16 +1,3 @@
-# Build:
-#     docker build -t reviewer-selector .
-#
-# Usage:
-#     curl -L https://github.com/mozilla-firefox/infra-testing/pull/30.diff \
-#       | docker run --rm -i reviewer-selector:latest
-# or
-#     docker run --rm -i \
-#       -v ./herald_rules.real.json:/app/herald_rules.json \
-#       -e PR_URL=https://github.com/mozilla-firefox/infra-testing/pull/30 \
-#       -e DIFF_URL=https://github.com/mozilla-firefox/infra-testing/pull/30.diff \
-#       -e GITHUB_TOKEN=[REDACTED] reviewer-selector
-#
 FROM python:3.14
 
 RUN apt-get -y update \
