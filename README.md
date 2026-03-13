@@ -9,6 +9,7 @@ Requirements: [uv](https://docs.astral.sh/uv/#installation).
     $ uv venv
     $ uv pip install -e .
 
+
 # Running
 
 In its simplest form, the script accepts a diff on stdin. It processes the diff
@@ -23,6 +24,7 @@ can be changed with `--reviewer-separator`. The `--repo` option allows the user
 to specify a specific repository (to be used when evaluating conditions in some
 rules.
 
+
 # WARNING: The rules format is a work in progress
 
 The current rules files, as shown in [the
@@ -30,14 +32,31 @@ sample](./samples/herald_rules.sample.json) is not final and not normative. It
 is used as a bootstrapping stop-gap, and should not be expected to remain
 stable at this stage.
 
-# Tests
+
+# Development tasks
+
+All the commands in this section rely on the development dependencies being installed.
 
     $ uv pip install -e .[dev]
+
+## Tests
+
     $ uv run pytest
 
-# Linting
+## Linting
 
     $ uv run ruff format
+
+## Regenerating requirements.txt
+
+Runtime dependencies only.
+
+    $ uv run pip-compile --quiet --generate-hashes --allow-unsafe -o requirements.txt
+
+Include dev and testing dependencies.
+
+    $ uv run pip-compile --quiet --generate-hashes --extra=dev --allow-unsafe -o requirements-dev.txt
+
 
 # Containerised deployment
 
@@ -50,7 +69,6 @@ a GitHub pull request directly if enough information is available.
 Requirements: [docker](https://docs.docker.com/get-started/get-docker/).
 
     $ docker build -f docker/Dockerfile -t reviewer-selector .
-
 
 ## Running in a container
 

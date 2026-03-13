@@ -19,6 +19,7 @@ requires-python = ">=3.12"
 
 [project.optional-dependencies]
 dev = [
+  "pip-tools",
   "pytest",
   "pytest-ruff",
 ]
