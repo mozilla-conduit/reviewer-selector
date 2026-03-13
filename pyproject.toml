@@ -1,2 +1,30 @@
+[project]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+dependencies= [
+  "rs_parsepatch",
+]
+description =  "Select reviewers based on a diff and a set of rules"
+dynamic = ["version"]
+license = "MPL-2.0"
+maintainers = [
+    {name = "Mozilla Conduit", email = "conduit-team@mozilla.com"},
+]
+name = "reviewer-selector"
+requires-python = ">=3.12"
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-ruff",
+]
+
+[project.scripts]
+reviewer-selector = "reviewer_selector:main"
+
 [tool.pytest]
 addopts = ["--ruff", "--ruff-format" ]

@@ -7,7 +7,7 @@ Select reviewers based on a diff and a set of rules.
 Requirements: [uv](https://docs.astral.sh/uv/#installation).
 
     $ uv venv
-    $ uv pip install -r requirements.txt
+    $ uv pip install -e .
 
 # Running
 
@@ -15,7 +15,7 @@ In its simplest form, the script accepts a diff on stdin. It processes the diff
 according to a rule file passed as an argument, and outputs a list of
 individual and groups of reviewers.
 
-    $ uv run ./reviewer_selector.py herald_rules.sample.json < sample.diff
+    $ uv run reviewer-selector samples/herald_rules.sample.json < samples/sample.diff
     #example-group shtrom
 
 The group prefix can be changed with `--group-prefix`. The reviewer separator
@@ -25,12 +25,14 @@ rules.
 
 # WARNING: The rules format is a work in progress
 
-The current rules files, as shown in [the sample](./herald_rules.sample.json)
-is not final and not normative. It is used as a bootstrapping stop-gap, and
-should not be expected to remain stable at this stage.
+The current rules files, as shown in [the
+sample](./samples/herald_rules.sample.json) is not final and not normative. It
+is used as a bootstrapping stop-gap, and should not be expected to remain
+stable at this stage.
 
 # Tests
 
+    $ uv pip install -e .[dev]
     $ uv run pytest
 
 # Linting
@@ -47,7 +49,7 @@ a GitHub pull request directly if enough information is available.
 
 Requirements: [docker](https://docs.docker.com/get-started/get-docker/).
 
-    $ docker build -t reviewer-selector .
+    $ docker build -f docker/Dockerfile -t reviewer-selector .
 
 
 ## Running in a container
@@ -56,7 +58,7 @@ For convenience, the sample rules are shipped with the container image. The
 reviewers string is formatted for use with [GitHub's gh
 CLI](https://cli.github.com/).
 
-    $ docker run --rm -i reviewer-selector < sample.diff
+    $ docker run --rm -i reviewer-selector < samples/sample.diff
     No DIFF_URL in environment, reading from stdin ...
     No PR_URL or GITHUB_TOKEN in environment, outputing to stdout ...
     @example-group,shtrom
