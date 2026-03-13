@@ -23,32 +23,57 @@ SAMPLE_RULES_DATA = {
         {
             "id": "H1",
             "conditions": [
-                {"type": "differential-affected-files", "operator": "matches-regexp", "value": r"\.ftl$"}
+                {
+                    "type": "differential-affected-files",
+                    "operator": "matches-regexp",
+                    "value": r"\.ftl$",
+                }
             ],
             "actions": [
-                {"type": "add-reviewers", "reviewers": [{"target": "fluent-reviewers", "is_group": True}]}
+                {
+                    "type": "add-reviewers",
+                    "reviewers": [{"target": "fluent-reviewers", "is_group": True}],
+                }
             ],
         },
         {
             "id": "H2",
             "conditions": [
-                {"type": "differential-affected-files", "operator": "matches-regexp", "value": r"^remote/"},
-                {"type": "repository", "operator": "is-any-of", "value": ["mozilla-central"]},
+                {
+                    "type": "differential-affected-files",
+                    "operator": "matches-regexp",
+                    "value": r"^remote/",
+                },
+                {
+                    "type": "repository",
+                    "operator": "is-any-of",
+                    "value": ["mozilla-central"],
+                },
             ],
             "actions": [
-                {"type": "add-reviewers", "reviewers": [{"target": "jsmith", "is_group": False}]}
+                {
+                    "type": "add-reviewers",
+                    "reviewers": [{"target": "jsmith", "is_group": False}],
+                }
             ],
         },
         {
             "id": "H3",
             "conditions": [
-                {"type": "differential-affected-files", "operator": "matches-regexp", "value": r"^testing/"},
+                {
+                    "type": "differential-affected-files",
+                    "operator": "matches-regexp",
+                    "value": r"^testing/",
+                },
             ],
             "actions": [
-                {"type": "add-reviewers", "reviewers": [
-                    {"target": "test-reviewers", "is_group": True},
-                    {"target": "jdoe", "is_group": False},
-                ]}
+                {
+                    "type": "add-reviewers",
+                    "reviewers": [
+                        {"target": "test-reviewers", "is_group": True},
+                        {"target": "jdoe", "is_group": False},
+                    ],
+                }
             ],
         },
     ],
@@ -78,6 +103,7 @@ index 1234567..abcdefg 100644
 
 
 # --- parse_diff tests ---
+
 
 class TestParseDiff:
     def test_extracts_file_paths(self):
@@ -112,6 +138,7 @@ index 1234567..abcdefg 100644
 
 # --- matches_repo_filter tests ---
 
+
 class TestMatchesRepoFilter:
     def test_no_repo_flag_always_matches(self):
         rule = {"conditions": [{"type": "repository", "value": ["mozilla-central"]}]}
@@ -122,35 +149,92 @@ class TestMatchesRepoFilter:
         assert matches_repo_filter(rule, ["mozilla-central"]) is True
 
     def test_matching_repo(self):
-        rule = {"conditions": [{"type": "repository", "operator": "is-any-of", "value": ["mozilla-central"]}]}
+        rule = {
+            "conditions": [
+                {
+                    "type": "repository",
+                    "operator": "is-any-of",
+                    "value": ["mozilla-central"],
+                }
+            ]
+        }
         assert matches_repo_filter(rule, ["mozilla-central"]) is True
 
     def test_non_matching_repo(self):
-        rule = {"conditions": [{"type": "repository", "operator": "is-any-of", "value": ["comm-central"]}]}
+        rule = {
+            "conditions": [
+                {
+                    "type": "repository",
+                    "operator": "is-any-of",
+                    "value": ["comm-central"],
+                }
+            ]
+        }
         assert matches_repo_filter(rule, ["mozilla-central"]) is False
 
     def test_multiple_repos_in_rule(self):
-        rule = {"conditions": [{"type": "repository", "operator": "is-any-of", "value": ["mozilla-central", "autoland"]}]}
+        rule = {
+            "conditions": [
+                {
+                    "type": "repository",
+                    "operator": "is-any-of",
+                    "value": ["mozilla-central", "autoland"],
+                }
+            ]
+        }
         assert matches_repo_filter(rule, ["autoland"]) is True
 
     def test_multiple_repos_in_flag(self):
-        rule = {"conditions": [{"type": "repository", "operator": "is-any-of", "value": ["mozilla-central"]}]}
+        rule = {
+            "conditions": [
+                {
+                    "type": "repository",
+                    "operator": "is-any-of",
+                    "value": ["mozilla-central"],
+                }
+            ]
+        }
         assert matches_repo_filter(rule, ["autoland", "mozilla-central"]) is True
 
 
 # --- matches_files tests ---
 
+
 class TestMatchesFiles:
     def test_matching_regex(self):
-        rule = {"conditions": [{"type": "differential-affected-files", "operator": "matches-regexp", "value": r"\.py$"}]}
+        rule = {
+            "conditions": [
+                {
+                    "type": "differential-affected-files",
+                    "operator": "matches-regexp",
+                    "value": r"\.py$",
+                }
+            ]
+        }
         assert matches_files(rule, ["src/main.py"]) is True
 
     def test_non_matching_regex(self):
-        rule = {"conditions": [{"type": "differential-affected-files", "operator": "matches-regexp", "value": r"\.py$"}]}
+        rule = {
+            "conditions": [
+                {
+                    "type": "differential-affected-files",
+                    "operator": "matches-regexp",
+                    "value": r"\.py$",
+                }
+            ]
+        }
         assert matches_files(rule, ["src/main.js"]) is False
 
     def test_any_file_matches(self):
-        rule = {"conditions": [{"type": "differential-affected-files", "operator": "matches-regexp", "value": r"\.py$"}]}
+        rule = {
+            "conditions": [
+                {
+                    "type": "differential-affected-files",
+                    "operator": "matches-regexp",
+                    "value": r"\.py$",
+                }
+            ]
+        }
         assert matches_files(rule, ["README.md", "src/main.py", "config.json"]) is True
 
     def test_no_affected_files_condition(self):
@@ -160,27 +244,43 @@ class TestMatchesFiles:
 
 # --- get_rule_reviewers tests ---
 
+
 class TestGetRuleReviewers:
     def test_extracts_reviewers(self):
         rule = {
-            "actions": [{"type": "add-reviewers", "reviewers": [{"target": "jsmith", "is_group": False}]}]
+            "actions": [
+                {
+                    "type": "add-reviewers",
+                    "reviewers": [{"target": "jsmith", "is_group": False}],
+                }
+            ]
         }
         reviewers = get_rule_reviewers(rule)
         assert ("jsmith", False) in reviewers
 
     def test_extracts_groups(self):
         rule = {
-            "actions": [{"type": "add-reviewers", "reviewers": [{"target": "my-group", "is_group": True}]}]
+            "actions": [
+                {
+                    "type": "add-reviewers",
+                    "reviewers": [{"target": "my-group", "is_group": True}],
+                }
+            ]
         }
         reviewers = get_rule_reviewers(rule)
         assert ("my-group", True) in reviewers
 
     def test_multiple_reviewers(self):
         rule = {
-            "actions": [{"type": "add-reviewers", "reviewers": [
-                {"target": "user1", "is_group": False},
-                {"target": "group1", "is_group": True},
-            ]}]
+            "actions": [
+                {
+                    "type": "add-reviewers",
+                    "reviewers": [
+                        {"target": "user1", "is_group": False},
+                        {"target": "group1", "is_group": True},
+                    ],
+                }
+            ]
         }
         reviewers = get_rule_reviewers(rule)
         assert len(reviewers) == 2
@@ -189,7 +289,10 @@ class TestGetRuleReviewers:
         rule = {
             "actions": [
                 {"type": "send-email", "target": "someone"},
-                {"type": "add-reviewers", "reviewers": [{"target": "jsmith", "is_group": False}]},
+                {
+                    "type": "add-reviewers",
+                    "reviewers": [{"target": "jsmith", "is_group": False}],
+                },
             ]
         }
         reviewers = get_rule_reviewers(rule)
@@ -197,6 +300,7 @@ class TestGetRuleReviewers:
 
 
 # --- collect_reviewers tests ---
+
 
 class TestCollectReviewers:
     def test_collects_from_matching_rules(self):
@@ -223,6 +327,7 @@ class TestCollectReviewers:
 
 
 # --- resolve_reviewers tests ---
+
 
 class TestResolveReviewers:
     def test_resolves_user_to_github(self):
@@ -253,6 +358,7 @@ class TestResolveReviewers:
 
 
 # --- CLI integration tests ---
+
 
 class TestCLI:
     def test_full_flow(self):
@@ -285,7 +391,13 @@ index 1234567..abcdefg 100644
 +new
 """
         result = subprocess.run(
-            [sys.executable, "reviewer_selector.py", rules_path, "--repo", "mozilla-central"],
+            [
+                sys.executable,
+                "reviewer_selector.py",
+                rules_path,
+                "--repo",
+                "mozilla-central",
+            ],
             input=diff,
             capture_output=True,
             text=True,

@@ -20,17 +20,32 @@ def main() -> None:
     with open(args.rules_file) as f:
         rules_data: RulesData = json.load(f)
     changed_files: Sequence[str] = parse_diff(sys.stdin.read())
-    reviewers: Iterable[Reviewer] = collect_reviewers(rules_data, changed_files, args.repo)
-    resolved: Iterable[str] = resolve_reviewers(reviewers, rules_data, args.group_prefix)
+    reviewers: Iterable[Reviewer] = collect_reviewers(
+        rules_data, changed_files, args.repo
+    )
+    resolved: Iterable[str] = resolve_reviewers(
+        reviewers, rules_data, args.group_prefix
+    )
     print(args.reviewer_separator.join(sorted(resolved)))
 
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Select reviewers from Herald rules and git diff")
+    parser = argparse.ArgumentParser(
+        description="Select reviewers from Herald rules and git diff"
+    )
     parser.epilog = f"Example:\n\tcurl https://github.com/mozilla-firefox/infra-testing/pull/30.diff | {parser.prog} herald_rules.json"
     parser.add_argument("rules_file", help="Path to JSON rules file")
-    parser.add_argument("--repo", action="append", default=[], help="Filter by repository (repeatable)")
-    parser.add_argument("--group-prefix", default="#", help="Prefix for group names in output")
-    parser.add_argument("--reviewer-separator", default=" ", help="Separator for reviewer names in output")
+    parser.add_argument(
+        "--repo", action="append", default=[], help="Filter by repository (repeatable)"
+    )
+    parser.add_argument(
+        "--group-prefix", default="#", help="Prefix for group names in output"
+    )
+    parser.add_argument(
+        "--reviewer-separator",
+        default=" ",
+        help="Separator for reviewer names in output",
+    )
     return parser.parse_args()
 
 
@@ -42,7 +57,9 @@ def parse_diff(diff_text: str) -> Sequence[str]:
     return [d["filename"] for d in diffs]
 
 
-def collect_reviewers(rules_data: RulesData, changed_files: Iterable[str], repos: Iterable[str]) -> Iterable[Reviewer]:
+def collect_reviewers(
+    rules_data: RulesData, changed_files: Iterable[str], repos: Iterable[str]
+) -> Iterable[Reviewer]:
     """Return set of (target, is_group) tuples from matching rules."""
     reviewers: set[Reviewer] = set()
     for rule in rules_data["rules"]:
@@ -85,7 +102,9 @@ def get_rule_reviewers(rule: Rule) -> Iterable[Reviewer]:
     return result
 
 
-def resolve_reviewers(reviewers: Iterable[Reviewer], rules_data: RulesData, group_prefix: str) -> Iterable[str]:
+def resolve_reviewers(
+    reviewers: Iterable[Reviewer], rules_data: RulesData, group_prefix: str
+) -> Iterable[str]:
     """Convert to GitHub usernames, prefix groups."""
     github_users = rules_data.get("github_users", {})
     result: set[str] = set()
