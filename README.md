@@ -33,6 +33,10 @@ should not be expected to remain stable at this stage.
 
     $ uv run pytest
 
+# Linting
+
+    $ uv run ruff format
+
 # Containerised deployment
 
 For use as part of a more complex pipeline, a docker image can be built. It is

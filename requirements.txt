@@ -1,2 +1,3 @@
 rs_parsepatch
 pytest
+pytest-ruff
