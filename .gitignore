@@ -1,3 +1,5 @@
 __pycache__
 mise.toml
 herald_rules.json
+build/
+*.egg-info

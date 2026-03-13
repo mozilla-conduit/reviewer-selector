@@ -15,6 +15,7 @@ from reviewer_selector import (
     resolve_reviewers,
 )
 
+MAIN_SCRIPT = "src/reviewer_selector.py"
 
 # --- Test data ---
 
@@ -367,7 +368,7 @@ class TestCLI:
             rules_path = f.name
 
         result = subprocess.run(
-            [sys.executable, "reviewer_selector.py", rules_path],
+            [sys.executable, MAIN_SCRIPT, rules_path],
             input=SAMPLE_DIFF,
             capture_output=True,
             text=True,
@@ -393,7 +394,7 @@ index 1234567..abcdefg 100644
         result = subprocess.run(
             [
                 sys.executable,
-                "reviewer_selector.py",
+                MAIN_SCRIPT,
                 rules_path,
                 "--repo",
                 "mozilla-central",
@@ -412,7 +413,7 @@ index 1234567..abcdefg 100644
             rules_path = f.name
 
         result = subprocess.run(
-            [sys.executable, "reviewer_selector.py", rules_path, "--group-prefix", "@"],
+            [sys.executable, MAIN_SCRIPT, rules_path, "--group-prefix", "@"],
             input=SAMPLE_DIFF,
             capture_output=True,
             text=True,

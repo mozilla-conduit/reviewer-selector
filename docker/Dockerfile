@@ -8,11 +8,11 @@ RUN apt-get -y update \
 RUN mkdir /app
 WORKDIR /app
 
-RUN --mount=type=bind,src=requirements.txt,target=/app/requirements.txt pip install -r requirements.txt
+RUN --mount=type=bind,src=../requirements.txt,target=/app/requirements.txt pip install -r requirements.txt
 
-COPY reviewer_selector.py entrypoint.sh /app/
+COPY ../src/reviewer_selector.py ../docker/entrypoint.sh /app/
 # Example for self-contained quick tests.
-COPY herald_rules.sample.json /app/herald_rules.json
+COPY ../samples/herald_rules.sample.json /app/herald_rules.json
 
 CMD [ "herald_rules.json" ]
 
