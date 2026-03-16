@@ -8,7 +8,9 @@ RUN apt-get -y update \
 RUN mkdir /app
 WORKDIR /app
 
-RUN --mount=type=bind,src=../requirements.txt,target=/app/requirements.txt pip install -r requirements.txt
+COPY . /app
+RUN pip install -r requirements.txt \
+  && pip install /app
 
 COPY ../src/reviewer_selector.py ../docker/entrypoint.sh /app/
 # Example for self-contained quick tests.
