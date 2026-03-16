@@ -2,7 +2,6 @@
 
 import json
 import subprocess
-import sys
 import tempfile
 
 
@@ -14,8 +13,6 @@ from reviewer_selector import (
     get_rule_reviewers,
     resolve_reviewers,
 )
-
-MAIN_SCRIPT = "src/reviewer_selector.py"
 
 # --- Test data ---
 
@@ -362,13 +359,15 @@ class TestResolveReviewers:
 
 
 class TestCLI:
+    MAIN_SCRIPT = "reviewer-selector"
+
     def test_full_flow(self):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(SAMPLE_RULES_DATA, f)
             rules_path = f.name
 
         result = subprocess.run(
-            [sys.executable, MAIN_SCRIPT, rules_path],
+            [self.MAIN_SCRIPT, rules_path],
             input=SAMPLE_DIFF,
             capture_output=True,
             text=True,
@@ -393,8 +392,7 @@ index 1234567..abcdefg 100644
 """
         result = subprocess.run(
             [
-                sys.executable,
-                MAIN_SCRIPT,
+                self.MAIN_SCRIPT,
                 rules_path,
                 "--repo",
                 "mozilla-central",
@@ -413,7 +411,7 @@ index 1234567..abcdefg 100644
             rules_path = f.name
 
         result = subprocess.run(
-            [sys.executable, MAIN_SCRIPT, rules_path, "--group-prefix", "@"],
+            [self.MAIN_SCRIPT, rules_path, "--group-prefix", "@"],
             input=SAMPLE_DIFF,
             capture_output=True,
             text=True,
