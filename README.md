@@ -45,7 +45,7 @@ All the commands in this section rely on the development dependencies being inst
 
 ## Linting
 
-    $ uv run ruff format
+    $ uv run ruff check --fix
 
 ## Regenerating requirements.txt
 

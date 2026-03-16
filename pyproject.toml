@@ -19,13 +19,11 @@ requires-python = ">=3.12"
 
 [project.optional-dependencies]
 dev = [
+  "black",
   "pip-tools",
   "pytest",
-  "pytest-ruff",
+  "ruff",
 ]
 
 [project.scripts]
 reviewer-selector = "reviewer_selector:main"
-
-[tool.pytest]
-addopts = ["--ruff", "--ruff-format" ]
