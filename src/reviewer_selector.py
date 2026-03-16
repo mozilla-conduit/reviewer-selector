@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import logging
 import re
 import sys
 from collections.abc import Iterable, Mapping, Sequence
@@ -14,9 +15,15 @@ RulesData = Mapping[str, Any]
 Rule = Mapping[str, Any]
 Reviewer = tuple[str, bool]  # (target, is_group)
 
+logger = logging.getLogger(__name__)
+
 
 def main() -> None:
     args: argparse.Namespace = parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
+
     with open(args.rules_file) as f:
         rules_data: RulesData = json.load(f)
     changed_files: Sequence[str] = parse_diff(sys.stdin.read())
@@ -31,10 +38,17 @@ def main() -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Select reviewers from Herald rules and git diff"
+        description="Select reviewers from Herald rules and git diff",
+        epilog="""Example:
+            curl https://github.com/mozilla-firefox/infra-testing/pull/30.diff | %(prog)s herald_rules.json""",
     )
-    parser.epilog = f"Example:\n\tcurl https://github.com/mozilla-firefox/infra-testing/pull/30.diff | {parser.prog} herald_rules.json"
     parser.add_argument("rules_file", help="Path to JSON rules file")
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Log details of the reviewer selection",
+    )
     parser.add_argument(
         "--repo", action="append", default=[], help="Filter by repository (repeatable)"
     )
@@ -54,7 +68,11 @@ def parse_diff(diff_text: str) -> Sequence[str]:
     if not diff_text:
         return []
     diffs = get_diffs(diff_text)
-    return [d["filename"] for d in diffs]
+    filenames = [d["filename"] for d in diffs]
+
+    logger.info(f"Considering filenames: {', '.join(filenames)} ...")
+
+    return filenames
 
 
 def collect_reviewers(
@@ -66,6 +84,7 @@ def collect_reviewers(
         if not matches_repo_filter(rule, repos):
             continue
         if matches_files(rule, changed_files):
+            logger.info(f"Rule {rule['id']} matches")
             reviewers.update(get_rule_reviewers(rule))
     return reviewers
 
