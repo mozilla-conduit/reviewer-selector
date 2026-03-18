@@ -77,7 +77,10 @@ reviewers string is formatted for use with [GitHub's gh
 CLI](https://cli.github.com/).
 
     $ docker run --rm -i reviewer-selector < samples/sample.diff
+    No REPO_URL in environment, using built-in rules ...
     No DIFF_URL in environment, reading from stdin ...
+    No ORG_NAME in environment, using # as group prefix ...
+    No REPO_NAME or TARGET_BRANCH_NAME in environment, not matching repository-based rules ...
     No PR_URL or GITHUB_TOKEN in environment, outputing to stdout ...
     @example-group,shtrom
 
@@ -91,7 +94,10 @@ piped into the container.
        | docker run --rm -i \
          -v ./herald_rules.real.json:/app/herald_rules.json \
          reviewer-selector
+    No REPO_URL in environment, using built-in rules ...
     No DIFF_URL in environment, reading from stdin ...
+    No ORG_NAME in environment, using # as group prefix ...
+    No REPO_NAME or TARGET_BRANCH_NAME in environment, not matching repository-based rules ...
     No PR_URL or GITHUB_TOKEN in environment, outputing to stdout ...
     @android-reviewers
 
@@ -104,6 +110,16 @@ The container's behaviour can be entirely parametrised via environment variables
       -e GITHUB_TOKEN=[REDACTED] reviewer-selector
     Adding reviewers to https://github.com/mozilla-firefox/infra-testing/pull/30 ...
 
-If `DIFF_URL` is given, it will be fetched and passed into the selector's
-stdin. If `GITHUB_TOKEN` and `PR_URL` are provided, the container will attempt
-to set the reviewers on the target PR.
+* If `DIFF_URL` is given, it will be fetched and passed into the selector's
+stdin.
+* If `GITHUB_TOKEN` and `PR_URL` are provided, the container will attempt
+
+Some other optional behaviours can be triggered by providing additional context
+in environment variables:
+* If `ORG_NAME` is passed, it will be used to scope reviewers groups to that
+  org.
+* If `REPO_NAME` and `TARGET_BRANCH_NAME` are provided, rules that specifically
+  match a given repository and/or branch will also be applied.
+* If `REPO_URL` is given, the script will attempt to fetch a rules file from
+  the `main` branch of the repository. If it fails, it will fallback to
+  built-in rules. to set the reviewers on the target PR.
