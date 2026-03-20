@@ -112,7 +112,8 @@ The container's behaviour can be entirely parametrised via environment variables
 
 * If `DIFF_URL` is given, it will be fetched and passed into the selector's
 stdin.
-* If `GITHUB_TOKEN` and `PR_URL` are provided, the container will attempt
+* If `GITHUB_TOKEN` and `PR_URL` are provided, the container will attempt 
+  to set the reviewers on the target PR.
 
 Some other optional behaviours can be triggered by providing additional context
 in environment variables:
