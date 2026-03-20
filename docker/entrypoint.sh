@@ -57,7 +57,7 @@ else
 fi
 
 REVIEWERS=$(cat "${DIFF}" \
-	| /app/reviewer_selector.py \
+	| reviewer-selector \
     ${REPO_BRANCH:+--repo "${REPO_BRANCH}"} \
     --group-prefix "${GROUP_PREFIX}" --reviewer-separator , \
     "${HERALD_RULES_JSON}" \
