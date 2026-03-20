@@ -123,4 +123,4 @@ in environment variables:
   match a given repository and/or branch will also be applied.
 * If `REPO_URL` is given, the script will attempt to fetch a rules file from
   the `main` branch of the repository. If it fails, it will fallback to
-  built-in rules. to set the reviewers on the target PR.
+  built-in rules.
