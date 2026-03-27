@@ -45,7 +45,14 @@ All the commands in this section rely on the development dependencies being inst
 
 ## Linting
 
+Ruff has a [linter and a formatter](https://docs.astral.sh/ruff/faq/#do-i-have-to-use-ruffs-linter-and-formatter-together). We use both,
+
+    $ uv run ruff format
     $ uv run ruff check --fix
+
+or simply,
+
+    $ make format
 
 ## Regenerating requirements.txt
 
