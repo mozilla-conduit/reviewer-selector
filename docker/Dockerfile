@@ -1,4 +1,4 @@
-FROM python:3.14
+FROM python:3.12
 
 RUN apt-get -y update \
   && apt-get -y install \
