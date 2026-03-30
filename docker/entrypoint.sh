@@ -27,7 +27,7 @@ else
 fi
 
 if [ -z "${HERALD_RULES_JSON:-}" ]; then
-  HERALD_RULES_JSON="${1}"
+  HERALD_RULES_JSON="${1:-${DEFAULT_HERALD_RULES_JSON}}"
 fi
 
 DIFF=$(mktemp)
