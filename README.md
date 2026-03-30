@@ -33,6 +33,42 @@ is used as a bootstrapping stop-gap, and should not be expected to remain
 stable at this stage.
 
 
+# TaskCluster and GitHub authentication
+
+To generate a GitHub application token based on a TaskCluster secret, use the
+`gh-token-generator` script. The secret should contain two values, named
+`GITHUB_APP_ID` and `GITHUB_APP_PRIVKEY`.
+
+The generator relies on [Standard TaskCluster Environment
+Variables](https://docs.taskcluster.net/docs/manual/design/env-vars) to obtain
+the secret named with ID `TC_SECRET_ID`. Those variables can be set with the
+[Taskcluster shell
+client](https://github.com/taskcluster/taskcluster/tree/main/clients/client-shell),
+`taskcluster signin`.
+
+<details>
+
+<summary>Building the Taskcluster Client for Shell</summary>
+
+Requirements: [golang](https://go.dev/doc/install)
+
+    $ git clone https://github.com/taskcluster/taskcluster
+    $ cd taskcluster/clients/client-shell
+    $ go build -o taskcluster .
+
+</details>
+
+    $ eval $(/PATH/TO/taskcluster/clients/client-shell/taskcluster signin)  # follow the web prompts
+    $ export ORG_NAME=mozilla-firefox
+    $ export REPO_NAME=infra-testing
+    $ uv run gh-token-generator
+
+then
+
+    $ GITHUB_TOKEN=$(uv run gh-token-generator)
+    $ gh ...
+
+
 # Development tasks
 
 All the commands in this section rely on the development dependencies being installed.
