@@ -53,7 +53,7 @@ if [ -n "${REPO_NAME:-}" ] && [ -n "${TARGET_BRANCH_NAME:-}" ]; then
   REPO_BRANCH=${REPO_NAME}-${TARGET_BRANCH_NAME}
 
 else
-	echo "No REPO_NAME or TARGET_BRANCH_NAME in environment, not matching repository-based rules ..." >&2
+	echo "REPO_NAME or TARGET_BRANCH_NAME missing from environment, not matching repository-based rules ..." >&2
 fi
 
 REVIEWERS=$(cat "${DIFF}" \
@@ -63,11 +63,17 @@ REVIEWERS=$(cat "${DIFF}" \
     "${HERALD_RULES_JSON}" \
 )
 
+if [ -z "${GITHUB_TOKEN:-}" ] && [ -n "${TC_SECRET_ID:-}" ]; then
+  echo "TC_SECRET_ID provided, using it to generate GITHUB_TOKEN ..." >&2
+  GITHUB_TOKEN="$(gh-token-generator)"
+  export GITHUB_TOKEN
+fi
+
 if [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${PR_URL:-}" ]; then
-	echo "Adding reviewers to ${PR_URL} ..." >&2
-	gh pr edit "${PR_URL}" --add-reviewer "${REVIEWERS}"
+	echo "Adding reviewers ${REVIEWERS} to ${PR_URL} ..." >&2
+	gh pr edit "${PR_URL}" --add-reviewer "${REVIEWERS}" >/dev/null
 
 else
-	echo "No PR_URL or GITHUB_TOKEN in environment, outputing to stdout ..." >&2
+	echo "PR_URL or GITHUB_TOKEN missing from environment, outputing to stdout ..." >&2
   echo "${REVIEWERS}"
 fi

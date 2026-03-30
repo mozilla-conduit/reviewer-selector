@@ -150,6 +150,8 @@ The container's behaviour can be entirely parametrised via environment variables
       -v ./herald_rules.real.json:/app/herald_rules.json \
       -e DIFF_URL=https://github.com/mozilla-firefox/infra-testing/pull/30.diff \
       -e PR_URL=https://github.com/mozilla-firefox/infra-testing/pull/30 \
+      -e REPO_URL=https://github.com/mozilla-firefox/ \
+      -e ORG_NAME=mozilla-firefox -e REPO_NAME=infra-testing \
       -e GITHUB_TOKEN=[REDACTED] reviewer-selector
     Adding reviewers to https://github.com/mozilla-firefox/infra-testing/pull/30 ...
 
@@ -167,3 +169,6 @@ in environment variables:
 * If `REPO_URL` is given, the script will attempt to fetch a rules file from
   the `main` branch of the repository. If it fails, it will fallback to
   built-in rules.
+* If `TC_SECRET_ID` is provided, it is expected to contain `GITHUB_APP_ID` and
+  `GITHUB_APP_PRIVKEY` values. They will be used to generate a `GITHUB_TOKEN`
+  (if unspecified) for `ORG_NAME`/`REPO_NAME`.
