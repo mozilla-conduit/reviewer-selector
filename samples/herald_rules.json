@@ -1,19 +1,47 @@
 {
   "rules": [
     {
-      "id": "H1",
-      "name": "example rule",
+      "id": "S1",
+      "name": "tests",
       "author": "shtrom",
       "status": "active",
       "type": "differential-revision",
       "conditions": [
         {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "infra-testing-autoland",
+            "infra-testing-main"
+          ]
+        },
+        {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": "test$"
+          "value": "^/?mobile/"
         }
       ],
       "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "infra-testing-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "sheehan",
+              "blocking": false,
+              "is_group": false
+            }
+          ]
+        },
         {
           "type": "add-reviewers",
           "reviewers": [
@@ -23,55 +51,14 @@
               "is_group": false
             }
           ]
-        }
-      ]
-    },
-    {
-      "id": "H2",
-      "name": "Blocked by example-group",
-      "author": "shtrom",
-      "status": "active",
-      "type": "differential-revision",
-      "conditions": [
-        {
-          "type": "repository",
-          "operator": "is-any-of",
-          "value": [
-            "mozilla-central",
-            "firefox-autoland"
-          ]
         },
-        {
-          "type": "differential-revision-status",
-          "operator": "is-not-any-of",
-          "value": [
-            "Closed",
-            "Abandoned",
-            "Draft",
-            "Changes Planned"
-          ]
-        },
-        {
-          "type": "differential-reviewers",
-          "operator": "include-none-of",
-          "value": [
-            "example-group"
-          ]
-        },
-        {
-          "type": "differential-affected-files",
-          "operator": "matches-regexp",
-          "value": "/?mobile/android/(fenix|focus-android|android-components)"
-        }
-      ],
-      "actions": [
         {
           "type": "add-reviewers",
           "reviewers": [
             {
-              "target": "example-group",
-              "blocking": true,
-              "is_group": true
+              "target": "zeid",
+              "blocking": false,
+              "is_group": false
             }
           ]
         }
@@ -79,22 +66,41 @@
     }
   ],
   "groups": {
-    "example-group": {
-      "id": "example-group",
-      "display_name": "example-group",
+    "lando-reviewers": {
+      "id": "infra-testing-reviewers",
+      "display_name": "infra-testing-reviewers",
       "members": [
-          "example-user"
+        "sheehan",
+        "shtrom",
+        "zeid"
       ]
     }
   },
   "github_users": {
-    "Mardak": {
-      "username": "example-user",
-      "user_id": 0
+    "sheehan": {
+      "username": "cgsheeh",
+      "user_id": 12172761
     },
     "shtrom": {
       "username": "shtrom",
       "user_id": 160280
+    },
+    "zeid": {
+      "username": "zzzeid",
+      "user_id": 2043828
+    }
+  },
+  "metadata": {
+    "extracted_at": "2026-01-29T07:04:24.886522Z",
+    "total_rules": 87,
+    "total_groups": 73,
+    "total_users_resolved": 180,
+    "total_users_unresolved": 134,
+    "phabricator_instance": "phabricator.services.mozilla.com",
+    "scrape_status": {
+      "rules_complete": false,
+      "groups_complete": true,
+      "github_complete": true
     }
   }
 }
