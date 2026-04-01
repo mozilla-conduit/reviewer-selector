@@ -3,14 +3,13 @@
 import asyncio
 import os
 
-import taskcluster
 from simple_github import AppAuth, AppInstallationAuth
-from taskcluster.helper import load_secrets
+from taskcluster.helper import TaskclusterConfig, load_secrets
 
 
 def main() -> str:
-    if not (tc_options := taskcluster.optionsFromEnvironment()):
-        raise Exception("Missing TASKCLUSTER_* options in environment")
+    tc = TaskclusterConfig()
+    tc.auth()
 
     if not (tc_secret_id := os.environ.get("TC_SECRET_ID")):
         raise Exception("Missing or empty TC_SECRET_ID in environment")
@@ -21,20 +20,20 @@ def main() -> str:
     if not (gh_repo := os.environ.get("REPO_NAME")):
         raise Exception("Missing or empty REPO_NAME in environment")
 
-    return generate_token(tc_options, tc_secret_id, gh_owner, gh_repo)
+    return generate_token(tc, tc_secret_id, gh_owner, gh_repo)
 
 
 def generate_token(
-    tc_options: dict, tc_secret_id: str, gh_owner: str, gh_repo: str
+    tc: TaskclusterConfig, tc_secret_id: str, gh_owner: str, gh_repo: str
 ) -> str:
-    tc_secret = fetch_tc_secret(tc_options, tc_secret_id)
+    tc_secret = fetch_tc_secret(tc, tc_secret_id)
     return generate_github_token(
         tc_secret["GITHUB_APP_ID"], tc_secret["GITHUB_APP_PRIVKEY"], gh_owner, gh_repo
     )
 
 
-def fetch_tc_secret(tc_options, secret_id: str) -> dict[str, str]:
-    secrets = taskcluster.Secrets(tc_options)
+def fetch_tc_secret(tc: TaskclusterConfig, secret_id: str) -> dict[str, str]:
+    secrets = tc.get_service("secrets")
     return load_secrets(secrets, secret_id)
 
 
