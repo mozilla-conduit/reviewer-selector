@@ -7,7 +7,7 @@ from simple_github import AppAuth, AppInstallationAuth
 from taskcluster.helper import TaskclusterConfig, load_secrets
 
 
-def main() -> str:
+def main() -> int:
     tc = TaskclusterConfig()
     tc.auth()
 
@@ -20,7 +20,8 @@ def main() -> str:
     if not (gh_repo := os.environ.get("REPO_NAME")):
         raise Exception("Missing or empty REPO_NAME in environment")
 
-    return generate_token(tc, tc_secret_id, gh_owner, gh_repo)
+    print(generate_token(tc, tc_secret_id, gh_owner, gh_repo))
+    return 0
 
 
 def generate_token(
@@ -56,4 +57,4 @@ async def async_generate_github_token(
 
 
 if __name__ == "__main__":
-    print(main())
+    exit(main())
