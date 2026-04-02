@@ -15,8 +15,9 @@ if [ -n "${REPO_URL:-}" ]; then
   # We always fetch the rules from the main branch.
   RULES_URL="${REPO_URL}/raw/refs/heads/${TARGET_BRANCH_NAME:-main}/herald_rules.json"
 
-	if ! ${CURL} "${RULES_URL}" --output "${HERALD_RULES_JSON}"; then
-    echo "Failed to fetch rules from ${RULES_URL}, using built-in rules ..." >&2
+  echo "Attempting to fetch rules from ${RULES_URL} ..." >&2
+	if ! ${CURL} -L "${RULES_URL}" --output "${HERALD_RULES_JSON}"; then
+    echo "Failed, using built-in rules ..." >&2
     HERALD_RULES_JSON=""
 
   fi
@@ -70,8 +71,13 @@ if [ -z "${GITHUB_TOKEN:-}" ] && [ -n "${TC_SECRET_ID:-}" ]; then
 fi
 
 if [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${PR_URL:-}" ]; then
-	echo "Adding reviewers ${REVIEWERS} to ${PR_URL} ..." >&2
-	gh pr edit "${PR_URL}" --add-reviewer "${REVIEWERS}" >/dev/null
+  if [ -z "${REVIEWERS}" ]; then
+    echo "No reviewers to add ..." >&2
+
+  else
+    echo "Adding reviewers ${REVIEWERS} to ${PR_URL} ..." >&2
+    gh pr edit "${PR_URL}" --add-reviewer "${REVIEWERS}" >/dev/null
+  fi
 
 else
 	echo "PR_URL or GITHUB_TOKEN missing from environment, outputing to stdout ..." >&2
