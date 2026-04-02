@@ -13,7 +13,7 @@ CURL="curl --fail --show-error --silent --location"
 if [ -n "${REPO_URL:-}" ]; then
   HERALD_RULES_JSON=$(mktemp)
   # We always fetch the rules from the main branch.
-  RULES_URL="${REPO_URL}/refs/heads/main/herald_rules.json"
+  RULES_URL="${REPO_URL}/raw/refs/heads/${TARGET_BRANCH_NAME:-main}/herald_rules.json"
 
 	if ! ${CURL} "${RULES_URL}" --output "${HERALD_RULES_JSON}"; then
     echo "Failed to fetch rules from ${RULES_URL}, using built-in rules ..." >&2
