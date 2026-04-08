@@ -11,6 +11,8 @@ classifiers = [
 ]
 dependencies= [
   "rs_parsepatch",
+  "simple-github",
+  "taskcluster",
 ]
 description =  "Select reviewers based on a diff and a set of rules"
 dynamic = ["version"]
@@ -19,6 +21,7 @@ maintainers = [
     {name = "Mozilla Conduit", email = "conduit-team@mozilla.com"},
 ]
 name = "reviewer-selector"
+# NOTE: When bumping this, also update docker/Dockerfile to match.
 requires-python = ">=3.12"
 
 [project.optional-dependencies]
@@ -31,3 +34,4 @@ dev = [
 
 [project.scripts]
 reviewer-selector = "reviewer_selector:main"
+gh-token-generator = "gh_token_generator:main"

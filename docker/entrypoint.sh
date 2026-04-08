@@ -13,10 +13,11 @@ CURL="curl --fail --show-error --silent --location"
 if [ -n "${REPO_URL:-}" ]; then
   HERALD_RULES_JSON=$(mktemp)
   # We always fetch the rules from the main branch.
-  RULES_URL="${REPO_URL}/refs/heads/main/herald_rules.json"
+  RULES_URL="${REPO_URL}/raw/refs/heads/${TARGET_BRANCH_NAME:-main}/herald_rules.json"
 
-	if ! ${CURL} "${RULES_URL}" --output "${HERALD_RULES_JSON}"; then
-    echo "Failed to fetch rules from ${RULES_URL}, using built-in rules ..." >&2
+  echo "Attempting to fetch rules from ${RULES_URL} ..." >&2
+	if ! ${CURL} -L "${RULES_URL}" --output "${HERALD_RULES_JSON}"; then
+    echo "Failed, using built-in rules ..." >&2
     HERALD_RULES_JSON=""
 
   fi
@@ -27,7 +28,7 @@ else
 fi
 
 if [ -z "${HERALD_RULES_JSON:-}" ]; then
-  HERALD_RULES_JSON="${1}"
+  HERALD_RULES_JSON="${1:-${DEFAULT_HERALD_RULES_JSON}}"
 fi
 
 DIFF=$(mktemp)
@@ -53,7 +54,7 @@ if [ -n "${REPO_NAME:-}" ] && [ -n "${TARGET_BRANCH_NAME:-}" ]; then
   REPO_BRANCH=${REPO_NAME}-${TARGET_BRANCH_NAME}
 
 else
-	echo "No REPO_NAME or TARGET_BRANCH_NAME in environment, not matching repository-based rules ..." >&2
+	echo "REPO_NAME or TARGET_BRANCH_NAME missing from environment, not matching repository-based rules ..." >&2
 fi
 
 REVIEWERS=$(cat "${DIFF}" \
@@ -63,11 +64,22 @@ REVIEWERS=$(cat "${DIFF}" \
     "${HERALD_RULES_JSON}" \
 )
 
+if [ -z "${GITHUB_TOKEN:-}" ] && [ -n "${TC_SECRET_ID:-}" ]; then
+  echo "TC_SECRET_ID provided, using it to generate GITHUB_TOKEN ..." >&2
+  GITHUB_TOKEN="$(gh-token-generator)"
+  export GITHUB_TOKEN
+fi
+
 if [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${PR_URL:-}" ]; then
-	echo "Adding reviewers to ${PR_URL} ..." >&2
-	gh pr edit "${PR_URL}" --add-reviewer "${REVIEWERS}"
+  if [ -z "${REVIEWERS}" ]; then
+    echo "No reviewers to add ..." >&2
+
+  else
+    echo "Adding reviewers ${REVIEWERS} to ${PR_URL} ..." >&2
+    gh pr edit "${PR_URL}" --add-reviewer "${REVIEWERS}" >/dev/null
+  fi
 
 else
-	echo "No PR_URL or GITHUB_TOKEN in environment, outputing to stdout ..." >&2
+	echo "PR_URL or GITHUB_TOKEN missing from environment, outputing to stdout ..." >&2
   echo "${REVIEWERS}"
 fi

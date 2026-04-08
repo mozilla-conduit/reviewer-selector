@@ -1,9 +1,15 @@
-FROM python:3.14
+FROM python:3.12
 
-RUN apt-get -y update \
-  && apt-get -y install \
-    gh \
-  && rm -rf /var/lib/apt/lists/*
+ARG GH_VERSION=2.89.0
+
+ARG BUILTIN_HERALD_RULES=samples/herald_rules.json
+
+# Lift the build arguments into runtime environment variables.
+ENV GH_VERSION=${GH_VERSION}
+ENV DEFAULT_HERALD_RULES_JSON=${BUILTIN_HERALD_RULES}
+
+RUN curl -L https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.deb -o /tmp/gh.deb \
+  && dpkg -i /tmp/gh.deb
 
 RUN mkdir /app
 WORKDIR /app
@@ -12,7 +18,5 @@ RUN --mount=type=bind,src=../requirements.txt,target=/app/requirements.txt pip i
 
 COPY . /app
 RUN pip install /app
-
-CMD [ "samples/herald_rules.json" ]
 
 ENTRYPOINT [ "/app/docker/entrypoint.sh" ]
