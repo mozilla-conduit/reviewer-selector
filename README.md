@@ -113,6 +113,34 @@ Requirements: [docker](https://docs.docker.com/get-started/get-docker/).
 
     $ docker build -f docker/Dockerfile -t reviewer-selector .
 
+### Bundling herald_rules.
+
+The default behaviour is to search the target repository/branch for a `herald_rules.json` file.
+If missing, a fallback from the container is used.
+
+Herald rules can be extracted from Phabricator using the [Herald Crawler](https://github.com/mozilla-conduit/herald_crawler).
+
+
+    $  herald-scraper --url https://phabricator.services.mozilla.com \
+      --conduit-token $PHAB_TOKEN --pmo-cookie $PEOPLE_MOZILLA_COOKIE \
+      --output herald_rules.json \
+
+Get/create your `$PHAB_TOKEN` from https://phabricator.services.mozilla.com/settings/user/<YOUR-USERNAME>/page/apitokens/. Get your `$PEOPLE_MOZILLA_COOKIE` from the `pmo-access` cookie after logging in to https://people.mozilla.org/
+
+This file can then be bundled as default in the container image.
+
+    $ docker build -f docker/Dockerfile \
+      --build-arg BUILTIN_HERALD_RULES=herald_rules.json \
+      -t reviewer-selector \
+      .
+
+    $ docker tag reviewer-selector omehani/moz-reviewer-selector
+    $ docker push omehani/moz-reviewer-selector
+
+This is the [image tag that the CI hook currently uses](https://github.com/mozilla-releng/fxci-config/blob/26dcd5dbe8994ed1e0c7a344ab832cfcfad85e28/hooks/project-engwf/reviewer-assignment-infra-testing.yml#L37).
+
+XXX: update this tag
+
 ## Running in a container
 
 For convenience, the sample rules are shipped with the container image. The
@@ -150,9 +178,10 @@ The container's behaviour can be entirely parametrised via environment variables
       -v ./herald_rules.real.json:/app/herald_rules.json \
       -e DIFF_URL=https://github.com/mozilla-firefox/infra-testing/pull/30.diff \
       -e PR_URL=https://github.com/mozilla-firefox/infra-testing/pull/30 \
-      -e REPO_URL=https://github.com/mozilla-firefox/ \
+      -e REPO_URL=https://github.com/mozilla-firefox/infra-testing \
       -e ORG_NAME=mozilla-firefox -e REPO_NAME=infra-testing \
-      -e GITHUB_TOKEN=[REDACTED] reviewer-selector
+      -e GITHUB_TOKEN=[REDACTED] \
+      reviewer-selector
     Adding reviewers to https://github.com/mozilla-firefox/infra-testing/pull/30 ...
 
 * If `DIFF_URL` is given, it will be fetched and passed into the selector's
