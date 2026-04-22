@@ -80,6 +80,8 @@ tasks:
                     expires: { $fromNow: "6 months" }
                     path: /reviewer-selector.tar.zst
                     type: file
+              scopes:
+                - 'assume:repo:github.com/${event.pull_request.base.repo.full_name}:${tasks_for[7:]}'
               routes:
                 $if: 'tasks_for == "github-pull-request"'
                 then:
