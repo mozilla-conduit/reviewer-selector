@@ -1,0 +1,97 @@
+version: 1
+policy:
+  pullRequests: public
+reporting: checks-v1
+tasks:
+  $let:
+    head_branch:
+      $if: 'tasks_for == "github-pull-request"'
+      then: ${event.pull_request.head.ref}
+      else:
+        $if: 'tasks_for == "github-push"'
+        then:
+          # Strip ref branch prefix
+          $if: 'event.ref[0:11] == "refs/heads/"'
+          then: ${event.ref[11:]}
+          else: ${event.ref}
+        else: ${event.release.target_commitish}
+
+    head_rev:
+      $if: 'tasks_for == "github-pull-request"'
+      then: ${event.pull_request.head.sha}
+      else:
+        $if: 'tasks_for == "github-push"'
+        then: ${event.after}
+        else: ${event.release.tag_name}
+
+    repository:
+      $if: 'tasks_for == "github-pull-request"'
+      then: ${event.pull_request.head.repo.html_url}
+      else: ${event.repository.html_url}
+
+    channel:
+      $if: 'tasks_for == "github-push"'
+      then:
+        $if: 'event.ref in ["refs/heads/testing", "refs/heads/production"]'
+        then: ${event.ref[11:]}
+        else: "dev"
+      else: "dev"
+
+    taskboot_image: "mozilla/taskboot:0.4.1"
+
+    provisionerId: "proj-engwf"
+
+    workerType:
+      $if: 'taskcluster_root_url == "https://firefox-ci-tc.services.mozilla.com"'
+      then: linux-gw-gcp
+      else: generic-worker-ubuntu-24-04
+  in:
+    $if: '(tasks_for == "github-push" && (head_branch == "main" || head_branch == "production" || head_branch == "testing")) || (tasks_for == "github-pull-request" && event["action"] in ["opened", "reopened", "synchronize"])'
+    then:
+      $flatten:
+        $match:
+          # Run only on firefoxci Taskcluster
+          'taskcluster_root_url == "https://firefox-ci-tc.services.mozilla.com"':
+            - taskId: { $eval: as_slugid("build_dind") }
+              created: { $fromNow: "" }
+              deadline: { $fromNow: "1 hour" }
+              provisionerId: "${provisionerId}"
+              workerType: "${workerType}"
+              payload:
+                maxRunTime: 3600
+                image: "${taskboot_image}"
+                env:
+                  GIT_REPOSITORY: ${repository}
+                  GIT_REVISION: ${head_rev}
+                command:
+                  - taskboot
+                  - build
+                  - --image
+                  - mozilla-conduit/reviewer-selector
+                  - --tag
+                  - "${channel}"
+                  - --tag
+                  - "${head_rev}"
+                  - --write
+                  - /reviewer-selector.tar
+                  - docker/Dockerfile
+                artifacts:
+                  public/reviewer-selector.tar.zst:
+                    expires: { $fromNow: "6 months" }
+                    path: /reviewer-selector.tar.zst
+                    type: file
+              scopes:
+                - 'assume:repo:github.com/${event.pull_request.base.repo.full_name}:${tasks_for[7:]}'
+              routes:
+                $if: 'tasks_for == "github-pull-request"'
+                then:
+                  - "index.project.engwf.production.reviewer-selector-pr.revision.${head_rev}"
+                  - "index.project.engwf.production.reviewer-selector-pr.branch.${head_branch}"
+                else:
+                  - "index.project.engwf.production.reviewer-selector.revision.${head_rev}"
+                  - "index.project.engwf.production.reviewer-selector.branch.${head_branch}"
+              metadata:
+                name: Reviewer selector docker in docker build
+                description: Build docker image of the reviewer selector, using a remote docker daemon
+                owner: omehani@mozilla.com
+                source: https://github.com/mozilla-conduit/reviewer-selector
