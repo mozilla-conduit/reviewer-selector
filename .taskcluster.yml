@@ -87,6 +87,28 @@ tasks:
               else: 'UNDEFINED'
           isPullRequest:
               $eval: 'tasks_for[:19] == "github-pull-request"'
+
+          taskboot_image: "mozilla/taskboot:0.4.5"
+
+          channel:
+            $if: 'tasks_for == "github-push"'
+            then:
+              $if: 'event.ref in ["refs/heads/main"]'
+              then: prod
+              else:
+                $if: 'event.ref in ["refs/heads/stage"]'
+                then: ${event.ref[11:]}
+                else: "dev"
+            else: "dev"
+
+          head_rev:
+            $if: 'tasks_for == "github-pull-request"'
+            then: ${event.pull_request.head.sha}
+            else:
+              $if: 'tasks_for == "github-push"'
+              then: ${event.after}
+              else: ${event.release.tag_name}
+
       in:
           $if: >
             tasks_for in ["action", "pr-action", "cron"]
@@ -240,57 +262,28 @@ tasks:
                           taskclusterProxy: true
                           chainOfTrust: true
 
-                      image: mozillareleases/taskgraph:decision-latest
+                      image: "${taskboot_image}"
 
                       maxRunTime: 1800
 
                       command:
-                          - run-task
-                          - '--taskgraph-checkout=/builds/worker/checkouts/src'
-                          - '--'
-                          - bash
-                          - -cx
-                          - $let:
-                                extraArgs:
-                                    $if: 'tasks_for == "cron"'
-                                    then: '${cron.quoted_args}'
-                                    else:
-                                        $if: 'tasks_for == "github-pull-request"'
-                                        then: '--allow-parameter-override'
-                                        else: ''
-                            in:
-                                $if: 'tasks_for == "action" || tasks_for == "pr-action"'
-                                then: >
-                                    cd /builds/worker/checkouts/src &&
-                                    ln -s /builds/worker/artifacts artifacts &&
-                                    pip3 install --user --break-system-packages . &&
-                                    taskgraph action-callback
-                                else: >
-                                    cd /builds/worker/checkouts/src &&
-                                    ln -s /builds/worker/artifacts artifacts &&
-                                    pip3 install --user --break-system-packages . &&
-                                    taskgraph decision
-                                    --verbose
-                                    --pushlog-id='0'
-                                    --pushdate='0'
-                                    --project='${project}'
-                                    --owner='${ownerEmail}'
-                                    --level='${level}'
-                                    --repository-type=git
-                                    --tasks-for='${tasks_for}'
-                                    --base-repository='${baseRepoUrl}'
-                                    --base-ref='${base_ref}'
-                                    --base-rev='${base_sha}'
-                                    --head-repository='${repoUrl}'
-                                    --head-ref='${head_ref}'
-                                    --head-rev='${head_sha}'
-                                    ${extraArgs}
+                          - taskboot
+                          - build
+                          - --image
+                          - mozilla-conduit/reviewer-selector
+                          - --tag
+                          - "${channel}"
+                          - --tag
+                          - "${head_rev}"
+                          - --write
+                          - /reviewer-selector.tar
+                          - docker/Dockerfile
 
                       artifacts:
-                          'public':
-                              type: 'directory'
-                              path: '/builds/worker/artifacts'
-                              expires: {$fromNow: '1 year'}
+                          'public/reviewer-selector.tar.zst':
+                            expires: { $fromNow: "6 months" }
+                            path: /reviewer-selector.tar.zst
+                            type: file
                           'public/docker-contexts':
                               type: 'directory'
                               path: '/builds/worker/checkouts/src/docker-contexts'
