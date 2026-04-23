@@ -13,11 +13,11 @@ tasks:
     # NOTE: support for actions in ci-admin requires that the `tasks` property be an array *before* JSON-e rendering
     # takes place.
     - $let:
-          trustDomain: taskgraph
+          trustDomain: mozilla
           ownerEmail:
               $switch:
                   'tasks_for == "github-push"': '${event.pusher.email}'
-                  'tasks_for == "github-release"': 'release+taskgraph-ci@mozilla.com'
+                  'tasks_for == "github-release"': 'omehani@mozilla.com'
                   'tasks_for[:19] == "github-pull-request"': '${event.pull_request.user.login}@users.noreply.github.com'
                   'tasks_for in ["cron", "action", "pr-action"]': '${tasks_for}@noreply.mozilla.org'
           baseRepoUrl:
@@ -117,10 +117,7 @@ tasks:
             || (isPullRequest && pullRequestAction in ["opened", "reopened", "synchronize"])
           then:
               $let:
-                  level:
-                      $if: 'tasks_for in ["github-release", "github-push", "cron", "action"] && repoUrl == "https://github.com/taskcluster/taskgraph"'
-                      then: 3
-                      else: 1
+                  level: 3
                   short_head_ref:
                       $if: 'head_ref[:10] == "refs/tags/"'
                       then: {$eval: 'head_ref[10:]'}
