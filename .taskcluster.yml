@@ -117,7 +117,7 @@ tasks:
             || (isPullRequest && pullRequestAction in ["opened", "reopened", "synchronize"])
           then:
               $let:
-                  level: 3
+                  level: 1
                   short_head_ref:
                       $if: 'head_ref[:10] == "refs/tags/"'
                       then: {$eval: 'head_ref[10:]'}
