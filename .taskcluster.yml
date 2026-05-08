@@ -275,8 +275,8 @@ tasks:
                       command:
                         - sh
                         - -xce
-                        - 'ls -lR /src && git clone --quiet ${repoUrl} --depth=1 --revision=${head_rev} /src/code &&
-                        cd /src/code && taskboot build --image mozilla-conduit/reviewer-selector --tag "${channel}" --tag "${head_rev}" --write /reviewer-selector.tar docker/Dockerfile'
+                        - 'git clone --quiet ${repoUrl} --depth=1 --revision=${head_rev} /src/code &&
+                        cd /src/code && ls -lR && taskboot build --image mozilla-conduit/reviewer-selector --tag "${channel}" --tag "${head_rev}" --write /reviewer-selector.tar docker/Dockerfile'
 
                       artifacts:
                           'public/reviewer-selector.tar.zst':
