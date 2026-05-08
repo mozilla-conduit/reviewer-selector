@@ -272,6 +272,9 @@ tasks:
 
                       maxRunTime: 1800
 
+                      capabilities:
+                        privileged: true
+
                       command:
                         - sh
                         - -xce
