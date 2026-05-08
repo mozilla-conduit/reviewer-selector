@@ -17,7 +17,7 @@ tasks:
           ownerEmail:
               $switch:
                   'tasks_for == "github-push"': '${event.pusher.email}'
-                  'tasks_for == "github-release"': 'omehani@mozilla.com'
+                  'tasks_for == "github-release"': 'conduit-team@mozilla.com'
                   'tasks_for[:19] == "github-pull-request"': '${event.pull_request.user.login}@users.noreply.github.com'
                   'tasks_for in ["cron", "action", "pr-action"]': '${tasks_for}@noreply.mozilla.org'
           baseRepoUrl:
@@ -117,7 +117,10 @@ tasks:
             || (isPullRequest && pullRequestAction in ["opened", "reopened", "synchronize"])
           then:
               $let:
-                  level: 1
+                  level:
+                    $switch:
+                      'head_branch == "refs/heads/main"': 3
+                      $default: 1
                   short_head_ref:
                       $if: 'head_ref[:10] == "refs/tags/"'
                       then: {$eval: 'head_ref[10:]'}
