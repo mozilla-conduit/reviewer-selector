@@ -269,7 +269,7 @@ tasks:
                       command:
                         - sh
                         - -xce
-                        - 'git clone --quiet ${repoUrl} /src && cd /src && git checkout ${head_rev} &&
+                        - 'ls /src && git clone --quiet ${repoUrl} /src2 && cd /src2 && git checkout ${head_rev} &&
                         taskboot build --image mozilla-conduit/reviewer-selector --tag "${channel}" --tag "${head_rev}" --write /reviewer-selector.tar docker/Dockerfile'
 
                       artifacts:
