@@ -109,6 +109,11 @@ tasks:
               then: ${event.after}
               else: ${event.release.tag_name}
 
+          workerType:
+            $if: 'taskcluster_root_url == "https://firefox-ci-tc.services.mozilla.com"'
+            then: linux-gw-gcp
+            else: generic-worker-ubuntu-24-04
+
       in:
           $if: >
             tasks_for in ["action", "pr-action", "cron"]
@@ -166,7 +171,7 @@ tasks:
                                     description: 'Created by a [cron task](https://firefox-ci-tc.services.mozilla.com/tasks/${cron.task_id})'
 
                   provisionerId: "${trustDomain}-${level}"
-                  workerType: "decision"
+                  workerType: "${workerType}"
 
                   tags:
                       $switch:
