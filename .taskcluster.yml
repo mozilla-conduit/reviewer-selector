@@ -235,7 +235,7 @@ tasks:
                       then: low
                       else:
                           $if: 'tasks_for == "github-push" || isPullRequest'
-                          then: very-low
+                          then: medium
                           else: lowest  # tasks_for == 'action'
                   retries: 5
 
@@ -270,11 +270,11 @@ tasks:
                       maxRunTime: 1800
 
                       command:
-                        - sh
-                        - -xce
-                        - 'git clone --quiet ${repoUrl} --depth=1 --revision=${head_rev} /code &&
-                           docker build /code /code/docker/Dockerfile  --tag "${channel}" --tag "${head_rev}" &&
-                           docker image save --ouput /reviewer-selector.tar'
+                        - - 'sh'
+                          - '-xce'
+                          - 'git clone --quiet ${repoUrl} --depth=1 --revision=${head_rev} /code &&
+                             docker build /code /code/docker/Dockerfile  --tag "${channel}" --tag "${head_rev}" &&
+                             docker image save --ouput /reviewer-selector.tar'
 
                       artifacts:
                         - expires: { $fromNow: "6 months" }
