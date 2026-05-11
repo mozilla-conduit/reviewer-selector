@@ -272,10 +272,9 @@ tasks:
                       maxRunTime: 1800
 
                       command:
-                          - ['sh', '-xce', 'mkdir -p "$BUILD_PATH" &&
-                            git clone --quiet ${repoUrl} --depth=1 "$CODE_PATH" && cd "$CODE_PATH" && git checkout ${head_rev} &&
-                            docker build "$CODE_PATH" "$CODE_PATH/docker/Dockerfile"  --tag "${channel}" --tag "${head_rev}" &&
-                            docker image save --ouput "$BUILD_PATH/reviewer-selector.tar"']
+                          - ['sh', '-xce', 'git clone --quiet ${repoUrl} --depth=1 "$CODE_PATH" && cd "$CODE_PATH" && git checkout ${head_rev} &&
+                            docker build "$CODE_PATH" "$CODE_PATH/docker/Dockerfile"  --tag "reviewer-selector:${channel}" --tag "reviewer-selector:${head_rev}" &&
+                            docker image save reviewer-selector:${head_rev} --ouput "$BUILD_PATH/reviewer-selector.tar"']
 
                       artifacts:
                         - expires: { $fromNow: "6 months" }
