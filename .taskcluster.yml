@@ -270,11 +270,9 @@ tasks:
                       maxRunTime: 1800
 
                       command:
-                        - - 'sh'
-                          - '-xce'
-                          - 'git clone --quiet ${repoUrl} --depth=1 --revision=${head_rev} /code &&
+                        - ['sh', '-xce', 'git clone --quiet ${repoUrl} --depth=1 --revision=${head_rev} /code &&
                              docker build /code /code/docker/Dockerfile  --tag "${channel}" --tag "${head_rev}" &&
-                             docker image save --ouput /reviewer-selector.tar'
+                             docker image save --ouput /reviewer-selector.tar']
 
                       artifacts:
                         - expires: { $fromNow: "6 months" }
