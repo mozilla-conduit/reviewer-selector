@@ -279,7 +279,7 @@ tasks:
 
                       artifacts:
                         - expires: { $fromNow: "6 months" }
-                          path: "${BUILD_PATH}/reviewer-selector.tar.zst"
+                          path: "/tmp/reviewer-selector-build-${base_sha}/reviewer-selector.tar.zst"
                           type: file
 
                       # Docker worker payload
