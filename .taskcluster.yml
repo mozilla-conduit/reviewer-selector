@@ -271,10 +271,11 @@ tasks:
 
                       command:
                         - $let:
-                            build_path: "/tmp/reviewer-selector-build-${base_sha}"
-                          in: ['sh', '-xce', 'mkdir -p ${build_path} &&
-                             git clone --quiet ${repoUrl} --depth=1 "${build_path}/code" && cd "${build_path}/code" && git checkout ${head_rev} &&
-                             docker build "${build_path}/code" "${build_path}/code"/docker/Dockerfile  --tag "${channel}" --tag "${head_rev}" &&
+                              build_path: '/tmp/reviewer-selector-build-${base_sha}'
+                              code_path: '/tmp/reviewer-selector-build-${base_sha}/code'
+                          in: ['sh', '-xce', 'mkdir -p "${build_path}" &&
+                             git clone --quiet ${repoUrl} --depth=1 "${code_path}" && cd "${code_path}" && git checkout ${head_rev} &&
+                             docker build "${code_path}" "${code_path}/docker/Dockerfile"  --tag "${channel}" --tag "${head_rev}" &&
                              docker image save --ouput "${build_path}/reviewer-selector.tar"']
 
                       artifacts:
