@@ -252,6 +252,8 @@ tasks:
                                 TASKGRAPH_HEAD_REV: '${head_sha}'
                                 TASKGRAPH_REPOSITORY_TYPE: git
                                 REPOSITORIES: {$json: {taskgraph: Taskgraph}}
+                                BUILD_PATH: '/tmp/reviewer-selector-build-${base_sha}'
+                                CODE_PATH: '/tmp/reviewer-selector-build-${base_sha}/code'
                               - $if: 'isPullRequest'
                                 then:
                                     TASKGRAPH_PULL_REQUEST_NUMBER: '${event.pull_request.number}'
@@ -270,17 +272,14 @@ tasks:
                       maxRunTime: 1800
 
                       command:
-                        - $let:
-                              build_path: '/tmp/reviewer-selector-build-${base_sha}'
-                              code_path: '/tmp/reviewer-selector-build-${base_sha}/code'
-                          in: ['sh', '-xce', 'mkdir -p "${build_path}" &&
-                             git clone --quiet ${repoUrl} --depth=1 "${code_path}" && cd "${code_path}" && git checkout ${head_rev} &&
-                             docker build "${code_path}" "${code_path}/docker/Dockerfile"  --tag "${channel}" --tag "${head_rev}" &&
-                             docker image save --ouput "${build_path}/reviewer-selector.tar"']
+                          - ['sh', '-xce', 'mkdir -p "${BUILD_PATH}" &&
+                            git clone --quiet ${repoUrl} --depth=1 "${CODE_PATH}" && cd "${CODE_PATH}" && git checkout ${head_rev} &&
+                            docker build "${CODE_PATH}" "${CODE_PATH}/docker/Dockerfile"  --tag "${channel}" --tag "${head_rev}" &&
+                            docker image save --ouput "${BUILD_PATH}/reviewer-selector.tar"']
 
                       artifacts:
                         - expires: { $fromNow: "6 months" }
-                          path: "${build_path}/reviewer-selector.tar.zst"
+                          path: "${BUILD_PATH}/reviewer-selector.tar.zst"
                           type: file
 
                       # Docker worker payload
