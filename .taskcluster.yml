@@ -75,7 +75,7 @@ tasks:
                   'tasks_for == "github-release"': '${event.release.tag_name}'
           ownTaskId:
               $switch:
-                  '"github" in tasks_for': {$eval: as_slugid("decision_task")}
+                  '"github" in tasks_for': {$eval: as_slugid("docker_build")}
                   'tasks_for in ["cron", "action", "pr-action"]': '${ownTaskId}'
           pullRequestAction:
               $switch:
@@ -112,7 +112,7 @@ tasks:
           workerType:
             $if: 'taskcluster_root_url == "https://firefox-ci-tc.services.mozilla.com"'
             #then: linux-gw-gcp
-            then: decision
+            then: mozilla-t/t-linux-2404-wayland
             else: generic-worker-ubuntu-24-04
 
       in:
@@ -153,8 +153,8 @@ tasks:
                             source: "${repoUrl}/raw/${head_sha}/.taskcluster.yml"
                           - $switch:
                                 'tasks_for in ["github-push", "github-release"] || isPullRequest':
-                                    name: "Decision Task"
-                                    description: 'The task that creates all of the other tasks in the task graph'
+                                    name: "Build docker image"
+                                    description: 'Build a docker image for this branch'
                                 'tasks_for == "action"':
                                     name: "Action: ${action.title}"
                                     description: |
@@ -168,7 +168,7 @@ tasks:
 
                                         PR action triggered by clientID `${clientId}`
                                 $default:
-                                    name: "Decision Task for cron job ${cron.job_name}"
+                                    name: "Build docker image for cron job ${cron.job_name}"
                                     description: 'Created by a [cron task](https://firefox-ci-tc.services.mozilla.com/tasks/${cron.task_id})'
 
                   provisionerId: "${trustDomain}-${level}"
