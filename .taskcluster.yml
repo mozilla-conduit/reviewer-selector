@@ -252,8 +252,8 @@ tasks:
                                 TASKGRAPH_HEAD_REV: '${head_sha}'
                                 TASKGRAPH_REPOSITORY_TYPE: git
                                 REPOSITORIES: {$json: {taskgraph: Taskgraph}}
-                                BUILD_PATH: '/tmp/reviewer-selector-build-${base_sha}'
-                                CODE_PATH: '/tmp/reviewer-selector-build-${base_sha}/code'
+                                BUILD_PATH: '/tmp/reviewer-selector-build-${head_rev}'
+                                CODE_PATH: '/tmp/reviewer-selector-build-${head_rev}/code'
                               - $if: 'isPullRequest'
                                 then:
                                     TASKGRAPH_PULL_REQUEST_NUMBER: '${event.pull_request.number}'
@@ -272,13 +272,13 @@ tasks:
                       maxRunTime: 1800
 
                       command:
-                          - ['sh', '-xce', 'git clone --quiet ${repoUrl} --depth=1 "$CODE_PATH" && cd "$CODE_PATH" && git checkout ${head_rev} &&
+                          - ['sh', '-xce', 'git clone --quiet ${repoUrl} "$CODE_PATH" && cd "$CODE_PATH" && git checkout ${head_rev} &&
                             docker build "$CODE_PATH" "$CODE_PATH/docker/Dockerfile"  --tag "reviewer-selector:${channel}" --tag "reviewer-selector:${head_rev}" &&
                             docker image save reviewer-selector:${head_rev} --ouput "$BUILD_PATH/reviewer-selector.tar"']
 
                       artifacts:
                         - expires: { $fromNow: "6 months" }
-                          path: "/tmp/reviewer-selector-build-${base_sha}/reviewer-selector.tar.zst"
+                          path: "/tmp/reviewer-selector-build-${head_rev}/reviewer-selector.tar.zst"
                           type: file
 
                       # Docker worker payload
