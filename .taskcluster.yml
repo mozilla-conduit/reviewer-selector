@@ -171,8 +171,9 @@ tasks:
                                     name: "Build docker image for cron job ${cron.job_name}"
                                     description: 'Created by a [cron task](https://firefox-ci-tc.services.mozilla.com/tasks/${cron.task_id})'
 
-                  provisionerId: "${trustDomain}-${level}"
-                  workerType: "${workerType}"
+                  #provisionerId: "${trustDomain}-${level}"
+                  provisionerId: "${trustDomain}-t" # mozilla-t
+                  workerType: "${workerType}" # t-linux-2404-wayland
 
                   tags:
                       $switch:
