@@ -273,7 +273,7 @@ tasks:
 
                       command:
                           - ['sh', '-xce', 'git clone --quiet ${repoUrl} "$CODE_PATH" && cd "$CODE_PATH" && git checkout ${head_rev} &&
-                            docker build "$CODE_PATH" "$CODE_PATH/docker/Dockerfile"  --tag "reviewer-selector:${channel}" --tag "reviewer-selector:${head_rev}" &&
+                            docker build "$CODE_PATH" -f "$CODE_PATH/docker/Dockerfile"  --tag "reviewer-selector:${channel}" --tag "reviewer-selector:${head_rev}" &&
                             docker image save reviewer-selector:${head_rev} --ouput "$BUILD_PATH/reviewer-selector.tar"']
 
                       artifacts:
