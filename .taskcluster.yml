@@ -261,39 +261,53 @@ tasks:
                                     ACTION_INPUT: {$json: {$eval: 'input'}}
                                     ACTION_CALLBACK: '${action.cb_name}'
 
-                      cache:
-                          "${trustDomain}-level-${level}-checkouts-sparse-v2": /builds/worker/checkouts
-
                       features:
                           taskclusterProxy: true
                           chainOfTrust: true
 
-                      image: "${taskboot_image}"
 
                       maxRunTime: 1800
-
-                      capabilities:
-                        privileged: true
 
                       command:
                         - sh
                         - -xce
                         - 'git clone --quiet ${repoUrl} --depth=1 --revision=${head_rev} /code &&
-                           taskboot --target /code build --image mozilla-conduit/reviewer-selector --tag "${channel}" --tag "${head_rev}" --write /reviewer-selector.tar docker/Dockerfile'
+                           docker build /code /code/docker/Dockerfile  --tag "${channel}" --tag "${head_rev}" &&
+                           docker image save --ouput /reviewer-selector.tar
 
                       artifacts:
-                          'public/reviewer-selector.tar.zst':
-                            expires: { $fromNow: "6 months" }
-                            path: /reviewer-selector.tar.zst
-                            type: file
-                          'public/docker-contexts':
-                              type: 'directory'
-                              path: '/builds/worker/checkouts/src/docker-contexts'
-                              # This needs to be at least the deadline of the
-                              # decision task + the docker-image task deadlines.
-                              # It is set to a week to allow for some time for
-                              # debugging, but they are not useful long-term.
-                              expires: {$fromNow: '7 day'}
+                        - expires: { $fromNow: "6 months" }
+                          path: /reviewer-selector.tar.zst
+                          type: file
+
+                      # Docker worker payload
+                      # image: "${taskboot_image}"
+                      #
+                      # command:
+                      #   - sh
+                      #   - -xce
+                      #   - 'git clone --quiet ${repoUrl} --depth=1 --revision=${head_rev} /code &&
+                      #      taskboot --target /code build --image mozilla-conduit/reviewer-selector --tag "${channel}" --tag "${head_rev}" --write /reviewer-selector.tar docker/Dockerfile'
+                      #
+                      # cache:
+                      #     "${trustDomain}-level-${level}-checkouts-sparse-v2": /builds/worker/checkouts
+                      #
+                      # capabilities:
+                      #   privileged: true
+                      #
+                      # artifacts:
+                      #     'public/reviewer-selector.tar.zst':
+                      #       expires: { $fromNow: "6 months" }
+                      #       path: /reviewer-selector.tar.zst
+                      #       type: file
+                      #     'public/docker-contexts':
+                      #         type: 'directory'
+                      #         path: '/builds/worker/checkouts/src/docker-contexts'
+                      #         # This needs to be at least the deadline of the
+                      #         # decision task + the docker-image task deadlines.
+                      #         # It is set to a week to allow for some time for
+                      #         # debugging, but they are not useful long-term.
+                      #         expires: {$fromNow: '7 day'}
 
                   extra:
                       $merge:
