@@ -204,19 +204,20 @@ tasks:
                                 $default: []
 
                   scopes:
-                      $switch:
+                    - 'generic-worker:os-group:${provisionerId}/${workerType}/docker'
+                    - $switch:
                           'tasks_for == "github-push"':
-                              - 'assume:repo:${repoUrl[8:]}:branch:${short_head_ref}'
+                              'assume:repo:${repoUrl[8:]}:branch:${short_head_ref}'
                           'tasks_for == "github-release"':
-                              - 'assume:repo:${repoUrl[8:]}:release:${releaseAction}'
+                              'assume:repo:${repoUrl[8:]}:release:${releaseAction}'
                           'isPullRequest':
-                              - 'assume:repo:github.com/${event.pull_request.base.repo.full_name}:${tasks_for[7:]}'
+                              'assume:repo:github.com/${event.pull_request.base.repo.full_name}:${tasks_for[7:]}'
                           'tasks_for == "action"':
-                              - 'assume:repo:${repoUrl[8:]}:action:${action.action_perm}'
+                              'assume:repo:${repoUrl[8:]}:action:${action.action_perm}'
                           'tasks_for == "pr-action"':
-                              - 'assume:repo:${baseRepoUrl[8:]}:pr-action:${action.action_perm}'
+                              'assume:repo:${baseRepoUrl[8:]}:pr-action:${action.action_perm}'
                           $default:
-                              - 'assume:repo:${repoUrl[8:]}:cron:${cron.job_name}'
+                              'assume:repo:${repoUrl[8:]}:cron:${cron.job_name}'
 
                   dependencies: []
                   requires: all-completed
