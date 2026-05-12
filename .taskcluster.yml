@@ -204,7 +204,8 @@ tasks:
                                 $default: []
 
                   scopes:
-                    - 'generic-worker:os-group:${provisionerId}/${workerType}/docker'
+                    # XXX: ${trustDomain}-t should be ${provisionerId}, but it's not yet available at this level.
+                    - 'generic-worker:os-group:${trustDomain}-t/${workerType}/docker'
                     - $switch:
                           'tasks_for == "github-push"':
                               'assume:repo:${repoUrl[8:]}:branch:${short_head_ref}'
