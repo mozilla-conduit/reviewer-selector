@@ -271,6 +271,9 @@ tasks:
 
                       maxRunTime: 1800
 
+                      osGroups:
+                        - docker
+
                       command:
                           - ['sh', '-xce', 'git clone --quiet ${repoUrl} "$CODE_PATH" && cd "$CODE_PATH" && git checkout ${head_rev} &&
                             docker build "$CODE_PATH" -f "$CODE_PATH/docker/Dockerfile"  --tag "reviewer-selector:${channel}" --tag "reviewer-selector:${head_rev}" &&
