@@ -8,10 +8,6 @@ ARG BUILTIN_HERALD_RULES=samples/herald_rules.json
 ENV GH_VERSION=${GH_VERSION}
 ENV DEFAULT_HERALD_RULES_JSON=${BUILTIN_HERALD_RULES}
 
-RUN adduser app && \
-      echo app:10000:5000 > /etc/subuid; \
-      echo app:10000:5000 > /etc/subgid;
-
 RUN curl -L https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.deb -o /tmp/gh.deb \
   && dpkg -i /tmp/gh.deb
 
@@ -22,7 +18,5 @@ RUN --mount=type=bind,src=../requirements.txt,target=/app/requirements.txt pip i
 
 COPY . /app
 RUN pip install /app
-
-USER app
 
 ENTRYPOINT [ "/app/docker/entrypoint.sh" ]
