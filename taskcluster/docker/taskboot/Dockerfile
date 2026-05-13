@@ -7,9 +7,7 @@ RUN mkdir -p /builds/worker/artifacts && \
     deluser $(grep ":1000:" /etc/passwd | cut -d: -f1) 2>/dev/null || true && \
     addgroup -g 1000 worker && \
     adduser -u 1000 -G worker -h /builds/worker -s /bin/bash -D worker && \
-    chown -R worker:worker /builds/worker && \
-    echo worker:10000:5000 > /etc/subuid && \
-    echo worker:10000:5000 > /etc/subgid
+    chown -R worker:worker /builds/worker
 
 # %include-run-task
 
