@@ -7,4 +7,3 @@ transforms:
     - taskgraph.transforms.task:transforms
 
 tasks:
-    taskboot: {}
