@@ -7,3 +7,4 @@ transforms:
     - taskgraph.transforms.task:transforms
 
 tasks:
+  reviewer-selector: {}
