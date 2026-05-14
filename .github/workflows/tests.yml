@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - run: docker build -f docker/Dockerfile -t reviewer-selector .
+      - run: make build
       - run: >
           docker run --entrypoint bash reviewer-selector
           -c 'pip install -r requirements-dev.txt && pytest'

@@ -3,3 +3,4 @@ mise.toml
 herald_rules.json
 build/
 *.egg-info
+topsrcdir
