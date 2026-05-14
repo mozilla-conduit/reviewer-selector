@@ -7,7 +7,6 @@ transforms = TransformSequence()
 def add_index_routes(config, tasks):
     for task in tasks:
         params = config.params
-        channel = params["channel"]
         head_rev = params["head_rev"]
        # Indices only allow dot-delimited groups of /[a-zA-Z0-9_!~*'()%-]+/.
         # Sanitise the branch name accordingly.
@@ -21,7 +20,6 @@ def add_index_routes(config, tasks):
         task.setdefault("routes", []).extend(
             [
                 f"index.{trust_domain}.v2.{index_prefix}.{task['name']}.revision.{head_rev}",
-                f"index.{trust_domain}.v2.{index_prefix}.{task['name']}.channel.{channel}",
                 f"index.{trust_domain}.v2.{index_prefix}.{task['name']}.branch.{head_ref}",
             ]
         )
