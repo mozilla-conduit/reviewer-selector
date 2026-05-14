@@ -2,10 +2,10 @@
 loader: taskgraph.loader.transform:loader
 
 transforms:
-    - reviewer_selector_taskgraph.transforms.docker-image
     - taskgraph.transforms.docker_image:transforms
     - taskgraph.transforms.cached_tasks:transforms
     - taskgraph.transforms.task:transforms
+    - reviewer_selector_taskgraph.transforms.docker-image
 
 index:
   product: reviewer-selector
