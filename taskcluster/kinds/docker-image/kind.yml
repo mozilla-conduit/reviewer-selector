@@ -6,9 +6,10 @@ transforms:
     - taskgraph.transforms.cached_tasks:transforms
     - taskgraph.transforms.task:transforms
 
+index:
+  type: generic
+  job-name: docker-image
+  product: reviewer-selector
+
 tasks:
-  reviewer-selector:
-    index:
-      type: generic
-      job-name: docker-image
-      product: reviewer-selector
+  reviewer-selector: {}
