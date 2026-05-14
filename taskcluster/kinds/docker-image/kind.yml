@@ -15,6 +15,7 @@ transforms:
 
 index:
   product: reviewer-selector
+  job-name: oeuoeu
 
 task-defaults:
   task-context:
