@@ -21,8 +21,8 @@ def add_index_routes(config, tasks):
         trust_domain = config.graph_config["trust-domain"]
         task.setdefault("routes", []).extend(
             [
-                f"index.{trust_domain}.v2.{index_prefix}.{task['name']}.revision.{head_rev}",
-                f"index.{trust_domain}.v2.{index_prefix}.{task['name']}.branch.{head_ref}",
+                f"index.{trust_domain}.v2.{index_prefix}.{task['label']}.revision.{head_rev}",
+                f"index.{trust_domain}.v2.{index_prefix}.{task['label']}.branch.{head_ref}",
             ]
         )
 
