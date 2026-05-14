@@ -5,9 +5,8 @@ transforms:
     - taskgraph.transforms.task_context
     - taskgraph.transforms.docker_image:transforms
     - taskgraph.transforms.cached_tasks:transforms
-    - taskgraph.transforms.task:transforms
-    # Needs to be after the task transforms.
     - reviewer_selector_taskgraph.transforms.docker-image
+    - taskgraph.transforms.task:transforms
 
 #kind-dependencies:
 #  - lint
