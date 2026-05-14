@@ -111,7 +111,7 @@ a GitHub pull request directly if enough information is available.
 
 Requirements: [docker](https://docs.docker.com/get-started/get-docker/).
 
-    $ docker build -f docker/Dockerfile -t reviewer-selector .
+    $ make build
 
 ### Bundling herald_rules.
 
@@ -129,12 +129,9 @@ Get/create your `$PHAB_TOKEN` from https://phabricator.services.mozilla.com/sett
 
 This file can then be bundled as default in the container image.
 
-    $ docker build -f docker/Dockerfile \
-      --build-arg BUILTIN_HERALD_RULES=herald_rules.json \
-      -t reviewer-selector \
-      .
-
-    $ docker tag reviewer-selector omehani/moz-reviewer-selector
+    $ make build \
+      DOCKER_ARGS='--build-arg BUILTIN_HERALD_RULES=herald_rules.json' \
+      DOCKER_TAG=omehani/moz-reviewer-selector
     $ docker push omehani/moz-reviewer-selector
 
 This is the [image tag that the CI hook currently uses](https://github.com/mozilla-releng/fxci-config/blob/26dcd5dbe8994ed1e0c7a344ab832cfcfad85e28/hooks/project-engwf/reviewer-assignment-infra-testing.yml#L37).
