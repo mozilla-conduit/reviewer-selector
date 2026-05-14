@@ -7,8 +7,6 @@ transforms:
     - taskgraph.transforms.task:transforms
 
 index:
-  type: generic
-  job-name: docker-image
   product: reviewer-selector
 
 tasks:
