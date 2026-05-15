@@ -8,8 +8,24 @@ transforms:
     - reviewer_selector_taskgraph.transforms.docker-image
     - taskgraph.transforms.task:transforms
 
+#kind-dependencies:
+#  - lint
+#  - test
+
+# task-defaults:
+#   task-context:
+#     from-parameters:
+#       channel: channel
+#       head_rev: head_rev
+#       head_ref: head_ref
+#       head_repository: head_repository
+#   run-on-tasks-for:
+#     - github-pull-request
+#     - github-push
+
 tasks:
-  reviewer-selector:
-    index:
-      product: reviewer-selector
-      job-name: docker-image
+  index:
+    product: reviewer-selector
+    job-name: docker-image
+
+  reviewer-selector: {}
