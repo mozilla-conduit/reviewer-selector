@@ -12,10 +12,6 @@ transforms:
 #  - lint
 #  - test
 
-index:
-  product: reviewer-selector
-  job-name: oeuoeu
-
 # task-defaults:
 #   task-context:
 #     from-parameters:
@@ -28,4 +24,8 @@ index:
 #     - github-push
 
 tasks:
+  index:
+    product: reviewer-selector
+    job-name: docker-image
+
   reviewer-selector: {}
