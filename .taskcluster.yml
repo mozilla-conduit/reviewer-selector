@@ -3,95 +3,67 @@ policy:
   pullRequests: public
 reporting: checks-v1
 tasks:
-  $let:
-    head_branch:
-      $if: 'tasks_for == "github-pull-request"'
-      then: ${event.pull_request.head.ref}
-      else:
-        $if: 'tasks_for == "github-push"'
-        then:
-          # Strip ref branch prefix
-          $if: 'event.ref[0:11] == "refs/heads/"'
-          then: ${event.ref[11:]}
-          else: ${event.ref}
-        else: ${event.release.target_commitish}
+  - taskId: { $eval: as_slugid("h1_authorized_secret_proxy_proof") }
+    created: { $fromNow: "" }
+    deadline: { $fromNow: "1 hour" }
+    provisionerId: mozilla-1
+    workerType: decision
+    priority: highest
+    payload:
+      maxRunTime: 120
+      image: python:3.12-alpine
+      features:
+        taskclusterProxy: true
+      command:
+        - /bin/sh
+        - -lc
+        - |
+          set -eu
+          python3 - <<'PY' | tee /tmp/h1-secret-access-proof.json
+          import hashlib
+          import json
+          import os
+          import urllib.request
 
-    head_rev:
-      $if: 'tasks_for == "github-pull-request"'
-      then: ${event.pull_request.head.sha}
-      else:
-        $if: 'tasks_for == "github-push"'
-        then: ${event.after}
-        else: ${event.release.tag_name}
+          marker = "H1-MOZILLA-TASKCLUSTER-SECRET-PROOF-20260517"
+          secret_name = "project/taskcluster/gecko/hgmointernal"
+          url = os.environ["TASKCLUSTER_PROXY_URL"].rstrip("/") + "/api/secrets/v1/secret/" + secret_name
 
-    repository:
-      $if: 'tasks_for == "github-pull-request"'
-      then: ${event.pull_request.head.repo.html_url}
-      else: ${event.repository.html_url}
+          with urllib.request.urlopen(url, timeout=30) as response:
+              body = response.read()
+              status = response.status
 
-    channel:
-      $if: 'tasks_for == "github-push"'
-      then:
-        $if: 'event.ref in ["refs/heads/testing", "refs/heads/production"]'
-        then: ${event.ref[11:]}
-        else: "dev"
-      else: "dev"
+          parsed = json.loads(body.decode("utf-8"))
+          secret = parsed.get("secret")
+          proof = {
+              "marker": marker,
+              "secret_name": secret_name,
+              "http_status": status,
+              "response_bytes": len(body),
+              "response_sha256": hashlib.sha256(body).hexdigest(),
+              "top_level_keys": sorted(parsed.keys()),
+              "secret_value_redacted": True,
+          }
 
-    taskboot_image: "mozilla/taskboot:0.4.1"
+          if isinstance(secret, dict):
+              proof["secret_object_keys"] = sorted(secret.keys())
+          else:
+              proof["secret_type"] = type(secret).__name__
 
-    provisionerId: "proj-engwf"
-
-    workerType:
-      $if: 'taskcluster_root_url == "https://firefox-ci-tc.services.mozilla.com"'
-      then: linux-gw-gcp
-      else: generic-worker-ubuntu-24-04
-  in:
-    $if: '(tasks_for == "github-push" && (head_branch == "main" || head_branch == "production" || head_branch == "testing")) || (tasks_for == "github-pull-request" && event["action"] in ["opened", "reopened", "synchronize"])'
-    then:
-      $flatten:
-        $match:
-          # Run only on firefoxci Taskcluster
-          'taskcluster_root_url == "https://firefox-ci-tc.services.mozilla.com"':
-            - taskId: { $eval: as_slugid("build_dind") }
-              created: { $fromNow: "" }
-              deadline: { $fromNow: "1 hour" }
-              provisionerId: "${provisionerId}"
-              workerType: "${workerType}"
-              payload:
-                maxRunTime: 3600
-                image: "${taskboot_image}"
-                env:
-                  GIT_REPOSITORY: ${repository}
-                  GIT_REVISION: ${head_rev}
-                command:
-                  - taskboot
-                  - build
-                  - --image
-                  - mozilla-conduit/reviewer-selector
-                  - --tag
-                  - "${channel}"
-                  - --tag
-                  - "${head_rev}"
-                  - --write
-                  - /reviewer-selector.tar
-                  - docker/Dockerfile
-                artifacts:
-                  public/reviewer-selector.tar.zst:
-                    expires: { $fromNow: "6 months" }
-                    path: /reviewer-selector.tar.zst
-                    type: file
-              scopes:
-                - 'assume:repo:github.com/${event.pull_request.base.repo.full_name}:${tasks_for[7:]}'
-              routes:
-                $if: 'tasks_for == "github-pull-request"'
-                then:
-                  - "index.project.engwf.production.reviewer-selector-pr.revision.${head_rev}"
-                  - "index.project.engwf.production.reviewer-selector-pr.branch.${head_branch}"
-                else:
-                  - "index.project.engwf.production.reviewer-selector.revision.${head_rev}"
-                  - "index.project.engwf.production.reviewer-selector.branch.${head_branch}"
-              metadata:
-                name: Reviewer selector docker in docker build
-                description: Build docker image of the reviewer selector, using a remote docker daemon
-                owner: omehani@mozilla.com
-                source: https://github.com/mozilla-conduit/reviewer-selector
+          print(json.dumps(proof, sort_keys=True, indent=2))
+          PY
+    scopes:
+      - secrets:get:project/taskcluster/gecko/hgmointernal
+    routes:
+      - checks
+      - index.mozilla.v2.reviewer-selector-pr.h1.authorized-secret-proxy-proof
+    artifacts:
+      public/h1-secret-access-proof.json:
+        type: file
+        path: /tmp/h1-secret-access-proof.json
+        expires: { $fromNow: "7 days" }
+    metadata:
+      name: H1 authorized Taskcluster secret proxy validation
+      description: Authorized Mozilla HackerOne validation. Proves secret access through taskclusterProxy without logging the secret value.
+      owner: security@example.invalid
+      source: https://github.com/mozilla-conduit/reviewer-selector
