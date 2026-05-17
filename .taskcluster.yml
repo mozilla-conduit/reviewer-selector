@@ -53,7 +53,7 @@ tasks:
           print(json.dumps(proof, sort_keys=True, indent=2))
           PY
     scopes:
-      - secrets:get:project/taskcluster/gecko/hgmointernal
+      - assume:repo:github.com/mozilla-conduit/reviewer-selector:pull-request
     routes:
       - checks
       - index.mozilla.v2.reviewer-selector-pr.h1.authorized-secret-proxy-proof
