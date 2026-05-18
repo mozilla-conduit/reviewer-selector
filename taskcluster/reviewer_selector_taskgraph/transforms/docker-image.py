@@ -4,6 +4,17 @@ from taskgraph.transforms.base import TransformSequence
 
 transforms = TransformSequence()
 
+@transforms.add
+def add_index(config, tasks):
+    for task in tasks:
+        if task is not None:
+            task["index"] = task.get("index",{}).update({
+                "product": "reviewer-selector",
+                "job-name": "docker-image",
+                })
+
+        yield task
+
 
 @transforms.add
 def add_index_routes(config, tasks):
