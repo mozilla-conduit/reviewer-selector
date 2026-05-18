@@ -1,4 +1,5 @@
-build: DOCKER_TAG=reviewer-selector
+DOCKER_TAG=reviewer-selector
+
 build: DOCKER_ARGS=
 .PHONY: build
 build:
@@ -11,3 +12,24 @@ build:
 format:
 	uv run ruff format
 	uv run ruff check --fix
+
+.PHONY:
+requirements: requirements-dev.txt requirements.txt
+
+requirements.txt: pyproject.toml
+	uv pip install .[dev]
+	uv run pip-compile --allow-unsafe --generate-hashes --output-file=${@}
+
+requirements-dev.txt: pyproject.toml
+	uv pip install .[dev]
+	uv run pip-compile --allow-unsafe --generate-hashes --extra=dev --output-file=${@}
+
+.PHONY: test
+test:
+	uv pip install .[dev]
+	uv run pytest tests/
+
+.PHONY: test-docker
+test-docker:
+	docker run --rm --entrypoint bash ${DOCKER_TAG} \
+		-c 'pip install -r requirements-dev.txt && pytest tests/'

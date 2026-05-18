@@ -77,7 +77,12 @@ All the commands in this section rely on the development dependencies being inst
 
 ## Tests
 
-    $ uv run pytest
+    $ make test
+
+You can also run the tests within the built docker image.
+
+    $ make build
+    $ make test
 
 ## Linting
 
