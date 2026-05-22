@@ -9,8 +9,6 @@ policy:
   pullRequests: collaborators
 reporting: checks-v1
 autoCancelPreviousChecks: true
-policy:
-    pullRequests: collaborators
 tasks:
     - $let:
           trustDomain: "mozilla"
