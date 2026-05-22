@@ -5,6 +5,8 @@
 # - action tasks - taskcluster/taskgraph/actions/registry.py
 ---
 version: 1
+policy:
+  pullRequests: collaborators
 reporting: checks-v1
 autoCancelPreviousChecks: true
 policy:
