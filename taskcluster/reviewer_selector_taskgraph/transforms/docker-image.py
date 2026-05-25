@@ -18,13 +18,11 @@ def add_index_routes(config, tasks):
         if params["tasks_for"] == "github-pull-request":
             index_prefix = "reviewer-selector-pr"
 
-        raise Exception(str(dir(task)))
-
         trust_domain = config.graph_config["trust-domain"]
         task.setdefault("routes", []).extend(
             [
-                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.revision.{head_rev}.{config.kind}.{task['name']}",
-                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.latest.{config.kind}.{task['name']}",
+                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.revision.{head_rev}.{config.kind}.{task.get("name","reviewer-selector")}",
+                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.latest.{config.kind}.{task.get("name","reviewer-selector")}",
             ]
         )
 
