@@ -2,7 +2,6 @@
 loader: taskgraph.loader.transform:loader
 
 transforms:
-    - taskgraph.transforms.task_context
     - taskgraph.transforms.docker_image:transforms
     - reviewer_selector_taskgraph.transforms.docker-image
     - taskgraph.transforms.cached_tasks:transforms
