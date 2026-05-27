@@ -14,6 +14,7 @@ RUN curl -L https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_
 RUN mkdir /app
 WORKDIR /app
 
+# %include .
 RUN --mount=type=bind,src=topsrcdir/requirements.txt,target=/app/requirements.txt pip install -r requirements.txt
 
 # %include .
