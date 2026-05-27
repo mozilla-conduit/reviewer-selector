@@ -10,7 +10,7 @@ def add_index_routes(config, tasks):
     for task in tasks:
         params = config.params
         head_rev = params["head_rev"]
-       # Indices only allow dot-delimited groups of /[a-zA-Z0-9_!~*'()%-]+/.
+        # Indices only allow dot-delimited groups of /[a-zA-Z0-9_!~*'()%-]+/.
         # Sanitise the branch name accordingly.
         head_ref = re.sub(r"[^F a-zA-Z0-9_!~*'()%-]", "_", params["short_head_ref"])
 
