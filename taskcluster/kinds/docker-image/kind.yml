@@ -7,24 +7,9 @@ transforms:
     - taskgraph.transforms.cached_tasks:transforms
     - taskgraph.transforms.task:transforms
 
-#kind-dependencies:
-#  - lint
-#  - test
-
-index:
-  product: reviewer-selector
-  job-name: oeuoeu
-
-# task-defaults:
-#   task-context:
-#     from-parameters:
-#       channel: channel
-#       head_rev: head_rev
-#       head_ref: head_ref
-#       head_repository: head_repository
-#   run-on-tasks-for:
-#     - github-pull-request
-#     - github-push
 
 tasks:
-  reviewer-selector: {}
+  reviewer-selector:
+    index:
+      product: reviewer-selector
+      job-name: docker-image
