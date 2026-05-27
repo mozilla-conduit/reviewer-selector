@@ -1,5 +1,3 @@
-
-
 def decision_parameters(graph_config, parameters):
     short_head_ref = parameters["head_ref"]
     for prefix in ("refs/heads/", "refs/tags/"):
