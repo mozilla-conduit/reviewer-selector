@@ -2,19 +2,14 @@
 loader: taskgraph.loader.transform:loader
 
 transforms:
-    - taskgraph.transforms.task_context
     - taskgraph.transforms.docker_image:transforms
     - reviewer_selector_taskgraph.transforms.docker-image
     - taskgraph.transforms.cached_tasks:transforms
     - taskgraph.transforms.task:transforms
 
 
-
 tasks:
-  reviewer-selector:
-    task-context:
-      from-parameters:
-        head_ref: head_ref
+  reviewer-selector: {}
     # XXX: this should generate standard indices, but this currently fails [0].
     # [0] https://firefox-ci-tc.services.mozilla.com/tasks/UaFmWg6XR5C5PNy1pyzRLA/runs/0/logs/live/public/logs/live.log#L96-98
     # index:
