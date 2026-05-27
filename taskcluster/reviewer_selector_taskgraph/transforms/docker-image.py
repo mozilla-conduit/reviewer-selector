@@ -21,8 +21,10 @@ def add_index_routes(config, tasks):
         trust_domain = config.graph_config["trust-domain"]
         task.setdefault("routes", []).extend(
             [
-                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.revision.{head_rev}.{config.kind}.{task.get("name","reviewer-selector")}",
-                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.latest.{config.kind}.{task.get("name","reviewer-selector")}",
+                # XXX: We should be using `task['name']` as the last component,
+                # but it's not defined in the task dict.
+                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.revision.{head_rev}.{config.kind}.reviewer-selector",
+                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.latest.{config.kind}.reviewer-selector",
             ]
         )
 
