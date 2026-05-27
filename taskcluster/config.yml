@@ -4,7 +4,7 @@ task-priority: low
 
 taskgraph:
   cached-task-prefix: "mozilla.v2.reviewer-selector"
-  decision-parameters: reviewer_selector.parameters:decision_parameters
+  decision-parameters: reviewer_selector_taskgraph.parameters:decision_parameters
   repositories:
     reviewer_selector:
       name: "reviewer-selector"
