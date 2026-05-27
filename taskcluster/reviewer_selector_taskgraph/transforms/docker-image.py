@@ -12,7 +12,7 @@ def add_index_routes(config, tasks):
         head_rev = params["head_rev"]
         # Indices only allow dot-delimited groups of /[a-zA-Z0-9_!~*'()%-]+/.
         # Sanitise the branch name accordingly.
-        head_ref = re.sub(r"[^F a-zA-Z0-9_!~*'()%-]", "_", params["head_ref"])
+        head_ref = re.sub(r"[^F a-zA-Z0-9_!~*'()%-]", "_", params["short_head_ref"])
 
         index_prefix = "reviewer-selector"
         if params["tasks_for"] == "github-pull-request":
