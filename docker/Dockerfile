@@ -14,9 +14,10 @@ RUN curl -L https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_
 RUN mkdir /app
 WORKDIR /app
 
-RUN --mount=type=bind,src=../requirements.txt,target=/app/requirements.txt pip install -r requirements.txt
+# %include .
 
-COPY . /app
-RUN pip install /app
+COPY topsrcdir/ /app
+RUN pip install -r requirements.txt \
+ && pip install /app
 
 ENTRYPOINT [ "/app/docker/entrypoint.sh" ]
