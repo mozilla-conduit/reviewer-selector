@@ -9,7 +9,9 @@ transforms:
 
 
 tasks:
-  reviewer-selector:
-    index:
-      product: reviewer-selector
-      job-name: docker-image
+  reviewer-selector: {}
+    # XXX: this should generate standard indices, but this currently fails [0].
+    # [0] https://firefox-ci-tc.services.mozilla.com/tasks/UaFmWg6XR5C5PNy1pyzRLA/runs/0/logs/live/public/logs/live.log#L96-98
+    # index:
+    #   product: reviewer-selector
+    #   job-name: docker-image
