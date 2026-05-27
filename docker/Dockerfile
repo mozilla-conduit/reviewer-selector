@@ -15,10 +15,9 @@ RUN mkdir /app
 WORKDIR /app
 
 # %include .
-RUN --mount=type=bind,src=topsrcdir/requirements.txt,target=/app/requirements.txt pip install -r requirements.txt
 
-# %include .
 COPY topsrcdir/ /app
-RUN pip install /app
+RUN pip install -r requirements.txt \
+ && pip install /app
 
 ENTRYPOINT [ "/app/docker/entrypoint.sh" ]
