@@ -1,6 +1,6 @@
 DOCKER_TAG=reviewer-selector
 
-build: DOCKER_ARGS=
+build: DOCKER_ARGS=--build-arg BUILTIN_HERALD_RULES=herald_rules.json
 .PHONY: build
 build:
 	# This symlink is needed for non-TaskCluster/TaskGraph builds to succeed, ignoring extended Dockerfile syntax [0].
