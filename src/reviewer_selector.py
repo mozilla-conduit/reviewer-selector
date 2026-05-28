@@ -129,7 +129,11 @@ def resolve_reviewers(
     result: set[str] = set()
     for target, is_group in reviewers:
         if is_group:
-            result.add(f"{group_prefix}{target}")
+            if target.startswith("/ent:"):
+                # GitHub enterprise teams are not org-scoped.
+                result.add(f"{target}")
+            else:
+                result.add(f"{group_prefix}{target}")
         elif target in github_users:
             result.add(github_users[target]["username"])
     return result
