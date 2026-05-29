@@ -93,13 +93,13 @@ tasks:
                       'head_ref[:11] == "refs/heads/"': '${head_ref[11:]}'
                       $default: '${head_ref}'
               level:
-                  $if: 'isPullRequest || tasks_for == "pr-action"'
-                  then: "1"
-                  else: "3"
+                  $if: 'tasks_for == "github-push" && head_ref in ["main", "refs/heads/main"]'
+                  then: "3"
+                  else: "1"
           in:
               $if: >
                   tasks_for in ["action", "pr-action", "cron"]
-                  || (tasks_for == "github-push" && short_head_ref == "main")
+                  || (tasks_for == "github-push" && short_head_ref in ["main", "staging", "develop"] )
                   || (isPullRequest && pullRequestAction in ["opened", "reopened", "synchronize"])
               then:
                   taskId: {$if: 'tasks_for != "action" && tasks_for != "pr-action"', then: '${ownTaskId}'}
