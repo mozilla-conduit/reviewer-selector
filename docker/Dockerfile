@@ -2,7 +2,7 @@ FROM python:3.12
 
 ARG GH_VERSION=2.89.0
 
-ARG BUILTIN_HERALD_RULES=samples/herald_rules.json
+ARG BUILTIN_HERALD_RULES=herald_rules.json
 
 # Lift the build arguments into runtime environment variables.
 ENV GH_VERSION=${GH_VERSION}
