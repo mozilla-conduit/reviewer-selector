@@ -74,10 +74,27 @@ SAMPLE_RULES_DATA = {
                 }
             ],
         },
+        {
+            "id": "H4",
+            "conditions": [
+                {
+                    "type": "differential-affected-files",
+                    "operator": "matches-regexp",
+                    "value": r"\.ftl$",
+                }
+            ],
+            "actions": [
+                {
+                    "type": "add-reviewers",
+                    "reviewers": [{"target": "/ent:fluent-reviewers", "is_group": True}],
+                }
+            ],
+        },
     ],
     "groups": {
         "fluent-reviewers": {"members": ["alice", "bob"]},
         "test-reviewers": {"members": ["charlie"]},
+        "/ent:fluent-reviewers": {"members": ["bob"]},
     },
     "github_users": {
         "alice": {"username": "alice-gh"},
@@ -305,6 +322,7 @@ class TestCollectReviewers:
         files = ["locales/en/messages.ftl"]
         reviewers = collect_reviewers(SAMPLE_RULES_DATA, files, [])
         assert ("fluent-reviewers", True) in reviewers
+        assert ("/ent:fluent-reviewers", True) in reviewers
 
     def test_respects_repo_filter(self):
         files = ["remote/protocol.js"]
@@ -334,14 +352,16 @@ class TestResolveReviewers:
         assert "jsmith-gh" in resolved
 
     def test_prefixes_groups(self):
-        reviewers = {("fluent-reviewers", True)}
+        reviewers = {("fluent-reviewers", True), ("/ent:fluent-reviewers", True)}
         resolved = resolve_reviewers(reviewers, SAMPLE_RULES_DATA, "#")
         assert "#fluent-reviewers" in resolved
+        assert "/ent:fluent-reviewers" in resolved
 
     def test_custom_group_prefix(self):
-        reviewers = {("fluent-reviewers", True)}
+        reviewers = {("fluent-reviewers", True), ("/ent:fluent-reviewers", True)}
         resolved = resolve_reviewers(reviewers, SAMPLE_RULES_DATA, "@")
         assert "@fluent-reviewers" in resolved
+        assert "/ent:fluent-reviewers" in resolved
 
     def test_skips_unresolved_users(self):
         reviewers = {("unknown-user", False)}
