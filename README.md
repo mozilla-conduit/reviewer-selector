@@ -123,25 +123,22 @@ Requirements: [docker](https://docs.docker.com/get-started/get-docker/).
 The default behaviour is to search the target repository/branch for a `herald_rules.json` file.
 If missing, a fallback from the container is used.
 
-Herald rules can be extracted from Phabricator using the [Herald Crawler](https://github.com/mozilla-conduit/herald_crawler).
+Herald rules can be extracted from Phabricator using the [Herald
+Crawler](https://github.com/mozilla-conduit/herald_crawler).
 
 
     $  herald-scraper --url https://phabricator.services.mozilla.com \
       --conduit-token $PHAB_TOKEN --pmo-cookie $PEOPLE_MOZILLA_COOKIE \
       --output herald_rules.json \
 
-Get/create your `$PHAB_TOKEN` from https://phabricator.services.mozilla.com/settings/user/<YOUR-USERNAME>/page/apitokens/. Get your `$PEOPLE_MOZILLA_COOKIE` from the `pmo-access` cookie after logging in to https://people.mozilla.org/
+Get/create your `$PHAB_TOKEN` from
+https://phabricator.services.mozilla.com/settings/user/<YOUR-USERNAME>/page/apitokens/.
+Get your `$PEOPLE_MOZILLA_COOKIE` from the `pmo-access` cookie after logging in
+to https://people.mozilla.org/
 
-This file can then be bundled as default in the container image.
-
-    $ make build \
-      DOCKER_ARGS='--build-arg BUILTIN_HERALD_RULES=herald_rules.json' \
-      DOCKER_TAG=omehani/moz-reviewer-selector
-    $ docker push omehani/moz-reviewer-selector
-
-This is the [image tag that the CI hook currently uses](https://github.com/mozilla-releng/fxci-config/blob/26dcd5dbe8994ed1e0c7a344ab832cfcfad85e28/hooks/project-engwf/reviewer-assignment-infra-testing.yml#L37).
-
-XXX: update this tag
+Those rules should be placed at the root of the source tree, and committed to
+git so they are built as part of the image. `make build` takes care of using
+configuring the image adequately.
 
 ## Running in a container
 
