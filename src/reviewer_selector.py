@@ -69,12 +69,37 @@ class Rules:
         changed_files = patch.get_changed_files()
         reviewers: set[Reviewer] = set()
         for rule in self._rules["rules"]:
-            if not matches_repo_filter(rule, repos):
+            if repos and not self.rule_matches_repos(rule, repos):
+                logger.debug(
+                    f"Rule {rule['id']} ({rule['name']}) doesn't match repository"
+                )
                 continue
-            if matches_files(rule, changed_files):
-                logger.info(f"Rule {rule['id']} matches")
+            if self.rule_matches_files(rule, changed_files):
+                logger.info(f"Rule {rule['id']} ({rule['name']}) matches files")
                 reviewers.update(self.get_rule_reviewers(rule))
         return reviewers
+
+    @classmethod
+    def rule_matches_repos(cls, rule: Rule, repos: Iterable[str]) -> bool:
+        """Check if rule passes repository filter."""
+        repos_list = list(repos)
+        if not repos_list:
+            return True
+        for cond in rule.get("conditions", []):
+            if cond.get("type") == "repository":
+                rule_repos = cond.get("value", [])
+                return any(r in rule_repos for r in repos_list)
+        return True
+
+    @classmethod
+    def rule_matches_files(cls, rule: Rule, changed_files: Iterable[str]) -> bool:
+        """Check if any changed file matches rule's regex."""
+        for cond in rule.get("conditions", []):
+            if cond.get("type") == "differential-affected-files":
+                pattern = cond.get("value", "")
+                regex = re.compile(pattern)
+                return any(regex.search(f) for f in changed_files)
+        return False
 
     @classmethod
     def get_rule_reviewers(cls, rule: Rule) -> Iterable[Reviewer]:
@@ -160,28 +185,6 @@ def parse_args() -> argparse.Namespace:
         help="Separator for reviewer names in output",
     )
     return parser.parse_args()
-
-
-def matches_repo_filter(rule: Rule, repos: Iterable[str]) -> bool:
-    """Check if rule passes repository filter."""
-    repos_list = list(repos)
-    if not repos_list:
-        return True
-    for cond in rule.get("conditions", []):
-        if cond.get("type") == "repository":
-            rule_repos = cond.get("value", [])
-            return any(r in rule_repos for r in repos_list)
-    return True
-
-
-def matches_files(rule: Rule, changed_files: Iterable[str]) -> bool:
-    """Check if any changed file matches rule's regex."""
-    for cond in rule.get("conditions", []):
-        if cond.get("type") == "differential-affected-files":
-            pattern = cond.get("value", "")
-            regex = re.compile(pattern)
-            return any(regex.search(f) for f in changed_files)
-    return False
 
 
 if __name__ == "__main__":
