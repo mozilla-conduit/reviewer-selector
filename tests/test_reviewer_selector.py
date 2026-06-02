@@ -10,7 +10,7 @@ from reviewer_selector import (
     Rules,
     matches_repo_filter,
     matches_files,
-    resolve_reviewers,
+    UserResolver,
 )
 
 # --- Test data ---
@@ -364,35 +364,50 @@ class TestCollectReviewers:
         assert len([r for r in reviewers if r[0] == "fluent-reviewers"]) <= 1
 
 
-# --- resolve_reviewers tests ---
+# --- UserResolver.resolve_reviewers tests ---
 
 
 class TestResolveReviewers:
     def test_resolves_user_to_github(self):
+        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "#")
         reviewers = {("jsmith", False)}
-        resolved = resolve_reviewers(reviewers, SAMPLE_RULES_DATA, "#")
+
+        resolved = resolver.resolve_reviewers(reviewers)
+
         assert "jsmith-gh" in resolved
 
     def test_prefixes_groups(self):
+        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "#")
         reviewers = {("fluent-reviewers", True), ("/ent:fluent-reviewers", True)}
-        resolved = resolve_reviewers(reviewers, SAMPLE_RULES_DATA, "#")
+
+        resolved = resolver.resolve_reviewers(reviewers)
+
         assert "#fluent-reviewers" in resolved
         assert "/ent:fluent-reviewers" in resolved
 
     def test_custom_group_prefix(self):
+        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "@")
         reviewers = {("fluent-reviewers", True), ("/ent:fluent-reviewers", True)}
-        resolved = resolve_reviewers(reviewers, SAMPLE_RULES_DATA, "@")
+
+        resolved = resolver.resolve_reviewers(reviewers)
+
         assert "@fluent-reviewers" in resolved
         assert "/ent:fluent-reviewers" in resolved
 
     def test_skips_unresolved_users(self):
+        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "#")
         reviewers = {("unknown-user", False)}
-        resolved = resolve_reviewers(reviewers, SAMPLE_RULES_DATA, "#")
+
+        resolved = resolver.resolve_reviewers(reviewers)
+
         assert len(resolved) == 0
 
     def test_mixed_users_and_groups(self):
+        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "#")
         reviewers = {("jsmith", False), ("fluent-reviewers", True)}
-        resolved = resolve_reviewers(reviewers, SAMPLE_RULES_DATA, "#")
+
+        resolved = resolver.resolve_reviewers(reviewers)
+
         assert "jsmith-gh" in resolved
         assert "#fluent-reviewers" in resolved
 

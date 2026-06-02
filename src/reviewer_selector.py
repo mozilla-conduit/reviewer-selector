@@ -15,6 +15,8 @@ RulesData = Mapping[str, Any]
 Rule = Mapping[str, Any]
 Reviewer = tuple[str, bool]  # (target, is_group)
 
+UserMap = Mapping[str, Mapping[str, str]]
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,12 +78,39 @@ class Rules:
 
     @classmethod
     def get_rule_reviewers(cls, rule: Rule) -> Iterable[Reviewer]:
-        """Extract reviewers from rule's add-reviewers action."""
-        result: list[Reviewer] = []
+        """Extract reviewers from rule's add-reviewers action.
+
+        Each entry is unique."""
+        result: set[Reviewer] = set()
         for action in rule.get("actions", []):
             if action.get("type") == "add-reviewers":
                 for reviewer in action.get("reviewers", []):
-                    result.append((reviewer["target"], reviewer.get("is_group", False)))
+                    result.add((reviewer["target"], reviewer.get("is_group", False)))
+        return result
+
+
+class UserResolver:
+    _user_map: UserMap
+    _group_prefix: str
+
+    def __init__(self, user_map: UserMap, group_prefix: str = "@"):
+        self._user_map = user_map
+        self._group_prefix = group_prefix
+
+    def resolve_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[str]:
+        """Convert to GitHub usernames, prefix groups.
+
+        Each entry is unique."""
+        result: set[str] = set()
+        for target, is_group in reviewers:
+            if is_group:
+                if target.startswith("/ent:"):
+                    # GitHub enterprise teams are not org-scoped.
+                    result.add(target)
+                else:
+                    result.add(f"{self._group_prefix}{target}")
+            elif target in self._user_map:
+                result.add(self._user_map[target]["username"])
         return result
 
 
@@ -96,9 +125,13 @@ def main() -> None:
     patch = Patch(sys.stdin.read())
 
     reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, args.repo)
-    resolved: Iterable[str] = resolve_reviewers(
-        reviewers, rules.get_rules(), args.group_prefix
+
+    resolver = UserResolver(
+        rules.get_rules().get("github_users", {}), args.group_prefix
     )
+
+    resolved: Iterable[str] = resolver.resolve_reviewers(reviewers)
+
     print(args.reviewer_separator.join(sorted(resolved)))
 
 
@@ -149,24 +182,6 @@ def matches_files(rule: Rule, changed_files: Iterable[str]) -> bool:
             regex = re.compile(pattern)
             return any(regex.search(f) for f in changed_files)
     return False
-
-
-def resolve_reviewers(
-    reviewers: Iterable[Reviewer], rules_data: RulesData, group_prefix: str
-) -> Iterable[str]:
-    """Convert to GitHub usernames, prefix groups."""
-    github_users = rules_data.get("github_users", {})
-    result: set[str] = set()
-    for target, is_group in reviewers:
-        if is_group:
-            if target.startswith("/ent:"):
-                # GitHub enterprise teams are not org-scoped.
-                result.add(f"{target}")
-            else:
-                result.add(f"{group_prefix}{target}")
-        elif target in github_users:
-            result.add(github_users[target]["username"])
-    return result
 
 
 if __name__ == "__main__":
