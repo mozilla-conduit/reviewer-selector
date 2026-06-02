@@ -38,8 +38,7 @@ class Patch:
         """Extract file paths from git diff."""
         filenames = [d["filename"] for d in self._parsed_diffs]
 
-        logger.error(type(self._parsed_diffs))
-        logger.debug(f"Considering filenames: {', '.join(filenames)} ...")
+        logger.info(f"Considering filenames: {', '.join(filenames)} ...")
 
         return filenames
 
@@ -68,6 +67,10 @@ class Rules:
         """Return set of (target, is_group) tuples from matching rules."""
         changed_files = patch.get_changed_files()
         reviewers: set[Reviewer] = set()
+
+        if not repos:
+            logger.info("No repositories specified, ignoring repository filters.")
+
         for rule in self._rules["rules"]:
             if repos and not self.rule_matches_repos(rule, repos):
                 logger.debug(
@@ -109,6 +112,10 @@ class Rules:
         result: set[Reviewer] = set()
         for action in rule.get("actions", []):
             if action.get("type") == "add-reviewers":
+                reviewer_list = ", ".join(
+                    [r.get("target") for r in action.get("reviewers")]
+                )
+                logger.info(f"Adding reviewers from rule {rule['id']}: {reviewer_list}")
                 for reviewer in action.get("reviewers", []):
                     result.add((reviewer["target"], reviewer.get("is_group", False)))
         return result
@@ -133,9 +140,13 @@ class UserResolver:
                     # GitHub enterprise teams are not org-scoped.
                     result.add(target)
                 else:
-                    result.add(f"{self._group_prefix}{target}")
+                    mapped_group = f"{self._group_prefix}{target}"
+                    logger.debug(f"Rewrote {target} gorup to {mapped_group}")
+                    result.add(mapped_group)
             elif target in self._user_map:
-                result.add(self._user_map[target]["username"])
+                mapped_user = self._user_map[target]["username"]
+                logger.debug(f"Resolved {target} to {mapped_user}")
+                result.add(mapped_user)
         return result
 
 
@@ -144,6 +155,9 @@ def main() -> None:
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
 
     rules = Rules.from_file(args.rules_file)
 
@@ -172,6 +186,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         default=False,
         help="Log details of the reviewer selection",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Log debug message of the reviewer selection",
     )
     parser.add_argument(
         "--repo", action="append", default=[], help="Filter by repository (repeatable)"

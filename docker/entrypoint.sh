@@ -59,6 +59,7 @@ fi
 
 REVIEWERS=$(cat "${DIFF}" \
 	| reviewer-selector \
+    --verbose \
     ${REPO_BRANCH:+--repo "${REPO_BRANCH}"} \
     --group-prefix "${GROUP_PREFIX}" --reviewer-separator , \
     "${HERALD_RULES_JSON}" \
