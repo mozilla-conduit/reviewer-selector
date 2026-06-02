@@ -18,20 +18,32 @@ Reviewer = tuple[str, bool]  # (target, is_group)
 logger = logging.getLogger(__name__)
 
 
+class Rules:
+    _rules: RulesData
+
+    def __init__(self, rules_file: str):
+
+        with open(rules_file) as f:
+            self._rules = json.load(f)
+
+    def get_rules(self) -> RulesData:
+        return self._rules
+
+
 def main() -> None:
     args: argparse.Namespace = parse_args()
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    with open(args.rules_file) as f:
-        rules_data: RulesData = json.load(f)
+    rules = Rules(args.rules_file)
+
     changed_files: Sequence[str] = parse_diff(sys.stdin.read())
     reviewers: Iterable[Reviewer] = collect_reviewers(
-        rules_data, changed_files, args.repo
+        rules.get_rules(), changed_files, args.repo
     )
     resolved: Iterable[str] = resolve_reviewers(
-        reviewers, rules_data, args.group_prefix
+        reviewers,rules.get_rules(), args.group_prefix
     )
     print(args.reviewer_separator.join(sorted(resolved)))
 
