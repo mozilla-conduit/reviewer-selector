@@ -9,7 +9,7 @@ import sys
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-from rs_parsepatch import get_diffs
+import rs_parsepatch
 
 RulesData = Mapping[str, Any]
 Rule = Mapping[str, Any]
@@ -30,6 +30,30 @@ class Rules:
         return self._rules
 
 
+class Patch:
+    _patch: str
+    _parsed_diffs: Sequence[Mapping[str, Any]]
+
+    def __init__(self, diff: str):
+        self._patch = diff
+        self._parse_patch()
+
+    def _parse_patch(self):
+        self._parsed_diffs = rs_parsepatch.get_diffs(self._patch)
+
+    def get_patch(self):
+        return self._patch
+
+    def get_changed_files(self):
+        """Extract file paths from git diff."""
+        filenames = [d["filename"] for d in self._parsed_diffs]
+
+        logger.error(type(self._parsed_diffs))
+        logger.debug(f"Considering filenames: {', '.join(filenames)} ...")
+
+        return filenames
+
+
 def main() -> None:
     args: argparse.Namespace = parse_args()
 
@@ -38,12 +62,13 @@ def main() -> None:
 
     rules = Rules(args.rules_file)
 
-    changed_files: Sequence[str] = parse_diff(sys.stdin.read())
+    patch = Patch(sys.stdin.read())
+
     reviewers: Iterable[Reviewer] = collect_reviewers(
-        rules.get_rules(), changed_files, args.repo
+        rules.get_rules(), patch.get_changed_files(), args.repo
     )
     resolved: Iterable[str] = resolve_reviewers(
-        reviewers,rules.get_rules(), args.group_prefix
+        reviewers, rules.get_rules(), args.group_prefix
     )
     print(args.reviewer_separator.join(sorted(resolved)))
 
@@ -73,18 +98,6 @@ def parse_args() -> argparse.Namespace:
         help="Separator for reviewer names in output",
     )
     return parser.parse_args()
-
-
-def parse_diff(diff_text: str) -> Sequence[str]:
-    """Extract file paths from git diff."""
-    if not diff_text:
-        return []
-    diffs = get_diffs(diff_text)
-    filenames = [d["filename"] for d in diffs]
-
-    logger.info(f"Considering filenames: {', '.join(filenames)} ...")
-
-    return filenames
 
 
 def collect_reviewers(

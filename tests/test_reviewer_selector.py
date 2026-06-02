@@ -6,7 +6,7 @@ import tempfile
 
 
 from reviewer_selector import (
-    parse_diff,
+    Patch,
     collect_reviewers,
     matches_repo_filter,
     matches_files,
@@ -117,12 +117,13 @@ index 1234567..abcdefg 100644
 """
 
 
-# --- parse_diff tests ---
+# --- Patch.get_changed_files tests ---
 
 
 class TestParseDiff:
     def test_extracts_file_paths(self):
-        files = parse_diff(SAMPLE_DIFF)
+        patch = Patch(SAMPLE_DIFF)
+        files = patch.get_changed_files()
         assert list(files) == ["locales/en/messages.ftl"]
 
     def test_handles_multiple_files(self):
@@ -142,12 +143,14 @@ index 1234567..abcdefg 100644
 -old
 +new
 """
-        files = parse_diff(diff)
+        patch = Patch(diff)
+        files = patch.get_changed_files()
         assert "file1.py" in files
         assert "dir/file2.js" in files
 
     def test_empty_diff(self):
-        files = parse_diff("")
+        patch = Patch("")
+        files = patch.get_changed_files()
         assert files == []
 
 
