@@ -7,7 +7,7 @@ import logging
 import re
 import sys
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any
+from typing import Any, Self
 
 import rs_parsepatch
 
@@ -16,18 +16,6 @@ Rule = Mapping[str, Any]
 Reviewer = tuple[str, bool]  # (target, is_group)
 
 logger = logging.getLogger(__name__)
-
-
-class Rules:
-    _rules: RulesData
-
-    def __init__(self, rules_file: str):
-
-        with open(rules_file) as f:
-            self._rules = json.load(f)
-
-    def get_rules(self) -> RulesData:
-        return self._rules
 
 
 class Patch:
@@ -54,19 +42,60 @@ class Patch:
         return filenames
 
 
+class Rules:
+    _rules: RulesData
+
+    def __init__(self, rules: RulesData):
+        self._rules = rules
+
+    @classmethod
+    def from_file(cls, rules_file: str) -> Self:
+        with open(rules_file) as f:
+            return cls(json.load(f))
+
+    @classmethod
+    def from_json(cls, rules_json: str) -> Self:
+        return cls(json.loads(rules_json))
+
+    def get_rules(self) -> RulesData:
+        return self._rules
+
+    def collect_reviewers(
+        self, patch: Patch, repos: Iterable[str]
+    ) -> Iterable[Reviewer]:
+        """Return set of (target, is_group) tuples from matching rules."""
+        changed_files = patch.get_changed_files()
+        reviewers: set[Reviewer] = set()
+        for rule in self._rules["rules"]:
+            if not matches_repo_filter(rule, repos):
+                continue
+            if matches_files(rule, changed_files):
+                logger.info(f"Rule {rule['id']} matches")
+                reviewers.update(self.get_rule_reviewers(rule))
+        return reviewers
+
+    @classmethod
+    def get_rule_reviewers(cls, rule: Rule) -> Iterable[Reviewer]:
+        """Extract reviewers from rule's add-reviewers action."""
+        result: list[Reviewer] = []
+        for action in rule.get("actions", []):
+            if action.get("type") == "add-reviewers":
+                for reviewer in action.get("reviewers", []):
+                    result.append((reviewer["target"], reviewer.get("is_group", False)))
+        return result
+
+
 def main() -> None:
     args: argparse.Namespace = parse_args()
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    rules = Rules(args.rules_file)
+    rules = Rules.from_file(args.rules_file)
 
     patch = Patch(sys.stdin.read())
 
-    reviewers: Iterable[Reviewer] = collect_reviewers(
-        rules.get_rules(), patch.get_changed_files(), args.repo
-    )
+    reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, args.repo)
     resolved: Iterable[str] = resolve_reviewers(
         reviewers, rules.get_rules(), args.group_prefix
     )
@@ -100,20 +129,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def collect_reviewers(
-    rules_data: RulesData, changed_files: Iterable[str], repos: Iterable[str]
-) -> Iterable[Reviewer]:
-    """Return set of (target, is_group) tuples from matching rules."""
-    reviewers: set[Reviewer] = set()
-    for rule in rules_data["rules"]:
-        if not matches_repo_filter(rule, repos):
-            continue
-        if matches_files(rule, changed_files):
-            logger.info(f"Rule {rule['id']} matches")
-            reviewers.update(get_rule_reviewers(rule))
-    return reviewers
-
-
 def matches_repo_filter(rule: Rule, repos: Iterable[str]) -> bool:
     """Check if rule passes repository filter."""
     repos_list = list(repos)
@@ -134,16 +149,6 @@ def matches_files(rule: Rule, changed_files: Iterable[str]) -> bool:
             regex = re.compile(pattern)
             return any(regex.search(f) for f in changed_files)
     return False
-
-
-def get_rule_reviewers(rule: Rule) -> Iterable[Reviewer]:
-    """Extract reviewers from rule's add-reviewers action."""
-    result: list[Reviewer] = []
-    for action in rule.get("actions", []):
-        if action.get("type") == "add-reviewers":
-            for reviewer in action.get("reviewers", []):
-                result.append((reviewer["target"], reviewer.get("is_group", False)))
-    return result
 
 
 def resolve_reviewers(

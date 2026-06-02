@@ -3,14 +3,13 @@
 import json
 import subprocess
 import tempfile
-
+from unittest import mock
 
 from reviewer_selector import (
     Patch,
-    collect_reviewers,
+    Rules,
     matches_repo_filter,
     matches_files,
-    get_rule_reviewers,
     resolve_reviewers,
 )
 
@@ -86,7 +85,9 @@ SAMPLE_RULES_DATA = {
             "actions": [
                 {
                     "type": "add-reviewers",
-                    "reviewers": [{"target": "/ent:fluent-reviewers", "is_group": True}],
+                    "reviewers": [
+                        {"target": "/ent:fluent-reviewers", "is_group": True}
+                    ],
                 }
             ],
         },
@@ -260,7 +261,7 @@ class TestMatchesFiles:
         assert matches_files(rule, ["anything.txt"]) is False
 
 
-# --- get_rule_reviewers tests ---
+# --- Rules.get_rule_reviewers tests ---
 
 
 class TestGetRuleReviewers:
@@ -273,7 +274,7 @@ class TestGetRuleReviewers:
                 }
             ]
         }
-        reviewers = get_rule_reviewers(rule)
+        reviewers = Rules.get_rule_reviewers(rule)
         assert ("jsmith", False) in reviewers
 
     def test_extracts_groups(self):
@@ -285,7 +286,7 @@ class TestGetRuleReviewers:
                 }
             ]
         }
-        reviewers = get_rule_reviewers(rule)
+        reviewers = Rules.get_rule_reviewers(rule)
         assert ("my-group", True) in reviewers
 
     def test_multiple_reviewers(self):
@@ -300,7 +301,7 @@ class TestGetRuleReviewers:
                 }
             ]
         }
-        reviewers = get_rule_reviewers(rule)
+        reviewers = Rules.get_rule_reviewers(rule)
         assert len(reviewers) == 2
 
     def test_ignores_non_reviewer_actions(self):
@@ -313,34 +314,52 @@ class TestGetRuleReviewers:
                 },
             ]
         }
-        reviewers = get_rule_reviewers(rule)
+        reviewers = Rules.get_rule_reviewers(rule)
         assert len(reviewers) == 1
 
 
-# --- collect_reviewers tests ---
+# --- Rules.collect_reviewers tests ---
 
 
 class TestCollectReviewers:
     def test_collects_from_matching_rules(self):
-        files = ["locales/en/messages.ftl"]
-        reviewers = collect_reviewers(SAMPLE_RULES_DATA, files, [])
+        rules = Rules(SAMPLE_RULES_DATA)
+        patch = mock.MagicMock()
+        patch.get_changed_files = lambda: ["locales/en/messages.ftl"]
+
+        reviewers = rules.collect_reviewers(patch, [])
+
         assert ("fluent-reviewers", True) in reviewers
         assert ("/ent:fluent-reviewers", True) in reviewers
 
     def test_respects_repo_filter(self):
-        files = ["remote/protocol.js"]
-        reviewers = collect_reviewers(SAMPLE_RULES_DATA, files, ["mozilla-central"])
+        rules = Rules(SAMPLE_RULES_DATA)
+        patch = mock.MagicMock()
+        patch.get_changed_files = lambda: ["remote/protocol.js"]
+
+        reviewers = rules.collect_reviewers(patch, ["mozilla-central"])
+
         assert ("jsmith", False) in reviewers
 
     def test_excludes_non_matching_repo(self):
-        files = ["remote/protocol.js"]
-        reviewers = collect_reviewers(SAMPLE_RULES_DATA, files, ["comm-central"])
+        rules = Rules(SAMPLE_RULES_DATA)
+        patch = mock.MagicMock()
+        patch.get_changed_files = lambda: ["remote/protocol.js"]
+
+        reviewers = rules.collect_reviewers(patch, ["comm-central"])
+
         assert ("jsmith", False) not in reviewers
 
     def test_deduplicates_reviewers(self):
         # If same reviewer appears in multiple rules, should only appear once
-        files = ["testing/test.ftl"]  # matches H1 (.ftl) and H3 (testing/)
-        reviewers = collect_reviewers(SAMPLE_RULES_DATA, files, [])
+        rules = Rules(SAMPLE_RULES_DATA)
+        patch = mock.MagicMock()
+        patch.get_changed_files = lambda: [
+            "testing/test.ftl"
+        ]  # matches H1 (.ftl) and H3 (testing/)
+
+        reviewers = rules.collect_reviewers(patch, [])
+
         # Count occurrences
         assert len([r for r in reviewers if r[0] == "fluent-reviewers"]) <= 1
 
