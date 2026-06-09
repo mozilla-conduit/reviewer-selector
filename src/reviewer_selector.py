@@ -54,10 +54,6 @@ class Rules:
         with open(rules_file) as f:
             return cls(json.load(f))
 
-    @classmethod
-    def from_json(cls, rules_json: str) -> Self:
-        return cls(json.loads(rules_json))
-
     def get_rules(self) -> RulesData:
         return self._rules
 
@@ -140,7 +136,7 @@ class UserResolver:
                     result.add(target)
                 else:
                     mapped_group = f"{self._group_prefix}{target}"
-                    logger.debug(f"Rewrote {target} gorup to {mapped_group}")
+                    logger.debug(f"Rewrote {target} group to {mapped_group}")
                     result.add(mapped_group)
             elif target in self._user_map:
                 mapped_user = self._user_map[target]["username"]
