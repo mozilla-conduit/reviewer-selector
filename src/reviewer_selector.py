@@ -108,7 +108,7 @@ class Rules:
         result: set[Reviewer] = set()
         for action in rule.get("actions", []):
             if action.get("type") == "add-reviewers":
-                action_reviewer_set: set[str] = set()
+                action_reviewers_set: set[str] = set()
                 for reviewer in action.get("reviewers", []):
                     result.add((reviewer["target"], reviewer.get("is_group", False)))
                     action_reviewer_set.add(reviewer["target"])
