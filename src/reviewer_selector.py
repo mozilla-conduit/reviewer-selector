@@ -74,7 +74,7 @@ class Rules:
                 )
                 continue
             if self.rule_matches_files(rule, changed_files):
-                logger.info(f"Rule {rule['id']} ({rule["name"]}) matches files")
+                logger.info(f"Rule {rule['id']} ({rule['name']}) matches files")
                 reviewers.update(self.get_rule_reviewers(rule))
         return reviewers
 
