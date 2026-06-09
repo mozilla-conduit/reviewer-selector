@@ -74,11 +74,11 @@ class Rules:
         for rule in self._rules["rules"]:
             if repos and not self.rule_matches_repos(rule, repos):
                 logger.debug(
-                    f"Rule {rule['id']} ({rule['name']}) doesn't match repository"
+                    f"Rule {rule['id']} ({rule["name"]}) doesn't match repositories"
                 )
                 continue
             if self.rule_matches_files(rule, changed_files):
-                logger.info(f"Rule {rule['id']} ({rule['name']}) matches files")
+                logger.info(f"Rule {rule['id']} ({rule["name"]}) matches files")
                 reviewers.update(self.get_rule_reviewers(rule))
         return reviewers
 
@@ -112,12 +112,11 @@ class Rules:
         result: set[Reviewer] = set()
         for action in rule.get("actions", []):
             if action.get("type") == "add-reviewers":
-                reviewer_list = ", ".join(
-                    [r.get("target") for r in action.get("reviewers")]
-                )
-                logger.info(f"Adding reviewers from rule {rule['id']}: {reviewer_list}")
+                action_reviewer_set: set[str] = set()
                 for reviewer in action.get("reviewers", []):
                     result.add((reviewer["target"], reviewer.get("is_group", False)))
+                    action_reviewer_set.add(reviewer["target"])
+                logger.info(f"Adding reviewers from rule {rule['id']}: " + (", ".join(action_reviewer_set)))
         return result
 
 
