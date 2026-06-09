@@ -153,11 +153,12 @@ class UserResolver:
 def main() -> None:
     args: argparse.Namespace = parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
-
+    # Honour the highest verbosity level requested.
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
+    elif args.verbose:
+        logging.basicConfig(level=logging.INFO)
+
 
     rules = Rules.from_file(args.rules_file)
 
