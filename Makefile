@@ -25,9 +25,10 @@ requirements-dev.txt: pyproject.toml
 	uv run pip-compile --allow-unsafe --generate-hashes --extra=dev --output-file=${@}
 
 .PHONY: test
+test: ARGS_TESTS?=
 test:
 	uv pip install .[dev]
-	uv run pytest tests/
+	uv run pytest ${ARGS_TESTS} tests/
 
 .PHONY: test-docker
 test-docker:
