@@ -70,7 +70,7 @@ class Rules:
         for rule in self._rules["rules"]:
             if repos and not self.rule_matches_repos(rule, repos):
                 logger.debug(
-                    f"Rule {rule['id']} ({rule["name"]}) doesn't match repositories"
+                    f"Rule {rule['id']} ({rule['name']}) doesn't match repositories"
                 )
                 continue
             if self.rule_matches_files(rule, changed_files):
