@@ -24,9 +24,8 @@ name = "reviewer-selector"
 # NOTE: When bumping this, also update docker/Dockerfile to match.
 requires-python = ">=3.12"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-  "pip-tools",
   "pytest",
   "ruff",
 ]

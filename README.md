@@ -7,6 +7,7 @@ Select reviewers based on a diff and a set of rules.
 Requirements: [uv](https://docs.astral.sh/uv/#installation).
 
     $ uv venv
+    $ uv sync
     $ uv pip install -e .
 
 
@@ -73,7 +74,7 @@ then
 
 All the commands in this section rely on the development dependencies being installed.
 
-    $ uv pip install -e .[dev]
+    $ uv sync --group dev
 
 ## Tests
 
@@ -97,14 +98,7 @@ or simply,
 
 ## Regenerating requirements.txt
 
-Runtime dependencies only.
-
-    $ uv run pip-compile --quiet --generate-hashes --allow-unsafe -o requirements.txt
-
-Include dev and testing dependencies.
-
-    $ uv run pip-compile --quiet --generate-hashes --extra=dev --allow-unsafe -o requirements-dev.txt
-
+    $ make requirements
 
 # Containerised deployment
 
