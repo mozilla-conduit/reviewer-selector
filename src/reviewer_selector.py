@@ -159,6 +159,7 @@ def main() -> None:
 
     rules = Rules.from_file(args.rules_file)
 
+    patch = Patch(sys.stdin.read())
 
     reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, args.repo)
 
