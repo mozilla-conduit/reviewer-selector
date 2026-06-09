@@ -157,7 +157,6 @@ def main() -> None:
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-
     rules = Rules.from_file(args.rules_file)
 
 
