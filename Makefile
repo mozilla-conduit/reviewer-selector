@@ -13,16 +13,9 @@ format:
 	uv run ruff format
 	uv run ruff check --fix
 
-.PHONY:
-requirements: requirements-dev.txt requirements.txt
-
-requirements.txt: pyproject.toml
-	uv pip install .[dev]
-	uv run pip-compile --allow-unsafe --generate-hashes --output-file=${@}
-
-requirements-dev.txt: pyproject.toml
-	uv pip install .[dev]
-	uv run pip-compile --allow-unsafe --generate-hashes --extra=dev --output-file=${@}
+.PHONY: requirements
+requirements:
+	uv lock
 
 .PHONY: test
 test: ARGS_TESTS?=
@@ -33,4 +26,4 @@ test:
 .PHONY: test-docker
 test-docker:
 	docker run --rm --entrypoint bash ${DOCKER_TAG} \
-		-c 'pip install -r requirements-dev.txt && pytest tests/'
+		-c 'uv sync --group dev && pytest tests/'
