@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Select reviewers based on Herald rules and git diff."""
 
+from abc import ABCMeta, abstractmethod
 import argparse
 import json
 import logging
 import re
 import sys
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any, Self
+from typing import Any, Self, override
 
 import rs_parsepatch
 
@@ -18,6 +19,35 @@ Reviewer = tuple[str, bool]  # (target, is_group)
 UserMap = Mapping[str, Mapping[str, str]]
 
 logger = logging.getLogger(__name__)
+
+
+class PatchSource(metaclass=ABCMeta):
+    @abstractmethod
+    def fetch_patch(self) -> str:
+        """Return a patch from this source."""
+
+
+class Reviewable(metaclass=ABCMeta):
+    @abstractmethod
+    def add_reviewers(self, reviewers: Iterable[Reviewer]):
+        """Set reviewers on the target."""
+
+
+class StdinPatchSource(PatchSource):
+    @override
+    def fetch_patch(self):
+        return sys.stdin.read()
+
+
+class StdoutReviewable(Reviewable):
+    reviewer_separator: str
+
+    def __init__(self, reviewer_separator: str = ","):
+        self.reviewer_separator = reviewer_separator
+
+    @override
+    def add_reviewers(self, reviewers: Iterable[Reviewer]):
+        print(self.reviewer_separator.join(sorted(r[0] for r in reviewers)))
 
 
 class Patch:
@@ -165,7 +195,10 @@ def main() -> None:
 
     rules = Rules.from_file(args.rules_file)
 
-    patch = Patch(sys.stdin.read())
+    patch_source = StdinPatchSource()
+    reviewable = StdoutReviewable(args.reviewer_separator)
+
+    patch = Patch(patch_source.fetch_patch())
 
     reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, args.repo)
 
@@ -175,7 +208,7 @@ def main() -> None:
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
-    print(args.reviewer_separator.join(sorted(resolved)))
+    reviewable.add_reviewers(resolved)
 
 
 def parse_args() -> argparse.Namespace:
