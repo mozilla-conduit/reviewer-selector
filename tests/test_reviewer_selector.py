@@ -286,7 +286,7 @@ class TestResolveReviewers:
 
         resolved = resolver.resolve_reviewers(reviewers)
 
-        assert "jsmith-gh" in resolved
+        assert ("jsmith-gh", False) in resolved
 
     def test_prefixes_groups(self, sample_rules_data: dict):
         resolver = UserResolver(sample_rules_data["github_users"], "#")
@@ -294,8 +294,8 @@ class TestResolveReviewers:
 
         resolved = resolver.resolve_reviewers(reviewers)
 
-        assert "#fluent-reviewers" in resolved
-        assert "/ent:fluent-reviewers" in resolved
+        assert ("#fluent-reviewers", True) in resolved
+        assert ("/ent:fluent-reviewers", True) in resolved
 
     def test_custom_group_prefix(self, sample_rules_data: dict):
         resolver = UserResolver(sample_rules_data["github_users"], "@")
@@ -303,8 +303,8 @@ class TestResolveReviewers:
 
         resolved = resolver.resolve_reviewers(reviewers)
 
-        assert "@fluent-reviewers" in resolved
-        assert "/ent:fluent-reviewers" in resolved
+        assert ("@fluent-reviewers", True) in resolved
+        assert ("/ent:fluent-reviewers", True) in resolved
 
     def test_skips_unresolved_users(self, sample_rules_data: dict):
         resolver = UserResolver(sample_rules_data["github_users"], "#")
@@ -320,5 +320,5 @@ class TestResolveReviewers:
 
         resolved = resolver.resolve_reviewers(reviewers)
 
-        assert "jsmith-gh" in resolved
-        assert "#fluent-reviewers" in resolved
+        assert ("jsmith-gh", False) in resolved
+        assert ("#fluent-reviewers", True) in resolved

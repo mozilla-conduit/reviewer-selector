@@ -127,24 +127,30 @@ class UserResolver:
         self._user_map = user_map
         self._group_prefix = group_prefix
 
-    def resolve_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[str]:
+    def resolve_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
         """Convert to GitHub usernames, prefix groups.
 
         Each entry is unique."""
-        result: set[str] = set()
+        result: set[Reviewer] = set()
         for target, is_group in reviewers:
+            mapped: str | None = None
             if is_group:
                 if target.startswith("/ent:"):
                     # GitHub enterprise teams are not org-scoped.
-                    result.add(target)
+                    mapped = target
+                    logger.debug(f"Left {target} group unchanged")
                 else:
-                    mapped_group = f"{self._group_prefix}{target}"
-                    logger.debug(f"Rewrote {target} group to {mapped_group}")
-                    result.add(mapped_group)
+                    mapped = f"{self._group_prefix}{target}"
+                    logger.debug(f"Rewrote {target} group to {mapped}")
             elif target in self._user_map:
-                mapped_user = self._user_map[target]["username"]
-                logger.debug(f"Resolved {target} to {mapped_user}")
-                result.add(mapped_user)
+                mapped = self._user_map[target]["username"]
+                logger.debug(f"Resolved {target} to {mapped}")
+
+            if not mapped:
+                logger.warning(f"Unresolved {target}, skipping ...")
+                continue
+
+            result.add((mapped, is_group))
         return result
 
 
@@ -167,7 +173,7 @@ def main() -> None:
         rules.get_rules().get("github_users", {}), args.group_prefix
     )
 
-    resolved: Iterable[str] = resolver.resolve_reviewers(reviewers)
+    resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
     print(args.reviewer_separator.join(sorted(resolved)))
 
