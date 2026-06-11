@@ -35,36 +35,26 @@ def test_full_flow(
     assert "#fluent-reviewers" in outerr.out
 
 
-def test_cli_verbose(
+@pytest.mark.parametrize(
+    "logging_arg,expected_log_level",
+    (
+        ("--verbose", logging.INFO),
+        ("--debug", logging.DEBUG),
+    ),
+)
+def test_cli_log_level(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    caplog: pytest.LogCaptureFixture,
     sample_diff: str,
     sample_rules_data: dict,
+    logging_arg: str,
+    expected_log_level: int,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
     with mock.patch("logging.basicConfig") as lbc:
-        outerr = _run_cli(["--verbose", rules_path], sample_diff, capsys)
-        lbc.assert_called_once_with(level=logging.INFO)
-
-    assert "#fluent-reviewers" in outerr.out
-
-
-def test_cli_debug(
-    tmp_path: pathlib.Path,
-    capsys: pytest.CaptureFixture,
-    caplog: pytest.LogCaptureFixture,
-    sample_diff: str,
-    sample_rules_data: dict,
-):
-    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
-
-    with mock.patch("logging.basicConfig") as lbc:
-        outerr = _run_cli(["--debug", rules_path], sample_diff, capsys)
-        lbc.assert_called_once_with(level=logging.DEBUG)
-
-    assert "#fluent-reviewers" in outerr.out
+        _run_cli([logging_arg, rules_path], sample_diff, capsys)
+        lbc.assert_called_once_with(level=expected_log_level)
 
 
 def test_repo_filter(
