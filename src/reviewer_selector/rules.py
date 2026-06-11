@@ -41,7 +41,7 @@ class Rules:
         if not repos:
             logger.info("No repositories specified, ignoring repository filters.")
 
-        for rule in self._rules["rules"]:
+        for rule in self._rules.get("rules", []):
             if repos and not self.rule_matches_repos(rule, repos):
                 logger.debug(
                     f"Rule {rule['id']} ({rule['name']}) doesn't match repositories"
