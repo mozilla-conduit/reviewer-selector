@@ -1,6 +1,6 @@
 import io
+import pathlib
 import sys
-import tempfile
 
 import json
 from unittest import mock
@@ -22,9 +22,12 @@ def test_no_arguments(sample_diff: str, capsys: pytest.CaptureFixture):
 
 
 def test_full_flow(
-    sample_diff: str, sample_rules_data: dict, capsys: pytest.CaptureFixture
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict,
 ):
-    rules_path = _write_rules(sample_rules_data)
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
     outerr = _run_cli([rules_path], sample_diff, capsys)
 
@@ -32,9 +35,12 @@ def test_full_flow(
 
 
 def test_cli_verbose(
-    sample_diff: str, sample_rules_data: dict, capsys: pytest.CaptureFixture
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict,
 ):
-    rules_path = _write_rules(sample_rules_data)
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
     outerr = _run_cli(["--verbose", rules_path], sample_diff, capsys)
 
@@ -42,9 +48,12 @@ def test_cli_verbose(
 
 
 def test_cli_debug(
-    sample_diff: str, sample_rules_data: dict, capsys: pytest.CaptureFixture
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict,
 ):
-    rules_path = _write_rules(sample_rules_data)
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
     outerr = _run_cli(["--debug", rules_path], sample_diff, capsys)
 
@@ -52,9 +61,12 @@ def test_cli_debug(
 
 
 def test_repo_filter(
-    sample_diff_remote: str, sample_rules_data: dict, capsys: pytest.CaptureFixture
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_diff_remote: str,
+    sample_rules_data: dict,
 ):
-    rules_path = _write_rules(sample_rules_data)
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
     outerr = _run_cli(
         [
@@ -70,9 +82,12 @@ def test_repo_filter(
 
 
 def test_group_prefix(
-    sample_diff: str, sample_rules_data: dict, capsys: pytest.CaptureFixture
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict,
 ):
-    rules_path = _write_rules(sample_rules_data)
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
     outerr = _run_cli(
         [rules_path, "--group-prefix", "@"],
@@ -83,12 +98,11 @@ def test_group_prefix(
     assert "@fluent-reviewers" in outerr.out
 
 
-def _write_rules(rules_data: dict) -> str:
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:
+    with rules_path.open(mode="w") as f:
         json.dump(rules_data, f)
-        rules_path = f.name
 
-    return rules_path
+    return str(rules_path)
 
 
 def _run_cli(args: list[str], stdin: str, capsys: pytest.CaptureFixture):
