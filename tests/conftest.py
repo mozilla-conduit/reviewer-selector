@@ -1,54 +1,61 @@
-from textwrap import dedent
 from typing import Any
 
 import pytest
 
+SAMPLE_DIFF = """\
+diff --git a/locales/en/messages.ftl b/locales/en/messages.ftl
+index 1234567..abcdefg 100644
+--- a/locales/en/messages.ftl
++++ b/locales/en/messages.ftl
+@@ -1,3 +1,4 @@
++new-message = Hello
+ old-message = World
+"""
+
 
 @pytest.fixture
 def sample_diff() -> str:
-    return dedent("""\
-    diff --git a/locales/en/messages.ftl b/locales/en/messages.ftl
-    index 1234567..abcdefg 100644
-    --- a/locales/en/messages.ftl
-    +++ b/locales/en/messages.ftl
-    @@ -1,3 +1,4 @@
-    +new-message = Hello
-     old-message = World
-    """)
+    return SAMPLE_DIFF
+
+
+SAMPLE_DIFF_MULTIPLE_FILES = """\
+diff --git a/file1.py b/file1.py
+index 1234567..abcdefg 100644
+--- a/file1.py
++++ b/file1.py
+@@ -1 +1 @@
+-old
++new
+diff --git a/dir/file2.js b/dir/file2.js
+index 1234567..abcdefg 100644
+--- a/dir/file2.js
++++ b/dir/file2.js
+@@ -1 +1 @@
+-old
++new
+"""
 
 
 @pytest.fixture
 def sample_diff_multiple_files() -> str:
-    return dedent("""\
-        diff --git a/file1.py b/file1.py
-        index 1234567..abcdefg 100644
-        --- a/file1.py
-        +++ b/file1.py
-        @@ -1 +1 @@
-        -old
-        +new
-        diff --git a/dir/file2.js b/dir/file2.js
-        index 1234567..abcdefg 100644
-        --- a/dir/file2.js
-        +++ b/dir/file2.js
-        @@ -1 +1 @@
-        -old
-        +new
-        """)
+    return SAMPLE_DIFF_MULTIPLE_FILES
+
+
+SAMPLE_DIFF_REMOTE = """\
+diff --git a/remote/protocol.js b/remote/protocol.js
+index 1234567..abcdefg 100644
+--- a/remote/protocol.js
++++ b/remote/protocol.js
+@@ -1 +1 @@
+-old
++new
+"""
 
 
 @pytest.fixture
 def sample_diff_remote() -> str:
     """A diff changing a file in the remote/ subdirectory."""
-    return dedent("""\
-        diff --git a/remote/protocol.js b/remote/protocol.js
-        index 1234567..abcdefg 100644
-        --- a/remote/protocol.js
-        +++ b/remote/protocol.js
-        @@ -1 +1 @@
-        -old
-        +new
-        """)
+    return SAMPLE_DIFF_REMOTE
 
 
 @pytest.fixture
