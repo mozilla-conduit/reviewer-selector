@@ -83,7 +83,7 @@ All the commands in this section rely on the development dependencies being inst
 You can also run the tests within the built docker image.
 
     $ make build
-    $ make test
+    $ make test-docker
 
 ## Linting
 

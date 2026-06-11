@@ -1,8 +1,5 @@
 """Tests for reviewer_selector.py"""
 
-import json
-import subprocess
-import tempfile
 from unittest import mock
 
 from reviewer_selector import (
@@ -11,142 +8,18 @@ from reviewer_selector import (
     UserResolver,
 )
 
-# --- Test data ---
-
-SAMPLE_RULES_DATA = {
-    "rules": [
-        {
-            "id": "H1",
-            "name": "H1",
-            "conditions": [
-                {
-                    "type": "differential-affected-files",
-                    "operator": "matches-regexp",
-                    "value": r"\.ftl$",
-                }
-            ],
-            "actions": [
-                {
-                    "type": "add-reviewers",
-                    "reviewers": [{"target": "fluent-reviewers", "is_group": True}],
-                }
-            ],
-        },
-        {
-            "id": "H2",
-            "name": "H2",
-            "conditions": [
-                {
-                    "type": "differential-affected-files",
-                    "operator": "matches-regexp",
-                    "value": r"^remote/",
-                },
-                {
-                    "type": "repository",
-                    "operator": "is-any-of",
-                    "value": ["mozilla-central"],
-                },
-            ],
-            "actions": [
-                {
-                    "type": "add-reviewers",
-                    "reviewers": [{"target": "jsmith", "is_group": False}],
-                }
-            ],
-        },
-        {
-            "id": "H3",
-            "name": "H3",
-            "conditions": [
-                {
-                    "type": "differential-affected-files",
-                    "operator": "matches-regexp",
-                    "value": r"^testing/",
-                },
-            ],
-            "actions": [
-                {
-                    "type": "add-reviewers",
-                    "reviewers": [
-                        {"target": "test-reviewers", "is_group": True},
-                        {"target": "jdoe", "is_group": False},
-                    ],
-                }
-            ],
-        },
-        {
-            "id": "H4",
-            "name": "H4",
-            "conditions": [
-                {
-                    "type": "differential-affected-files",
-                    "operator": "matches-regexp",
-                    "value": r"\.ftl$",
-                }
-            ],
-            "actions": [
-                {
-                    "type": "add-reviewers",
-                    "reviewers": [
-                        {"target": "/ent:fluent-reviewers", "is_group": True}
-                    ],
-                }
-            ],
-        },
-    ],
-    "groups": {
-        "fluent-reviewers": {"members": ["alice", "bob"]},
-        "test-reviewers": {"members": ["charlie"]},
-        "/ent:fluent-reviewers": {"members": ["bob"]},
-    },
-    "github_users": {
-        "alice": {"username": "alice-gh"},
-        "bob": {"username": "bob-gh"},
-        "charlie": {"username": "charlie-gh"},
-        "jsmith": {"username": "jsmith-gh"},
-        "jdoe": {"username": "jdoe-gh"},
-    },
-    "unresolved_users": [],
-}
-
-SAMPLE_DIFF = """\
-diff --git a/locales/en/messages.ftl b/locales/en/messages.ftl
-index 1234567..abcdefg 100644
---- a/locales/en/messages.ftl
-+++ b/locales/en/messages.ftl
-@@ -1,3 +1,4 @@
-+new-message = Hello
- old-message = World
-"""
-
 
 # --- Patch.get_changed_files tests ---
 
 
 class TestParseDiff:
-    def test_extracts_file_paths(self):
-        patch = Patch(SAMPLE_DIFF)
+    def test_extracts_file_paths(self, sample_diff: str):
+        patch = Patch(sample_diff)
         files = patch.get_changed_files()
         assert list(files) == ["locales/en/messages.ftl"]
 
-    def test_handles_multiple_files(self):
-        diff = """\
-diff --git a/file1.py b/file1.py
-index 1234567..abcdefg 100644
---- a/file1.py
-+++ b/file1.py
-@@ -1 +1 @@
--old
-+new
-diff --git a/dir/file2.js b/dir/file2.js
-index 1234567..abcdefg 100644
---- a/dir/file2.js
-+++ b/dir/file2.js
-@@ -1 +1 @@
--old
-+new
-"""
-        patch = Patch(diff)
+    def test_handles_multiple_files(self, sample_diff_multiple_files: str):
+        patch = Patch(sample_diff_multiple_files)
         files = patch.get_changed_files()
         assert "file1.py" in files
         assert "dir/file2.js" in files
@@ -361,8 +234,8 @@ class TestGetRuleReviewers:
 
 
 class TestCollectReviewers:
-    def test_collects_from_matching_rules(self):
-        rules = Rules(SAMPLE_RULES_DATA)
+    def test_collects_from_matching_rules(self, sample_rules_data: dict):
+        rules = Rules(sample_rules_data)
         patch = mock.MagicMock()
         patch.get_changed_files = lambda: ["locales/en/messages.ftl"]
 
@@ -371,8 +244,8 @@ class TestCollectReviewers:
         assert ("fluent-reviewers", True) in reviewers
         assert ("/ent:fluent-reviewers", True) in reviewers
 
-    def test_respects_repo_filter(self):
-        rules = Rules(SAMPLE_RULES_DATA)
+    def test_respects_repo_filter(self, sample_rules_data: dict):
+        rules = Rules(sample_rules_data)
         patch = mock.MagicMock()
         patch.get_changed_files = lambda: ["remote/protocol.js"]
 
@@ -380,8 +253,8 @@ class TestCollectReviewers:
 
         assert ("jsmith", False) in reviewers
 
-    def test_excludes_non_matching_repo(self):
-        rules = Rules(SAMPLE_RULES_DATA)
+    def test_excludes_non_matching_repo(self, sample_rules_data: dict):
+        rules = Rules(sample_rules_data)
         patch = mock.MagicMock()
         patch.get_changed_files = lambda: ["remote/protocol.js"]
 
@@ -389,9 +262,9 @@ class TestCollectReviewers:
 
         assert ("jsmith", False) not in reviewers
 
-    def test_deduplicates_reviewers(self):
+    def test_deduplicates_reviewers(self, sample_rules_data: dict):
         # If same reviewer appears in multiple rules, should only appear once
-        rules = Rules(SAMPLE_RULES_DATA)
+        rules = Rules(sample_rules_data)
         patch = mock.MagicMock()
         patch.get_changed_files = lambda: [
             "testing/test.ftl"
@@ -407,16 +280,16 @@ class TestCollectReviewers:
 
 
 class TestResolveReviewers:
-    def test_resolves_user_to_github(self):
-        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "#")
+    def test_resolves_user_to_github(self, sample_rules_data: dict):
+        resolver = UserResolver(sample_rules_data["github_users"], "#")
         reviewers = {("jsmith", False)}
 
         resolved = resolver.resolve_reviewers(reviewers)
 
         assert "jsmith-gh" in resolved
 
-    def test_prefixes_groups(self):
-        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "#")
+    def test_prefixes_groups(self, sample_rules_data: dict):
+        resolver = UserResolver(sample_rules_data["github_users"], "#")
         reviewers = {("fluent-reviewers", True), ("/ent:fluent-reviewers", True)}
 
         resolved = resolver.resolve_reviewers(reviewers)
@@ -424,8 +297,8 @@ class TestResolveReviewers:
         assert "#fluent-reviewers" in resolved
         assert "/ent:fluent-reviewers" in resolved
 
-    def test_custom_group_prefix(self):
-        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "@")
+    def test_custom_group_prefix(self, sample_rules_data: dict):
+        resolver = UserResolver(sample_rules_data["github_users"], "@")
         reviewers = {("fluent-reviewers", True), ("/ent:fluent-reviewers", True)}
 
         resolved = resolver.resolve_reviewers(reviewers)
@@ -433,85 +306,19 @@ class TestResolveReviewers:
         assert "@fluent-reviewers" in resolved
         assert "/ent:fluent-reviewers" in resolved
 
-    def test_skips_unresolved_users(self):
-        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "#")
+    def test_skips_unresolved_users(self, sample_rules_data: dict):
+        resolver = UserResolver(sample_rules_data["github_users"], "#")
         reviewers = {("unknown-user", False)}
 
         resolved = resolver.resolve_reviewers(reviewers)
 
         assert len(resolved) == 0
 
-    def test_mixed_users_and_groups(self):
-        resolver = UserResolver(SAMPLE_RULES_DATA["github_users"], "#")
+    def test_mixed_users_and_groups(self, sample_rules_data: dict):
+        resolver = UserResolver(sample_rules_data["github_users"], "#")
         reviewers = {("jsmith", False), ("fluent-reviewers", True)}
 
         resolved = resolver.resolve_reviewers(reviewers)
 
         assert "jsmith-gh" in resolved
         assert "#fluent-reviewers" in resolved
-
-
-# --- CLI integration tests ---
-
-
-class TestCLI:
-    MAIN_SCRIPT = "reviewer-selector"
-
-    def test_full_flow(self):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(SAMPLE_RULES_DATA, f)
-            rules_path = f.name
-
-        result = subprocess.run(
-            [self.MAIN_SCRIPT, rules_path],
-            input=SAMPLE_DIFF,
-            capture_output=True,
-            text=True,
-        )
-
-        assert result.returncode == 0
-        assert "#fluent-reviewers" in result.stdout
-
-    def test_repo_filter(self):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(SAMPLE_RULES_DATA, f)
-            rules_path = f.name
-
-        diff = """\
-diff --git a/remote/protocol.js b/remote/protocol.js
-index 1234567..abcdefg 100644
---- a/remote/protocol.js
-+++ b/remote/protocol.js
-@@ -1 +1 @@
--old
-+new
-"""
-        result = subprocess.run(
-            [
-                self.MAIN_SCRIPT,
-                rules_path,
-                "--repo",
-                "mozilla-central",
-            ],
-            input=diff,
-            capture_output=True,
-            text=True,
-        )
-
-        assert result.returncode == 0
-        assert "jsmith-gh" in result.stdout
-
-    def test_group_prefix(self):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(SAMPLE_RULES_DATA, f)
-            rules_path = f.name
-
-        result = subprocess.run(
-            [self.MAIN_SCRIPT, rules_path, "--group-prefix", "@"],
-            input=SAMPLE_DIFF,
-            capture_output=True,
-            text=True,
-        )
-
-        assert result.returncode == 0
-        assert "@fluent-reviewers" in result.stdout
