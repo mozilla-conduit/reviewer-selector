@@ -1,4 +1,5 @@
 import io
+import logging
 import pathlib
 import sys
 
@@ -37,12 +38,15 @@ def test_full_flow(
 def test_cli_verbose(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
+    caplog: pytest.LogCaptureFixture,
     sample_diff: str,
     sample_rules_data: dict,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
-    outerr = _run_cli(["--verbose", rules_path], sample_diff, capsys)
+    with mock.patch("logging.basicConfig") as lbc:
+        outerr = _run_cli(["--verbose", rules_path], sample_diff, capsys)
+        lbc.assert_called_once_with(level=logging.INFO)
 
     assert "#fluent-reviewers" in outerr.out
 
@@ -50,12 +54,15 @@ def test_cli_verbose(
 def test_cli_debug(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
+    caplog: pytest.LogCaptureFixture,
     sample_diff: str,
     sample_rules_data: dict,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
-    outerr = _run_cli(["--debug", rules_path], sample_diff, capsys)
+    with mock.patch("logging.basicConfig") as lbc:
+        outerr = _run_cli(["--debug", rules_path], sample_diff, capsys)
+        lbc.assert_called_once_with(level=logging.DEBUG)
 
     assert "#fluent-reviewers" in outerr.out
 
