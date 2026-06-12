@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class Rules:
+    """Representation of Phabricator Herald Rules."""
+
     _rules: RulesData
 
     def __init__(self, rules: RulesData):
@@ -32,6 +34,7 @@ class Rules:
         self, patch: Patch, repos: Iterable[str]
     ) -> Iterable[Reviewer]:
         """Return set of (target, is_group) tuples from matching rules."""
+
         changed_files = patch.get_changed_files()
         reviewers: set[Reviewer] = set()
 

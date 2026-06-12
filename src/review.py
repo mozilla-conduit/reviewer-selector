@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class Reviewable(metaclass=ABCMeta):
+    """An interface for something able to receive a list of reviewers."""
     @abstractmethod
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         """Set reviewers on the target."""
@@ -23,6 +24,7 @@ class StdoutReviewable(Reviewable):
 
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
+        """A Reviewable implementation outputting reviewers to STDOUT."""
         print(self.reviewer_separator.join(sorted(r[0] for r in reviewers)))
 
 

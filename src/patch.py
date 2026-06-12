@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class Patch:
+    """Wrapper around patch data, with optional path metadata header."""
     _patch: str
     _parsed_diffs: Sequence[Mapping[str, Any]]
 
@@ -21,10 +22,11 @@ class Patch:
         self._parsed_diffs = rs_parsepatch.get_diffs(self._patch)
 
     def get_patch(self):
+        """Get the raw patch data."""
         return self._patch
 
     def get_changed_files(self):
-        """Extract file paths from git diff."""
+        """Get the list of modified file paths."""
         filenames = [d["filename"] for d in self._parsed_diffs]
 
         logger.info(f"Considering filenames: {', '.join(filenames)} ...")
@@ -33,8 +35,7 @@ class Patch:
 
 
 class PatchSource(metaclass=ABCMeta):
-    """An interface for something able to produce a unified diff,
-    with optional path metadata header."""
+    """An interface for something able to produce Patch data."""
 
     @abstractmethod
     def fetch_patch(self) -> str:
@@ -42,6 +43,7 @@ class PatchSource(metaclass=ABCMeta):
 
 
 class StdinPatchSource(PatchSource):
+    """A PatchSource implementation reading a diff from STDIN."""
     @override
     def fetch_patch(self) -> str:
         return sys.stdin.read()
