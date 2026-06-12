@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Reviewable(metaclass=ABCMeta):
     """An interface for something able to receive a list of reviewers."""
+
     @abstractmethod
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         """Set reviewers on the target."""

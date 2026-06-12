@@ -1,4 +1,4 @@
-from review import UserResolver
+from reviewer_selector.review import UserResolver
 
 
 def test_user_resolves_user_to_github(sample_rules_data: dict):

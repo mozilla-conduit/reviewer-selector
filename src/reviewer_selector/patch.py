@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class Patch:
-    """Wrapper around patch data, with optional path metadata header."""
+    """Wrapper around patch data, with optional patch metadata header."""
+
     _patch: str
     _parsed_diffs: Sequence[Mapping[str, Any]]
 
@@ -26,7 +27,7 @@ class Patch:
         return self._patch
 
     def get_changed_files(self):
-        """Get the list of modified file paths."""
+        """Get the list of modified file patchs."""
         filenames = [d["filename"] for d in self._parsed_diffs]
 
         logger.info(f"Considering filenames: {', '.join(filenames)} ...")
@@ -44,6 +45,7 @@ class PatchSource(metaclass=ABCMeta):
 
 class StdinPatchSource(PatchSource):
     """A PatchSource implementation reading a diff from STDIN."""
+
     @override
     def fetch_patch(self) -> str:
         return sys.stdin.read()

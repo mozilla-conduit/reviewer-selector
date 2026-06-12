@@ -4,8 +4,8 @@ import logging
 import re
 from typing import Any, Self
 
-from patch import Patch
-from review import Reviewer
+from reviewer_selector.patch import Patch
+from reviewer_selector.review import Reviewer
 
 
 RulesData = Mapping[str, Any]

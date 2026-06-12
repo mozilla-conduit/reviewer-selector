@@ -1,5 +1,5 @@
 from unittest import mock
-from rules import Rules
+from reviewer_selector.rules import Rules
 
 # --- Rules.rule_matches_repos tests ---
 

@@ -1,20 +1,18 @@
-#!/usr/bin/env python3
-"""Select reviewers based on Herald rules and git diff."""
-
 import argparse
 import logging
 from collections.abc import Iterable
 
 
-from patch import Patch, StdinPatchSource
-from review import Reviewer, StdoutReviewable, UserResolver
-from rules import Rules
+from reviewer_selector.patch import Patch, StdinPatchSource
+from reviewer_selector.review import Reviewer, StdoutReviewable, UserResolver
+from reviewer_selector.rules import Rules
 
 
 logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+    """Select reviewers based on Herald rules and unified diff."""
     args: argparse.Namespace = parse_args()
 
     # Honour the highest verbosity level requested.

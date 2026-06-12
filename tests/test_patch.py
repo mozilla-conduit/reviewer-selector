@@ -1,4 +1,4 @@
-from patch import Patch
+from reviewer_selector.patch import Patch
 
 
 def test_patch_extracts_file_paths(sample_diff: str):
