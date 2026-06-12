@@ -4,8 +4,10 @@ import pathlib
 import sys
 
 import json
+from typing import Any
 from unittest import mock
 import pytest
+from requests_mock import Mocker
 
 from reviewer_selector import cli
 
@@ -26,7 +28,7 @@ def test_full_flow(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
-    sample_rules_data: dict,
+    sample_rules_data: dict[str, Any],
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -46,7 +48,7 @@ def test_cli_log_level(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
-    sample_rules_data: dict,
+    sample_rules_data: dict[str, Any],
     logging_arg: str,
     expected_log_level: int,
 ):
@@ -61,7 +63,7 @@ def test_repo_filter(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
     sample_diff_remote: str,
-    sample_rules_data: dict,
+    sample_rules_data: dict[str, Any],
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -82,7 +84,7 @@ def test_group_prefix(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
-    sample_rules_data: dict,
+    sample_rules_data: dict[str, Any],
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -93,6 +95,71 @@ def test_group_prefix(
     )
 
     assert "@fluent-reviewers" in outerr.out
+
+
+def test_github(
+    tmp_path: pathlib.Path,
+    mocked_github_request: Mocker,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict[str, Any],
+):
+    # Empty rules. The real ones should be coming from in-tree.
+    rules_path = _write_rules(tmp_path / "rules.json", {})
+
+    with mocked_github_request as mock:
+        patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
+        mock.get(patch_url, text=sample_diff)
+
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/main/herald_rules.json"
+        mock.get(rules_url, text=json.dumps(sample_rules_data))
+
+        outerr = _run_cli(
+            [
+                rules_path,
+                "--pr-url",
+                "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+            ],
+            "",
+            capsys,
+        )
+
+    assert "@fluent-reviewers" in outerr.out
+    assert "/ent:fluent-reviewers" in outerr.out
+
+
+@mock.patch("reviewer_selector.Rules.collect_reviewers")
+def test_github_repo_added(
+    mock_collect_reviewers: mock.Mock,
+    tmp_path: pathlib.Path,
+    mocked_github_request: Mocker,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict[str, Any],
+):
+    # Empty rules. The real ones should be coming from in-tree.
+    rules_path = _write_rules(tmp_path / "rules.json", {})
+
+    with mocked_github_request as mock:
+        patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
+        mock.get(patch_url, text=sample_diff)
+
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/main/herald_rules.json"
+        mock.get(rules_url, text=json.dumps(sample_rules_data))
+
+        _run_cli(
+            [
+                rules_path,
+                "--pr-url",
+                "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+            ],
+            "",
+            capsys,
+        )
+
+    assert "reviewer-selector" in mock_collect_reviewers.call_args[0][1], (
+        "The GitHub repo name was not passed to the Rules.collect_reviewers methode"
+    )
 
 
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:

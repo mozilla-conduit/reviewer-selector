@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 import logging
-from typing import override
+from typing import Callable, override
 
 UserMap = Mapping[str, Mapping[str, str]]
 
@@ -41,36 +41,66 @@ class StdoutReviewable(Reviewable):
         print(self.reviewer_separator.join(sorted(r.name for r in reviewers)))
 
 
-class UserResolver:
+class UserResolver(metaclass=ABCMeta):
+    """An interface for a transformer to apply to user names."""
+
+    @abstractmethod
+    def resolve_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
+        """Update the content of the reviewers based on arbitrary criteria."""
+
+
+class MappingUserResolver(UserResolver):
+    """A UserResolver implementation doing group-prefixing and user-mapping."""
+
     _user_map: UserMap
     _group_prefix: str
 
-    def __init__(self, user_map: UserMap, group_prefix: str = "@"):
-        self._user_map = user_map
-        self._group_prefix = group_prefix
+    def __init__(
+        self,
+        group_prefix: str = "#",
+        user_map: UserMap | None = None,
+        custom_map: Callable[[Reviewer], Reviewer | None] | None = None,
+    ):
+        """Initialise a MappingUserResolver.
 
+        Parameters:
+
+        group_prefix: str
+
+            string to prepend to group names, defaults to
+
+        user_map: UserMap
+
+            mapping to rewrite username, if present
+
+        custom_map: Callable[[Reviewer], Reviewer | None]
+
+            custom mapping function, which bypass the internal logic if it return a
+        value for the current reviewer
+
+        """
+        self._group_prefix = group_prefix
+        self._user_map = user_map or {}
+        self._custom_map = custom_map
+
+    @override
     def resolve_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
-        """Convert to GitHub usernames, prefix groups.
+        """Prefix groups, and convert usernames if a map was provided.
 
         Each entry is unique."""
         result: set[Reviewer] = set()
         for r in reviewers:
-            mapped: str | None = None
+            if self._custom_map and (mapped_reviewer := self._custom_map(r)):
+                result.add(mapped_reviewer)
+                continue
+
+            mapped: str = r.name
             if r.is_group:
-                if r.name.startswith("/ent:"):
-                    # GitHub enterprise teams are not org-scoped.
-                    mapped = r.name
-                    logger.debug(f"Left {r.name} group unchanged")
-                else:
-                    mapped = f"{self._group_prefix}{r.name}"
-                    logger.debug(f"Rewrote {r.name} group to {mapped}")
+                mapped = f"{self._group_prefix}{r.name}"
+                logger.debug(f"Rewrote {r.name} group to {mapped}")
             elif r.name in self._user_map:
                 mapped = self._user_map[r.name]["username"]
                 logger.debug(f"Resolved {r.name} to {mapped}")
-
-            if not mapped:
-                logger.warning(f"Unresolved {r.name}, skipping ...")
-                continue
 
             result.add(Reviewer(mapped, r.is_group))
         return result

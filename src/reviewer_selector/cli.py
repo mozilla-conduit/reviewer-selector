@@ -5,7 +5,7 @@ from collections.abc import Iterable
 
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.patch import Patch, StdinPatchSource
-from reviewer_selector.review import Reviewer, StdoutReviewable, UserResolver
+from reviewer_selector.review import Reviewer, StdoutReviewable, MappingUserResolver
 from reviewer_selector.rules import Rules
 
 
@@ -27,20 +27,27 @@ def cli() -> None:
     repos = args.repo
 
     if args.pr_url:
-        ghpr = GitHubPR(args.pr_url)
+        ghpr = GitHubPR(args.pr_url, rules)
+
+        # Override rules with in-tree file if present.
+        rules = ghpr.rules or rules
+
+        repos.append(ghpr.repository)
+
         patch_source = ghpr
-        reviewable = ghpr
+        resolver = ghpr
+
     else:
         patch_source = StdinPatchSource()
-        reviewable = StdoutReviewable(args.reviewer_separator)
+        resolver = MappingUserResolver(
+            args.group_prefix, rules.get_rules().get("github_users", {})
+        )
+    # We don't have a functional GitHub Reviewable implementation for now.
+    reviewable = StdoutReviewable(args.reviewer_separator)
 
     patch = Patch(patch_source.fetch_patch())
 
     reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, repos)
-
-    resolver = UserResolver(
-        rules.get_rules().get("github_users", {}), args.group_prefix
-    )
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
