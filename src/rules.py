@@ -1,10 +1,8 @@
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 import json
 import logging
 import re
-from typing import Any, Iterable
-
-from typing_extensions import Self
+from typing import Any, Self
 
 from patch import Patch
 from review import Reviewer
