@@ -11,7 +11,7 @@ from reviewer_selector.rules import Rules
 logger = logging.getLogger(__name__)
 
 
-def main() -> None:
+def cli() -> None:
     """Select reviewers based on Herald rules and unified diff."""
     args: argparse.Namespace = parse_args()
 
@@ -73,4 +73,4 @@ def parse_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    main()
+    cli()
