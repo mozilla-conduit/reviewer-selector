@@ -29,6 +29,8 @@ class Reviewable(metaclass=ABCMeta):
 
 
 class StdoutReviewable(Reviewable):
+    """A Reviewable implementation outputting reviewers to STDOUT."""
+
     reviewer_separator: str
 
     def __init__(self, reviewer_separator: str = ","):
@@ -36,7 +38,6 @@ class StdoutReviewable(Reviewable):
 
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
-        """A Reviewable implementation outputting reviewers to STDOUT."""
         print(self.reviewer_separator.join(sorted(r.name for r in reviewers)))
 
 
