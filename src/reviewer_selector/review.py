@@ -1,12 +1,23 @@
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 import logging
 from typing import override
 
-Reviewer = tuple[str, bool]  # (target, is_group)
 UserMap = Mapping[str, Mapping[str, str]]
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Reviewer:
+    name: str
+    is_group: bool
+
+    @override
+    def __hash__(self):
+        """Make this dataclass hashable for use in sets."""
+        return (self.name, self.is_group).__hash__()
 
 
 class Reviewable(metaclass=ABCMeta):
@@ -26,7 +37,7 @@ class StdoutReviewable(Reviewable):
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         """A Reviewable implementation outputting reviewers to STDOUT."""
-        print(self.reviewer_separator.join(sorted(r[0] for r in reviewers)))
+        print(self.reviewer_separator.join(sorted(r.name for r in reviewers)))
 
 
 class UserResolver:
@@ -42,23 +53,23 @@ class UserResolver:
 
         Each entry is unique."""
         result: set[Reviewer] = set()
-        for target, is_group in reviewers:
+        for r in reviewers:
             mapped: str | None = None
-            if is_group:
-                if target.startswith("/ent:"):
+            if r.is_group:
+                if r.name.startswith("/ent:"):
                     # GitHub enterprise teams are not org-scoped.
-                    mapped = target
-                    logger.debug(f"Left {target} group unchanged")
+                    mapped = r.name
+                    logger.debug(f"Left {r.name} group unchanged")
                 else:
-                    mapped = f"{self._group_prefix}{target}"
-                    logger.debug(f"Rewrote {target} group to {mapped}")
-            elif target in self._user_map:
-                mapped = self._user_map[target]["username"]
-                logger.debug(f"Resolved {target} to {mapped}")
+                    mapped = f"{self._group_prefix}{r.name}"
+                    logger.debug(f"Rewrote {r.name} group to {mapped}")
+            elif r.name in self._user_map:
+                mapped = self._user_map[r.name]["username"]
+                logger.debug(f"Resolved {r.name} to {mapped}")
 
             if not mapped:
-                logger.warning(f"Unresolved {target}, skipping ...")
+                logger.warning(f"Unresolved {r.name}, skipping ...")
                 continue
 
-            result.add((mapped, is_group))
+            result.add(Reviewer(mapped, r.is_group))
         return result

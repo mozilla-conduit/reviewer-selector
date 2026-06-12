@@ -84,7 +84,9 @@ class Rules:
             if action.get("type") == "add-reviewers":
                 action_reviewers_set: set[str] = set()
                 for reviewer in action.get("reviewers", []):
-                    result.add((reviewer["target"], reviewer.get("is_group", False)))
+                    result.add(
+                        Reviewer(reviewer["target"], reviewer.get("is_group", False))
+                    )
                     action_reviewers_set.add(reviewer["target"])
                 logger.info(
                     f"Adding reviewers from rule {rule['id']}: "

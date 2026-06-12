@@ -1,4 +1,5 @@
 from unittest import mock
+from reviewer_selector.review import Reviewer
 from reviewer_selector.rules import Rules
 
 # --- Rules.rule_matches_repos tests ---
@@ -157,7 +158,7 @@ def test_rule_extracts_reviewers():
         ],
     }
     reviewers = Rules.get_rule_reviewers(rule)
-    assert ("jsmith", False) in reviewers
+    assert Reviewer("jsmith", False) in reviewers
 
 
 def test_rule_extracts_groups():
@@ -172,7 +173,7 @@ def test_rule_extracts_groups():
         ],
     }
     reviewers = Rules.get_rule_reviewers(rule)
-    assert ("my-group", True) in reviewers
+    assert Reviewer("my-group", True) in reviewers
 
 
 def test_rule_multiple_reviewers():
@@ -219,8 +220,8 @@ def test_rule_collects_from_matching_rules(sample_rules_data: dict):
 
     reviewers = rules.collect_reviewers(patch, [])
 
-    assert ("fluent-reviewers", True) in reviewers
-    assert ("/ent:fluent-reviewers", True) in reviewers
+    assert Reviewer("fluent-reviewers", True) in reviewers
+    assert Reviewer("/ent:fluent-reviewers", True) in reviewers
 
 
 def test_rule_respects_repo_filter(sample_rules_data: dict):
@@ -230,7 +231,7 @@ def test_rule_respects_repo_filter(sample_rules_data: dict):
 
     reviewers = rules.collect_reviewers(patch, ["mozilla-central"])
 
-    assert ("jsmith", False) in reviewers
+    assert Reviewer("jsmith", False) in reviewers
 
 
 def test_rule_excludes_non_matching_repo(sample_rules_data: dict):
@@ -240,7 +241,7 @@ def test_rule_excludes_non_matching_repo(sample_rules_data: dict):
 
     reviewers = rules.collect_reviewers(patch, ["comm-central"])
 
-    assert ("jsmith", False) not in reviewers
+    assert Reviewer("jsmith", False) not in reviewers
 
 
 def test_rule_deduplicates_reviewers(sample_rules_data: dict):
@@ -254,4 +255,4 @@ def test_rule_deduplicates_reviewers(sample_rules_data: dict):
     reviewers = rules.collect_reviewers(patch, [])
 
     # Count occurrences
-    assert len([r for r in reviewers if r[0] == "fluent-reviewers"]) <= 1
+    assert len([r for r in reviewers if r.name == "fluent-reviewers"]) <= 1
