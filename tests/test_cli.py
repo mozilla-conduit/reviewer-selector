@@ -7,7 +7,7 @@ import json
 from unittest import mock
 import pytest
 
-from reviewer_selector import main
+from reviewer_selector import cli
 
 MAIN_SCRIPT = "reviewer-selector"
 
@@ -103,12 +103,12 @@ def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:
 
 
 def _run_cli(args: list[str], stdin: str, capsys: pytest.CaptureFixture):
-    """Run the main entry point in the same process to record coverage."""
+    """Run the cli entry point in the same process to record coverage."""
 
     with (
         mock.patch.object(sys, "argv", [MAIN_SCRIPT] + args),
         mock.patch.object(sys, "stdin", io.StringIO(stdin)),
     ):
-        main()
+        cli()
 
     return capsys.readouterr()

@@ -8,6 +8,7 @@ from taskcluster.helper import TaskclusterConfig, load_secrets
 
 
 def main() -> int:
+    """Generate a GitHub token using a TaskCluster secret, with parameters in env."""
     tc = TaskclusterConfig()
     tc.auth()
 
@@ -27,6 +28,7 @@ def main() -> int:
 def generate_token(
     tc: TaskclusterConfig, tc_secret_id: str, gh_owner: str, gh_repo: str
 ) -> str:
+    """Generate a GitHub token using a TaskCluster secret, fetched by its ID."""
     tc_secret = fetch_tc_secret(tc, tc_secret_id)
     return generate_github_token(
         tc_secret["GITHUB_APP_ID"], tc_secret["GITHUB_APP_PRIVKEY"], gh_owner, gh_repo
@@ -34,6 +36,7 @@ def generate_token(
 
 
 def fetch_tc_secret(tc: TaskclusterConfig, secret_id: str) -> dict[str, str]:
+    """Fetch a TaskCluster secret by it ID."""
     secrets = tc.get_service("secrets")
     return load_secrets(secrets, secret_id)
 
@@ -41,6 +44,7 @@ def fetch_tc_secret(tc: TaskclusterConfig, secret_id: str) -> dict[str, str]:
 def generate_github_token(
     app_id: str, app_privkey: str, gh_owner: str, gh_repo: str
 ) -> str:
+    """Generate a GitHub token using an application credentials."""
     return asyncio.run(
         async_generate_github_token(app_id, app_privkey, gh_owner, gh_repo)
     )
@@ -49,6 +53,7 @@ def generate_github_token(
 async def async_generate_github_token(
     app_id: str, app_privkey: str, gh_owner: str, gh_repo: str
 ) -> str:
+    """Sync wrapper around simple_github to generate a token."""
     app_auth = AppAuth(app_id, app_privkey)
     inst_auth = AppInstallationAuth(app_auth, gh_owner, repositories=[gh_repo])
     token = await inst_auth.get_token()

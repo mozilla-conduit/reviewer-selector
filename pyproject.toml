@@ -32,7 +32,7 @@ dev = [
 ]
 
 [project.scripts]
-reviewer-selector = "reviewer_selector:main"
+reviewer-selector = "reviewer_selector:cli"
 gh-token-generator = "gh_token_generator:main"
 
 [tool.pytest]
