@@ -93,12 +93,15 @@ tasks:
                       'head_ref[:11] == "refs/heads/"': '${head_ref[11:]}'
                       $default: '${head_ref}'
               level:
-                  $if: 'tasks_for == "github-push" && head_ref in ["main", "refs/heads/main"]'
+                  $if: >
+                       (tasks_for == "github-release")
+                       || (tasks_for == "github-push" && head_ref in ["main", "refs/heads/main"])
                   then: "3"
                   else: "1"
           in:
               $if: >
                   tasks_for in ["action", "pr-action", "cron"]
+                  || (tasks_for == "github-release")
                   || (tasks_for == "github-push" && short_head_ref in ["main", "staging", "develop"] )
                   || (isPullRequest && pullRequestAction in ["opened", "reopened", "synchronize"])
               then:
@@ -142,7 +145,7 @@ tasks:
 
                   tags:
                       $switch:
-                          'tasks_for == "github-push" || isPullRequest':
+                          'tasks_for in ["github-release", "github-push"] || isPullRequest':
                               createdForUser: "${ownerEmail}"
                               kind: decision-task
                           'tasks_for in ["action", "pr-action"]':
@@ -169,7 +172,7 @@ tasks:
 
                   scopes:
                       $switch:
-                          'tasks_for in ["github-push"]':
+                          'tasks_for in ["github-release", "github-push"]':
                               - 'assume:repo:${repoUrl[8:]}:branch:${short_head_ref}'
                           'isPullRequest':
                               - 'assume:repo:github.com/${event.pull_request.base.repo.full_name}:${tasks_for[7:]}'
@@ -186,6 +189,7 @@ tasks:
                   priority:
                       $switch:
                           'tasks_for == "cron"': low
+                          'tasks_for == "github-release"': low
                           'tasks_for == "github-push"|| isPullRequest': very-low
                           $default: lowest  # tasks_for in ['action', 'pr-action']
                   retries: 5
