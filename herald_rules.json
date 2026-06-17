@@ -6046,6 +6046,22 @@
     "sergesanspaille": {
       "username": "serge-sans-paille",
       "user_id": 863807
+    },
+    "skyschub": {
+      "username": "skyschub",
+      "user_id": 344777
+    },
+    "tjr": {
+      "username": "tomrittervg",
+      "user_id": 163497
+    },
+    "twisniewski": {
+      "username": "wisniewskit",
+      "user_id": 419743
+    },
+    "zrhoffman": {
+      "username": "zrhoffman",
+      "user_id": 11163823
     }
   },
   "unresolved_users": [
@@ -6483,47 +6499,19 @@
       ]
     },
     {
-      "phabricator_username": "skyschub",
-      "reason": "error: Could not find a suitable TLS CA certificate bundle, invalid path: /home/shtrom/work/herald_crawler/.venv/lib/python3.12/site-packages/certifi/cacert.pem",
-      "referenced_in": [
-        "group:webcompat-reviewers"
-      ]
-    },
-    {
-      "phabricator_username": "tjr",
-      "reason": "error: Could not find a suitable TLS CA certificate bundle, invalid path: /home/shtrom/work/herald_crawler/.venv/lib/python3.12/site-packages/certifi/cacert.pem",
-      "referenced_in": [
-        "group:supply-chain-reviewers"
-      ]
-    },
-    {
-      "phabricator_username": "twisniewski",
-      "reason": "error: Could not find a suitable TLS CA certificate bundle, invalid path: /home/shtrom/work/herald_crawler/.venv/lib/python3.12/site-packages/certifi/cacert.pem",
-      "referenced_in": [
-        "group:webcompat-reviewers"
-      ]
-    },
-    {
       "phabricator_username": "unknown",
-      "reason": "error: Could not find a suitable TLS CA certificate bundle, invalid path: /home/shtrom/work/herald_crawler/.venv/lib/python3.12/site-packages/certifi/cacert.pem",
+      "reason": "pmo_profile_not_found",
       "referenced_in": [
         "H18"
-      ]
-    },
-    {
-      "phabricator_username": "zrhoffman",
-      "reason": "error: Could not find a suitable TLS CA certificate bundle, invalid path: /home/shtrom/work/herald_crawler/.venv/lib/python3.12/site-packages/certifi/cacert.pem",
-      "referenced_in": [
-        "group:firefox-style-system-reviewers"
       ]
     }
   ],
   "metadata": {
-    "extracted_at": "2026-06-16T09:09:13.630912Z",
+    "extracted_at": "2026-06-17T05:35:15.339548Z",
     "total_rules": 89,
     "total_groups": 75,
-    "total_users_resolved": 253,
-    "total_users_unresolved": 53,
+    "total_users_resolved": 257,
+    "total_users_unresolved": 49,
     "phabricator_instance": "phabricator.services.mozilla.com",
     "scrape_status": {
       "rules_complete": false,
