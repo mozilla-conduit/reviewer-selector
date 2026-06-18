@@ -122,13 +122,16 @@ Crawler](https://github.com/mozilla-conduit/herald_crawler).
 
 
     $  herald-scraper --url https://phabricator.services.mozilla.com \
-      --conduit-token $PHAB_TOKEN --pmo-cookie $PEOPLE_MOZILLA_COOKIE \
-      --output herald_rules.json \
+      --conduit-token $PHAB_TOKEN --phab-cookie $PHABRICATOR_SESSION_COOKIE \
+      --pmo-cookie $PMO_COOKIE \
+      --input herald_rules.json --output herald_rules.new.json \
+    $ mv herald_rules.new.json herald_rules.json
 
 Get/create your `$PHAB_TOKEN` from
-https://phabricator.services.mozilla.com/settings/user/<YOUR-USERNAME>/page/apitokens/.
-Get your `$PEOPLE_MOZILLA_COOKIE` from the `pmo-access` cookie after logging in
-to https://people.mozilla.org/
+https://phabricator.services.mozilla.com/settings/user/<YOUR-USERNAME>/page/apitokens/,
+where you can also get the `phsid` cookie as `$PHABRICATOR_SESSION_COOKIE`. Get
+your `$PMO_COOKIE` from the `pmo-access` cookie after logging in to
+https://people.mozilla.org/
 
 Those rules should be placed at the root of the source tree, and committed to
 git so they are built as part of the image. `make build` takes care of using

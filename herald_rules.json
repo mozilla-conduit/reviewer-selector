@@ -704,7 +704,7 @@
             "mconley",
             "mhowell",
             "mtigley",
-            "•kpatenio"
+            "kpatenio"
           ]
         },
         {
@@ -3476,6 +3476,638 @@
           ]
         }
       ]
+    },
+    {
+      "id": "H18",
+      "name": "Blocked by firefox-build-system-reviewers",
+      "author": "unknown",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-title",
+          "operator": "contains",
+          "value": ""
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/?python/sites/build\\.txt$"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "firefox-build-system-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H158",
+      "name": "Blocked by Fluent Reviewer",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^(?!.*webext-glue)(?<!third_party\\/).*\\.ftl$"
+        },
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned"
+          ]
+        },
+        {
+          "type": "differential-reviewers",
+          "operator": "exists",
+          "value": true
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "fluent-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H220",
+      "name": "Blocked by Webcompat Reviewers #1",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^\\/?browser\\/extensions\\/(webcompat|report-site-issue)"
+        },
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "webcompat-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H238",
+      "name": "Blocked by Mozperftest Reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^/?(python/mozperftest|taskcluster/kinds/perftest)/"
+        },
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-reviewers",
+          "operator": "include-none-of",
+          "value": [
+            "mozperftest-reviewers"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "mozperftest-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H249",
+      "name": "Blocked by DevTools Backward Compat Reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "contains",
+          "value": "devtools/shared/specs"
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned"
+          ]
+        },
+        {
+          "type": "differential-reviewers",
+          "operator": "exists",
+          "value": true
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "devtools-backward-compat-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H252",
+      "name": "Blocked by Preferences Reviewers #1",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Draft",
+            "Closed",
+            "Abandoned",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^\\/?browser\\/(components|themes\\/[^\\/]+)\\/preferences"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "settings-reviewers-rotation",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H254",
+      "name": "Blocked by Preferences Reviewers #2",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Draft",
+            "Closed",
+            "Abandoned",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^\\/?toolkit\\/mozapps\\/preferences"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "settings-reviewers-rotation",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H257",
+      "name": "Blocked by Preferences Reviewers #3",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "\\/?toolkit\\/components\\/featuregates\\/Features\\.toml"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "settings-reviewers-rotation",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H350",
+      "name": "Blocked by supply-chain-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Draft",
+            "Changes Planned",
+            "Abandoned"
+          ]
+        },
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-reviewers",
+          "operator": "include-none-of",
+          "value": [
+            "bholley",
+            "Gankra",
+            "tjr"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^/?supply-chain/"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "supply-chain-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H384",
+      "name": "Blocked by cubeb-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^/?media/libcubeb"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "cubeb-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H438",
+      "name": "Blocked by Webcompat Reviewers #2",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/?(browser|toolkit)/components/reportbrokensite"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "webcompat-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H439",
+      "name": "Blocked by Webcompat Reviewers #3",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/?mobile/android/android-components/components/feature/(webcompat|webcompat-reporter)"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "webcompat-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H495",
+      "name": "Needs review from #firefox-style-system-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Changes Planned",
+            "Draft"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/?(servo|layout/style)/"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "firefox-style-system-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H496",
+      "name": "Needs review from #firefox-svg-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/?(dom|layout)/svg/"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "firefox-svg-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
+        }
+      ]
     }
   ],
   "groups": {
@@ -3696,17 +4328,17 @@
       "id": "credential-management-reviewers",
       "display_name": "credential-management-reviewers",
       "members": [
+        "vinilla",
+        "kandres",
+        "vprema",
         "dnguyen",
         "groovecoder",
-        "rsafaeian",
-        "ssachdev",
         "NeilDeakin",
         "joschmidt",
         "mtigley",
         "jneuberger",
         "issammani",
-        "dimi",
-        "sgalich"
+        "dimi"
       ]
     },
     "data-stewards": {
@@ -3869,6 +4501,7 @@
       "id": "home-newtab-reviewers-rotation",
       "display_name": "home-newtab-reviewers-rotation",
       "members": [
+        "joel",
         "Dre",
         "ini",
         "mconley",
@@ -4023,7 +4656,7 @@
       "members": [
         "fatadel",
         "dcarver",
-        "canaltinova",
+        "canova",
         "mstange",
         "florian"
       ]
@@ -4294,12 +4927,125 @@
         "gstoll",
         "handyman"
       ]
+    },
+    "cubeb-reviewers": {
+      "id": "cubeb-reviewers",
+      "display_name": "cubeb-reviewers",
+      "members": [
+        "pehrsons",
+        "padenot",
+        "kinetik",
+        "chunmin"
+      ]
+    },
+    "devtools-backward-compat-reviewers": {
+      "id": "devtools-backward-compat-reviewers",
+      "display_name": "devtools-backward-compat-reviewers",
+      "members": [
+        "ochameau",
+        "bomsy",
+        "nchevobbe",
+        "jdescottes"
+      ]
+    },
+    "firefox-build-system-reviewers": {
+      "id": "firefox-build-system-reviewers",
+      "display_name": "firefox-build-system-reviewers",
+      "members": [
+        "sergesanspaille",
+        "ahochheiden",
+        "andi",
+        "glandium",
+        "nalexander"
+      ]
+    },
+    "firefox-style-system-reviewers": {
+      "id": "firefox-style-system-reviewers",
+      "display_name": "firefox-style-system-reviewers",
+      "members": [
+        "AlaskanEmily",
+        "Oriol",
+        "tlouw",
+        "dshin",
+        "zrhoffman",
+        "boris",
+        "jwatt",
+        "emilio"
+      ]
+    },
+    "firefox-svg-reviewers": {
+      "id": "firefox-svg-reviewers",
+      "display_name": "firefox-svg-reviewers",
+      "members": [
+        "longsonr",
+        "dholbert",
+        "jwatt"
+      ]
+    },
+    "fluent-reviewers": {
+      "id": "fluent-reviewers",
+      "display_name": "fluent-reviewers",
+      "members": [
+        "bolsson",
+        "flod"
+      ]
+    },
+    "mozperftest-reviewers": {
+      "id": "mozperftest-reviewers",
+      "display_name": "mozperftest-reviewers",
+      "members": [
+        "aglavic",
+        "kshampur",
+        "sparky"
+      ]
+    },
+    "settings-reviewers-rotation": {
+      "id": "settings-reviewers-rotation",
+      "display_name": "settings-reviewers-rotation",
+      "members": [
+        "mkennedy",
+        "akulyk",
+        "tgiles",
+        "hjones",
+        "mconley",
+        "Gijs",
+        "mstriemer"
+      ]
+    },
+    "supply-chain-reviewers": {
+      "id": "supply-chain-reviewers",
+      "display_name": "supply-chain-reviewers",
+      "members": [
+        "afranchuk",
+        "emilio",
+        "nika",
+        "tjr"
+      ]
+    },
+    "webcompat-reviewers": {
+      "id": "webcompat-reviewers",
+      "display_name": "webcompat-reviewers",
+      "members": [
+        "dholbert",
+        "ksenia",
+        "skyschub",
+        "twisniewski",
+        "miketaylr"
+      ]
     }
   },
   "github_users": {
+    "007": {
+      "username": "MozillaNoah",
+      "user_id": 87384386
+    },
     "AndraEsanu": {
       "username": "esanuandra",
       "user_id": 63001299
+    },
+    "Dre": {
+      "username": "IamDgrant618",
+      "user_id": 155272309
     },
     "Eijebong": {
       "username": "Eijebong",
@@ -4356,6 +5102,10 @@
     "aborondo": {
       "username": "antonioborondo",
       "user_id": 5370877
+    },
+    "adhingra": {
+      "username": "AadityaDhingra",
+      "user_id": 116616277
     },
     "adw": {
       "username": "0c0w3",
@@ -4493,7 +5243,7 @@
       "username": "calumozilla",
       "user_id": 93022086
     },
-    "canaltinova": {
+    "canova": {
       "username": "canova",
       "user_id": 466239
     },
@@ -4669,6 +5419,10 @@
       "username": "iorgamgabriel",
       "user_id": 8118371
     },
+    "glob_admin": {
+      "username": "globau",
+      "user_id": 872825
+    },
     "gmalekpour": {
       "username": "Gela",
       "user_id": 3746552
@@ -4804,6 +5558,10 @@
     "joberhauser": {
       "username": "JohnOberhauser",
       "user_id": 14130581
+    },
+    "joel": {
+      "username": "collectedmind",
+      "user_id": 16119672
     },
     "jolin": {
       "username": "jhlin",
@@ -5033,6 +5791,10 @@
       "username": "nordzilla",
       "user_id": 58569820
     },
+    "npoon": {
+      "username": "nicholaspoon03",
+      "user_id": 47435386
+    },
     "nrishel": {
       "username": "PrototypeNM1",
       "user_id": 2732021
@@ -5233,6 +5995,14 @@
       "username": "vlntnplt",
       "user_id": 278983828
     },
+    "vinilla": {
+      "username": "Vinnl",
+      "user_id": 4251
+    },
+    "vprema": {
+      "username": "vpremamozilla",
+      "user_id": 196349791
+    },
     "whimboo": {
       "username": "whimboo",
       "user_id": 129603
@@ -5256,20 +6026,50 @@
     "zombie": {
       "username": "zombie",
       "user_id": 207002
+    },
+    "afranchuk": {
+      "username": "afranchuk",
+      "user_id": 4296804
+    },
+    "bolsson": {
+      "username": "bcolsson",
+      "user_id": 38174554
+    },
+    "glandium": {
+      "username": "glandium-moz",
+      "user_id": 160686162
+    },
+    "ksenia": {
+      "username": "ksy36",
+      "user_id": 1303908
+    },
+    "sergesanspaille": {
+      "username": "serge-sans-paille",
+      "user_id": 863807
+    },
+    "skyschub": {
+      "username": "skyschub",
+      "user_id": 344777
+    },
+    "tjr": {
+      "username": "tomrittervg",
+      "user_id": 163497
+    },
+    "twisniewski": {
+      "username": "wisniewskit",
+      "user_id": 419743
+    },
+    "zrhoffman": {
+      "username": "zrhoffman",
+      "user_id": 11163823
     }
   },
   "unresolved_users": [
     {
-      "phabricator_username": "007",
-      "reason": "pmo_profile_not_found",
-      "referenced_in": [
-        "group:android-reviewers"
-      ]
-    },
-    {
       "phabricator_username": "AlaskanEmily",
       "reason": "no_github_linked",
       "referenced_in": [
+        "group:firefox-style-system-reviewers",
         "group:layout-reviewers"
       ]
     },
@@ -5278,13 +6078,6 @@
       "reason": "pmo_profile_not_found",
       "referenced_in": [
         "group:perftest-reviewers"
-      ]
-    },
-    {
-      "phabricator_username": "Dre",
-      "reason": "pmo_profile_not_found",
-      "referenced_in": [
-        "group:home-newtab-reviewers-rotation"
       ]
     },
     {
@@ -5313,13 +6106,6 @@
       "reason": "no_github_linked",
       "referenced_in": [
         "group:thunderbird-design-reviewers"
-      ]
-    },
-    {
-      "phabricator_username": "adhingra",
-      "reason": "pmo_profile_not_found",
-      "referenced_in": [
-        "group:android-reviewers"
       ]
     },
     {
@@ -5353,7 +6139,7 @@
     },
     {
       "phabricator_username": "czhou",
-      "reason": "pmo_profile_not_found",
+      "reason": "no_github_linked",
       "referenced_in": [
         "group:ai-frontend-reviewers-rotation"
       ]
@@ -5370,13 +6156,20 @@
       "phabricator_username": "dkl_admin",
       "reason": "pmo_profile_not_found",
       "referenced_in": [
+        "H158",
         "H196",
         "H197",
         "H198",
         "H216",
+        "H220",
+        "H238",
         "H239",
         "H246",
         "H247",
+        "H249",
+        "H252",
+        "H254",
+        "H257",
         "H274",
         "H279",
         "H281",
@@ -5384,6 +6177,7 @@
         "H323",
         "H328",
         "H332",
+        "H350",
         "H358",
         "H359",
         "H368",
@@ -5392,6 +6186,7 @@
         "H375",
         "H378",
         "H382",
+        "H384",
         "H385",
         "H386",
         "H387",
@@ -5417,6 +6212,8 @@
         "H429",
         "H432",
         "H435",
+        "H438",
+        "H439",
         "H441",
         "H449",
         "H453",
@@ -5432,6 +6229,8 @@
         "H485",
         "H488",
         "H493",
+        "H495",
+        "H496",
         "H498",
         "H499",
         "H503",
@@ -5480,13 +6279,6 @@
       ]
     },
     {
-      "phabricator_username": "glob_admin",
-      "reason": "pmo_profile_not_found",
-      "referenced_in": [
-        "H233"
-      ]
-    },
-    {
       "phabricator_username": "gpalladini",
       "reason": "no_github_linked",
       "referenced_in": [
@@ -5520,6 +6312,13 @@
       "reason": "no_github_linked",
       "referenced_in": [
         "group:thunderbird-design-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "kandres",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:credential-management-reviewers"
       ]
     },
     {
@@ -5576,13 +6375,6 @@
       ]
     },
     {
-      "phabricator_username": "npoon",
-      "reason": "pmo_profile_not_found",
-      "referenced_in": [
-        "group:android-reviewers"
-      ]
-    },
-    {
       "phabricator_username": "peterv",
       "reason": "pmo_profile_not_found",
       "referenced_in": [
@@ -5604,13 +6396,6 @@
       ]
     },
     {
-      "phabricator_username": "rsafaeian",
-      "reason": "pmo_profile_not_found",
-      "referenced_in": [
-        "group:credential-management-reviewers"
-      ]
-    },
-    {
       "phabricator_username": "rsainani",
       "reason": "pmo_profile_not_found",
       "referenced_in": [
@@ -5625,24 +6410,10 @@
       ]
     },
     {
-      "phabricator_username": "sgalich",
-      "reason": "pmo_profile_not_found",
-      "referenced_in": [
-        "group:credential-management-reviewers"
-      ]
-    },
-    {
       "phabricator_username": "sol",
       "reason": "no_github_linked",
       "referenced_in": [
         "group:thunderbird-design-reviewers"
-      ]
-    },
-    {
-      "phabricator_username": "ssachdev",
-      "reason": "pmo_profile_not_found",
-      "referenced_in": [
-        "group:credential-management-reviewers"
       ]
     },
     {
@@ -5670,6 +6441,7 @@
       "phabricator_username": "tlouw",
       "reason": "no_github_linked",
       "referenced_in": [
+        "group:firefox-style-system-reviewers",
         "group:layout-reviewers"
       ]
     },
@@ -5685,7 +6457,7 @@
     },
     {
       "phabricator_username": "vdreghici",
-      "reason": "pmo_profile_not_found",
+      "reason": "no_github_linked",
       "referenced_in": [
         "group:android-reviewers"
       ]
@@ -5697,14 +6469,49 @@
         "H354",
         "H376"
       ]
+    },
+    {
+      "phabricator_username": "Oriol",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:firefox-style-system-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "andi",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:firefox-build-system-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "longsonr",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:firefox-svg-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "miketaylr",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:webcompat-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "unknown",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "H18"
+      ]
     }
   ],
   "metadata": {
-    "extracted_at": "2026-05-28T08:37:11.766049Z",
-    "total_rules": 75,
-    "total_groups": 65,
-    "total_users_resolved": 240,
-    "total_users_unresolved": 51,
+    "extracted_at": "2026-06-17T05:35:15.339548Z",
+    "total_rules": 89,
+    "total_groups": 75,
+    "total_users_resolved": 257,
+    "total_users_unresolved": 49,
     "phabricator_instance": "phabricator.services.mozilla.com",
     "scrape_status": {
       "rules_complete": false,
