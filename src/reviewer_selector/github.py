@@ -1,10 +1,13 @@
+import asyncio
 from collections.abc import Iterable
+from dataclasses import dataclass
 import logging
 from typing import Any, final, override
 
 import requests
 import re
 
+from simple_github import AppAuth, AppInstallationAuth
 from reviewer_selector.patch import PatchSource
 from reviewer_selector.review import (
     MappingUserResolver,
@@ -15,6 +18,37 @@ from reviewer_selector.review import (
 from reviewer_selector.rules import Rules
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class GitHubApp:
+    app_id: str
+    app_privkey: str
+    gh_owner: str
+    gh_repo: str
+
+    def generate_token(
+        self,
+    ) -> str:
+        """Generate a GitHub token using an application credentials."""
+        return asyncio.run(
+            self.async_generate_github_token(
+                self.app_id, self.app_privkey, self.gh_owner, self.gh_repo
+            )
+        )
+
+    @staticmethod
+    async def async_generate_github_token(
+        app_id: str, app_privkey: str, gh_owner: str, gh_repo: str
+    ) -> str:
+        """Sync wrapper around simple_github to generate a token."""
+        # app_id can be an int OR an str, but the current release of simple_github is
+        # lacking the second annotation.
+        app_auth = AppAuth(app_id, app_privkey)  # pyright: ignore[reportArgumentType]
+        inst_auth = AppInstallationAuth(app_auth, gh_owner, repositories=[gh_repo])
+        token = await inst_auth.get_token()
+        await inst_auth.close()
+        return token
 
 
 @final

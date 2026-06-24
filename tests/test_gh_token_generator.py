@@ -32,9 +32,9 @@ def test_no_repo_name(monkeypatch: pytest.MonkeyPatch):
 
 
 @patch("reviewer_selector.taskcluster.Taskcluster.fetch_secret")
-@patch("gh_token_generator.generate_github_token")
+@patch("reviewer_selector.github.GitHubApp.generate_token")
 def test_main(
-    mock_generate_gh_token: Mock,
+    mock_gh_generate_token: Mock,
     mock_tc_fetch_secret: Mock,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture,
@@ -48,14 +48,12 @@ def test_main(
         "GITHUB_APP_ID": "THE_APP_ID",
         "GITHUB_APP_PRIVKEY": "THE_PRIVKEY",
     }
-    mock_generate_gh_token.return_value = "THE_TOKEN"
+    mock_gh_generate_token.return_value = "THE_TOKEN"
 
     main()
 
     mock_tc_fetch_secret.assert_called_once_with("THE_TC_SECRET_ID")
-    mock_generate_gh_token.assert_called_once_with(
-        "THE_APP_ID", "THE_PRIVKEY", "THE_ORG_NAME", "THE_REPO_NAME"
-    )
+    mock_gh_generate_token.assert_called_once_with()
 
     outerr = capsys.readouterr()
     assert outerr.out == "THE_TOKEN\n"

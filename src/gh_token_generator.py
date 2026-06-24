@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
-import asyncio
 import os
 
-from simple_github import AppAuth, AppInstallationAuth
 
-from reviewer_selector import Taskcluster
+from reviewer_selector import Taskcluster, GitHubApp
 
 
 def main() -> int:
@@ -30,29 +28,10 @@ def generate_token(
 ) -> str:
     """Generate a GitHub token using a TaskCluster secret, fetched by its ID."""
     tc_secret = tc.fetch_secret(tc_secret_id)
-    return generate_github_token(
+    github_app = GitHubApp(
         tc_secret["GITHUB_APP_ID"], tc_secret["GITHUB_APP_PRIVKEY"], gh_owner, gh_repo
     )
-
-
-def generate_github_token(
-    app_id: str, app_privkey: str, gh_owner: str, gh_repo: str
-) -> str:
-    """Generate a GitHub token using an application credentials."""
-    return asyncio.run(
-        async_generate_github_token(app_id, app_privkey, gh_owner, gh_repo)
-    )
-
-
-async def async_generate_github_token(
-    app_id: str, app_privkey: str, gh_owner: str, gh_repo: str
-) -> str:
-    """Sync wrapper around simple_github to generate a token."""
-    app_auth = AppAuth(app_id, app_privkey)
-    inst_auth = AppInstallationAuth(app_auth, gh_owner, repositories=[gh_repo])
-    token = await inst_auth.get_token()
-    await inst_auth.close()
-    return token
+    return github_app.generate_token()
 
 
 if __name__ == "__main__":
