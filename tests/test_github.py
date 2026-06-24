@@ -104,7 +104,15 @@ def test_github_user_resolver(
     )
 
 
-@pytest.mark.xfail()
 def test_github_reviewable():
     """add_reviewers"""
-    raise AssertionError("not implemented")
+    gh = GitHubPR(
+        "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+    )
+    reviewers = {
+        Reviewer("jsmith", False),
+        Reviewer("fluent-reviewers", True),
+        Reviewer("/ent:fluent-reviewers", True),
+    }
+
+    gh.add_reviewers(reviewers)

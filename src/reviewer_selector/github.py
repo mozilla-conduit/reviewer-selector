@@ -59,11 +59,13 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     pr_url: str
 
+
     owner: str
     repository: str
     pr_number: int
 
     _session: requests.Session
+    _gh_app: GitHubApp | None = None
 
     # Use the rule @property to access those.
     _rules: Rules
@@ -143,9 +145,17 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
         return None
 
+    def set_app_credentials(self, app_id: str, app_privkey: str):
+        """Configure the GitHub application credentials."""
+        self._gh_app = GitHubApp(app_id, app_privkey, self._owner, self._repository)
+
     @override  # From Reviewable.
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
+        if not self._gh_app:
+            raise ValueError("Missing GitHub app credentials, cannot set reviewers")
+
         # create token
+        _token = self._gh_app.generate_token()
 
         # send request
         raise NotImplementedError()
