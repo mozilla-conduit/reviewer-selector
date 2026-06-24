@@ -31,13 +31,11 @@ def test_no_repo_name(monkeypatch: pytest.MonkeyPatch):
         main()
 
 
-@patch("gh_token_generator.TaskclusterConfig")
-@patch("gh_token_generator.load_secrets")
+@patch("reviewer_selector.taskcluster.Taskcluster.fetch_secret")
 @patch("gh_token_generator.generate_github_token")
 def test_main(
     mock_generate_gh_token: Mock,
-    mock_tc_load_secrets: Mock,
-    mock_tc_config: Mock,
+    mock_tc_fetch_secret: Mock,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture,
 ):
@@ -46,7 +44,7 @@ def test_main(
     monkeypatch.setenv("ORG_NAME", "THE_ORG_NAME")
     monkeypatch.setenv("REPO_NAME", "THE_REPO_NAME")
 
-    mock_tc_load_secrets.return_value = {
+    mock_tc_fetch_secret.return_value = {
         "GITHUB_APP_ID": "THE_APP_ID",
         "GITHUB_APP_PRIVKEY": "THE_PRIVKEY",
     }
@@ -54,9 +52,7 @@ def test_main(
 
     main()
 
-    assert mock_tc_load_secrets.call_count == 1
-    assert len(mock_tc_load_secrets.call_args[0]) == 2
-    assert mock_tc_load_secrets.call_args[0][1] == "THE_TC_SECRET_ID"
+    mock_tc_fetch_secret.assert_called_once_with("THE_TC_SECRET_ID")
     mock_generate_gh_token.assert_called_once_with(
         "THE_APP_ID", "THE_PRIVKEY", "THE_ORG_NAME", "THE_REPO_NAME"
     )

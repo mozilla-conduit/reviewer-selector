@@ -3,6 +3,7 @@ from .github import GitHubPR
 from .patch import Patch, PatchSource, StdinPatchSource
 from .review import Reviewable, StdoutReviewable, UserResolver
 from .rules import Rules
+from .taskcluster import Taskcluster
 
 __all__ = [
     "GitHubPR",
@@ -12,6 +13,7 @@ __all__ = [
     "Rules",
     "StdinPatchSource",
     "StdoutReviewable",
+    "Taskcluster",
     "UserResolver",
     "cli",
 ]

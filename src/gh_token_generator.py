@@ -4,13 +4,13 @@ import asyncio
 import os
 
 from simple_github import AppAuth, AppInstallationAuth
-from taskcluster.helper import TaskclusterConfig, load_secrets
+
+from reviewer_selector import Taskcluster
 
 
 def main() -> int:
     """Generate a GitHub token using a TaskCluster secret, with parameters in env."""
-    tc = TaskclusterConfig()
-    tc.auth()
+    tc = Taskcluster()
 
     if not (tc_secret_id := os.environ.get("TC_SECRET_ID")):
         raise ValueError("Missing or empty TC_SECRET_ID in environment")
@@ -26,19 +26,13 @@ def main() -> int:
 
 
 def generate_token(
-    tc: TaskclusterConfig, tc_secret_id: str, gh_owner: str, gh_repo: str
+    tc: Taskcluster, tc_secret_id: str, gh_owner: str, gh_repo: str
 ) -> str:
     """Generate a GitHub token using a TaskCluster secret, fetched by its ID."""
-    tc_secret = fetch_tc_secret(tc, tc_secret_id)
+    tc_secret = tc.fetch_secret(tc_secret_id)
     return generate_github_token(
         tc_secret["GITHUB_APP_ID"], tc_secret["GITHUB_APP_PRIVKEY"], gh_owner, gh_repo
     )
-
-
-def fetch_tc_secret(tc: TaskclusterConfig, secret_id: str) -> dict[str, str]:
-    """Fetch a TaskCluster secret by it ID."""
-    secrets = tc.get_service("secrets")
-    return load_secrets(secrets, secret_id)
 
 
 def generate_github_token(
