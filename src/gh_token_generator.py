@@ -13,13 +13,13 @@ def main() -> int:
     tc.auth()
 
     if not (tc_secret_id := os.environ.get("TC_SECRET_ID")):
-        raise Exception("Missing or empty TC_SECRET_ID in environment")
+        raise ValueError("Missing or empty TC_SECRET_ID in environment")
 
     if not (gh_owner := os.environ.get("ORG_NAME")):
-        raise Exception("Missing or empty ORG_NAME in environment")
+        raise ValueError("Missing or empty ORG_NAME in environment")
 
     if not (gh_repo := os.environ.get("REPO_NAME")):
-        raise Exception("Missing or empty REPO_NAME in environment")
+        raise ValueError("Missing or empty REPO_NAME in environment")
 
     print(generate_token(tc, tc_secret_id, gh_owner, gh_repo))
     return 0
