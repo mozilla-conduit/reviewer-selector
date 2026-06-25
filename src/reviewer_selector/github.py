@@ -59,7 +59,6 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     pr_url: str
 
-
     owner: str
     repository: str
     pr_number: int
@@ -174,10 +173,19 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     @property
     def _pr_metadata(self) -> dict[str, Any]:
-        return self.api_fetch(f"/pulls/{self.pr_number}")
+        return self.api_request()
 
-    def api_fetch(self, path: str) -> dict[str, Any]:
-        resp = self._session.get(f"{self._repo_api_url}{path}")
+    def api_request(
+        self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
+    ) -> dict[str, Any]:
+        resp = self._session.request(
+            method,
+            f"{self._repo_api_url}/pulls/{self.pr_number}{path}",
+            headers={
+                "Accept": "application/vnd.github+js",
+                "X-GitHub-Api-Version": "2026-03-10",
+            },
+        )
         resp.raise_for_status()
         return resp.json()
 
