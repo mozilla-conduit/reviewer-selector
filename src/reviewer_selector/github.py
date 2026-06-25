@@ -1,8 +1,9 @@
 import asyncio
 from collections.abc import Iterable
 from dataclasses import dataclass
+from functools import wraps
 import logging
-from typing import Any, final, override
+from typing import Any, Callable, final, override
 
 import requests
 import re
@@ -49,6 +50,30 @@ class GitHubApp:
         token = await inst_auth.get_token()
         await inst_auth.close()
         return token
+
+
+def github_authenticated(fn: Callable) -> Callable:
+    """Decorator to generate a GitHub token for the Requests session.
+
+    Requires the decorated method to be on a class which the following attributes:
+        * _gh_app: GitHubApp attribute
+        * _session: Requests.Session
+    """
+
+    @wraps(fn)
+    def wrapped(*args, **kwargs):
+        self: GitHubPR = args[0]
+
+        if not self._gh_app:
+            raise ValueError("Missing GitHub app credentials, cannot set reviewers")
+
+        # create token
+        gh_token = self._gh_app.generate_token()
+        self._session.headers["Authorization"] = f"Bearer: {gh_token}"
+
+        return fn(*args, **kwargs)
+
+    return wrapped
 
 
 @final
