@@ -1,3 +1,6 @@
+from typing import Any
+from unittest.mock import Mock, patch
+
 import pytest
 from requests_mock.mocker import Mocker
 
@@ -104,15 +107,52 @@ def test_github_user_resolver(
     )
 
 
-def test_github_reviewable():
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable(mock_gh_generate_token: Mock, mocked_github_request: Mocker):
     """add_reviewers"""
-    gh = GitHubPR(
-        "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
-    )
-    reviewers = {
-        Reviewer("jsmith", False),
-        Reviewer("fluent-reviewers", True),
-        Reviewer("/ent:fluent-reviewers", True),
-    }
 
-    gh.add_reviewers(reviewers)
+    def echo_callback(request, context) -> dict[str, Any]:
+        """Callback method which echos bits of the request back.
+
+        This is useful to inspect that the request was properly formatted.
+        """
+        return {"headers": dict(request.headers), "json": request.json()}
+
+    with mocked_github_request as mock:
+        mock.post(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
+            json=echo_callback,
+        )
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials("THE_APP_ID", "THE_APP_PRIVKEY")
+        reviewers = {
+            Reviewer("jsmith", False),
+            Reviewer("fluent-reviewers", True),
+            Reviewer("/ent:fluent-reviewers", True),
+        }
+
+        echo_json = gh.add_reviewers(reviewers)
+
+        assert "headers" in echo_json, "Missing headers in echo response"
+        assert "json" in echo_json, "Missing json in echo response"
+
+        assert "application/vnd.github+json" == echo_json["headers"]["Accept"], (
+            "Incorrect Accept header in request"
+        )
+        assert "Bearer THE_TOKEN" == echo_json["headers"]["Authorization"], (
+            "Incorrect Authorization header in request"
+        )
+        assert "2026-03-10" == echo_json["headers"]["X-GitHub-Api-Version"], (
+            "Incorrect X-GitHub-Api-Version header in request"
+        )
+
+        assert "jsmith" in echo_json["json"]["reviewers"], "Missing reviewer in request"
+        assert "fluent-reviewers" in echo_json["json"]["team_reviewers"], (
+            "Missing reviewer group in request"
+        )
+        assert "/ent:fluent-reviewers" in echo_json["json"]["team_reviewers"], (
+            "Missing reviewer group in request"
+        )
