@@ -69,7 +69,7 @@ def github_authenticated(fn: Callable) -> Callable:
 
         # create token
         gh_token = self._gh_app.generate_token()
-        self._session.headers["Authorization"] = f"Bearer: {gh_token}"
+        self._session.headers["Authorization"] = f"Bearer {gh_token}"
 
         return fn(*args, **kwargs)
 
@@ -152,6 +152,10 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     def patch_url(self) -> str:
         return self.pr_url + ".patch"
 
+    def fetch(self, url: str) -> requests.Response:
+        resp = self._session.get(url)
+        return resp
+
     @override  # From UserResolver.
     def resolve_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
         user_resolver = MappingUserResolver(
@@ -174,19 +178,19 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
         self._gh_app = GitHubApp(app_id, app_privkey, self._owner, self._repository)
 
     @override  # From Reviewable.
+    @github_authenticated
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
-        if not self._gh_app:
-            raise ValueError("Missing GitHub app credentials, cannot set reviewers")
+        requested_reviewers = {
+            "reviewers": [],
+            "team_reviewers": [],
+        }
+        for r in reviewers:
+            if r.is_group:
+                requested_reviewers["team_reviewers"].append(r.name)
+            else:
+                requested_reviewers["reviewers"].append(r.name)
 
-        # create token
-        _token = self._gh_app.generate_token()
-
-        # send request
-        raise NotImplementedError()
-
-    def fetch(self, url: str) -> requests.Response:
-        resp = self._session.get(url)
-        return resp
+        self.api_request("/requested_reviewers", "POST", requested_reviewers)
 
     @property
     def repo_url(self):
@@ -207,9 +211,10 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
             method,
             f"{self._repo_api_url}/pulls/{self.pr_number}{path}",
             headers={
-                "Accept": "application/vnd.github+js",
+                "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2026-03-10",
             },
+            json=json,
         )
         resp.raise_for_status()
         return resp.json()
