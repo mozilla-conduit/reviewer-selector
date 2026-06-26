@@ -30,7 +30,7 @@ def test_github__target_branch_name(mocked_github_request: Mocker):
     with mocked_github_request:
         gh = GitHubPR("https://github.com/mozilla-conduit/reviewer-selector/pull/18")
 
-    assert gh._target_branch_name == "main"
+    assert gh.target_branch_name == "main"
 
 
 def test_github_patch_source(mocked_github_request: Mocker):
