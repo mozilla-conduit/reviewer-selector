@@ -175,7 +175,7 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     def set_app_credentials(self, app_id: str, app_privkey: str):
         """Configure the GitHub application credentials."""
-        self._gh_app = GitHubApp(app_id, app_privkey, self._owner, self._repository)
+        self._gh_app = GitHubApp(app_id, app_privkey, self.owner, self.repository)
 
     @override  # From Reviewable.
     @github_authenticated
