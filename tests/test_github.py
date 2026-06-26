@@ -1,5 +1,3 @@
-from textwrap import dedent
-
 import pytest
 import requests_mock
 from requests_mock.mocker import Mocker
@@ -10,10 +8,10 @@ from reviewer_selector.rules import Rules
 
 
 @pytest.fixture
-def github_api_response_pull_request() -> str:
-    return dedent("""\
-    {
-      "url": "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18",
+    assert gh.owner == "mozilla-conduit"
+    assert gh.repository == "reviewer-selector"
+    assert gh.repo_url == "https://github.com/mozilla-conduit/reviewer-selector"
+    assert gh.pr_number == 18
       "id": 3801479461,
       "node_id": "PR_kwDORk2QWs7ilfkl",
       "html_url": "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
@@ -404,10 +402,10 @@ def mocked_github_request(
 
 def test_github_url_handling():
     gh = GitHubPR("https://github.com/mozilla-conduit/reviewer-selector/pull/18")
-    assert gh._owner == "mozilla-conduit"
-    assert gh._repository == "reviewer-selector"
-    assert gh._repo_url == "https://github.com/mozilla-conduit/reviewer-selector"
-    assert gh._pr_number == 18
+    assert gh.owner == "mozilla-conduit"
+    assert gh.repository == "reviewer-selector"
+    assert gh.repo_url == "https://github.com/mozilla-conduit/reviewer-selector"
+    assert gh.pr_number == 18
     assert (
         gh.patch_url
         == "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"

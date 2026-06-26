@@ -25,9 +25,9 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     pr_url: str
 
-    _owner: str
-    _repository: str
-    _pr_number: int
+    owner: str
+    repository: str
+    pr_number: int
 
     _session: requests.Session
 
@@ -41,9 +41,9 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
         if not match:
             raise ValueError(f"Can't parse GitHub PR URL from {pr_url}")
 
-        self._owner = match["owner"]
-        self._repository = match["repository"]
-        self._pr_number = int(match["pr_number"])
+        self.owner = match["owner"]
+        self.repository = match["repository"]
+        self.pr_number = int(match["pr_number"])
 
         self.pr_url = pr_url
 
@@ -121,8 +121,8 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
         return resp
 
     @property
-    def _repo_url(self):
-        return f"https://github.com/{self._owner}/{self._repository}"
+    def repo_url(self):
+        return f"https://github.com/{self.owner}/{self.repository}"
 
     @property
     def _target_branch_name(self) -> str:
@@ -130,7 +130,7 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     @property
     def _pr_metadata(self) -> dict[str, Any]:
-        return self.api_fetch(f"/pulls/{self._pr_number}")
+        return self.api_fetch(f"/pulls/{self.pr_number}")
 
     def api_fetch(self, path: str) -> dict[str, Any]:
         resp = self._session.get(f"{self._repo_api_url}{path}")
@@ -139,4 +139,4 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     @property
     def _repo_api_url(self) -> str:
-        return f"https://api.github.com/repos/{self._owner}/{self._repository}"
+        return f"https://api.github.com/repos/{self.owner}/{self.repository}"
