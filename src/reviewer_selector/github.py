@@ -80,7 +80,7 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
         return self.fetch(rules_url)
 
     def _blob_url(self, path: str) -> str:
-        return f"{self._repo_url}/raw/refs/heads/{self._target_branch_name}/{path}"
+        return f"{self.repo_url}/raw/refs/heads/{self._target_branch_name}/{path}"
 
     @override  # From PatchSource.
     def fetch_patch(self) -> str:
