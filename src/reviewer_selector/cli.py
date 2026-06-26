@@ -38,11 +38,16 @@ def cli() -> None:
     # Override the parameters based on context.
     if args.pr_url:
         ghpr = GitHubPR(args.pr_url, rules)
+        repo_branch = f"{ghpr.repository}-{ghpr.target_branch_name}"
+
+        logger.info(
+            f"PR URL provided ({args.pr_url}); using GitHub adapters for {repo_branch} ..."
+        )
+
+        repos.append(repo_branch)
 
         # Override rules with in-tree file if present.
         rules = ghpr.rules or rules
-
-        repos.append(ghpr.repository)
 
         patch_source = ghpr
         resolver = ghpr

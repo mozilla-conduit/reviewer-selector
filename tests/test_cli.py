@@ -159,7 +159,7 @@ def test_github_repo_added(
         capsys,
     )
 
-    assert "reviewer-selector" in mock_collect_reviewers.call_args[0][1], (
+    assert "reviewer-selector-main" in mock_collect_reviewers.call_args[0][1], (
         "The GitHub repo name was not passed to the Rules.collect_reviewers method"
     )
 
