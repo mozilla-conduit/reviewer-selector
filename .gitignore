@@ -4,4 +4,4 @@ __pycache__
 mise.toml
 build/
 *.egg-info
-topsrcdir/
+topsrcdir
