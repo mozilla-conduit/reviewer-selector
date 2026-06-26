@@ -22,10 +22,6 @@ class Patch:
     def _parse_patch(self):
         self._parsed_diffs = rs_parsepatch.get_diffs(self._patch)
 
-    def get_patch(self):
-        """Get the raw patch data."""
-        return self._patch
-
     def get_changed_files(self):
         """Get the list of modified file patchs."""
         filenames = [d["filename"] for d in self._parsed_diffs]
