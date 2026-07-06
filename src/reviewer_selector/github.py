@@ -96,7 +96,7 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     _remote_rules_checked: bool = False
 
     # Will be populated on first access to the non-dunder property.
-    _pr_metadata: dict[str, Any] | None = None
+    _metadata: dict[str, Any] = {}
 
     def __init__(self, pr_url: str, default_rules: Rules | None = None):
 
@@ -201,12 +201,14 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     @property
     def target_branch_name(self) -> str:
-        return self.pr_metadata["base"]["ref"]
+        return self.metadata["base"]["ref"]
 
     @property
-    def pr_metadata(self) -> dict[str, Any]:
-        if not self._pr_metadata:
-            self._pr_metadata = self.api_request()
+    def metadata(self) -> dict[str, Any]:
+        """Return PR metadata, fetching it if needed."""
+        if not self._metadata:
+            self._metadata = self.api_request()
+        return self._metadata
 
         return self._pr_metadata
 
