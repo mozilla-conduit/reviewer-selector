@@ -1,4 +1,3 @@
-from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -27,10 +26,16 @@ def test_github_url_handling_invalid():
 
 
 def test_github__target_branch_name(mocked_github_request: Mocker):
-    with mocked_github_request:
+    with mocked_github_request as mock:
         gh = GitHubPR("https://github.com/mozilla-conduit/reviewer-selector/pull/18")
 
-    assert gh.target_branch_name == "main"
+        _ = gh.target_branch_name
+        request_count = mock.call_count
+        assert gh.target_branch_name == "test-branch"
+
+        assert mock.call_count == request_count, (
+            "Second access to branch name triggered a new request"
+        )
 
 
 def test_github_patch_source(mocked_github_request: Mocker):
@@ -48,7 +53,7 @@ def test_github_patch_source(mocked_github_request: Mocker):
 
 def test_github_rules_caching(mocked_github_request: Mocker, sample_rules_data: dict):
     with mocked_github_request as mock:
-        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/main/herald_rules.json"
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/test-branch/herald_rules.json"
         mock.get(
             rules_url,
             json=sample_rules_data,
@@ -72,7 +77,7 @@ def test_github_user_resolver(
     mocked_github_request: Mocker, sample_rules_data: dict, in_tree_status
 ):
     with mocked_github_request as mock:
-        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/main/herald_rules.json"
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/test-branch/herald_rules.json"
         if in_tree_status == 200:
             mock.get(
                 rules_url,

@@ -112,7 +112,7 @@ def test_github(
         patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
         mock.get(patch_url, text=sample_diff)
 
-        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/main/herald_rules.json"
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/test-branch/herald_rules.json"
         mock.get(rules_url, text=json.dumps(sample_rules_data))
 
         outerr = _run_cli(
