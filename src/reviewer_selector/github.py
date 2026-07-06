@@ -35,6 +35,8 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     _rules: Rules
     _remote_rules_checked: bool = False
 
+    _metadata: dict[str, Any] = {}
+
     def __init__(self, pr_url: str, default_rules: Rules | None = None):
 
         match = self.URL_RE.match(pr_url)
@@ -126,11 +128,14 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     @property
     def _target_branch_name(self) -> str:
-        return self._pr_metadata["base"]["ref"]
+        return self.metadata["base"]["ref"]
 
     @property
-    def _pr_metadata(self) -> dict[str, Any]:
-        return self.api_fetch(f"/pulls/{self.pr_number}")
+    def metadata(self) -> dict[str, Any]:
+        """Return PR metadata, fetching it if needed."""
+        if not self._metadata:
+            self._metadata = self.api_fetch(f"/pulls/{self.pr_number}")
+        return self._metadata
 
     def api_fetch(self, path: str) -> dict[str, Any]:
         resp = self._session.get(f"{self._repo_api_url}{path}")

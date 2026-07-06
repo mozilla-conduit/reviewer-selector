@@ -265,12 +265,12 @@ def github_api_response_pull_request() -> str:
           "forks": 2,
           "open_issues": 3,
           "watchers": 1,
-          "default_branch": "main"
+          "default_branch": "test-branch"
         }
       },
       "base": {
-        "label": "mozilla-conduit:main",
-        "ref": "main",
+        "label": "mozilla-conduit:test-branch",
+        "ref": "test-branch",
         "sha": "1827bbb5e31c8a1b5f57e68fb5a65e85d9808b6e",
         "user": {
           "login": "mozilla-conduit",
@@ -402,7 +402,7 @@ def github_api_response_pull_request() -> str:
           "forks": 2,
           "open_issues": 3,
           "watchers": 1,
-          "default_branch": "main"
+          "default_branch": "test-branch"
         }
       },
       "_links": {
