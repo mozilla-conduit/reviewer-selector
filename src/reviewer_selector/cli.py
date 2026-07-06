@@ -73,6 +73,9 @@ def resolve_github_credentials(args: argparse.Namespace) -> tuple[str, str] | No
     app_id = args.github_app_id or os.environ.get("GITHUB_APP_ID")
     app_privkey = args.github_app_privkey or os.environ.get("GITHUB_APP_PRIVKEY")
 
+    if app_id and app_privkey:
+        return app_id, app_privkey
+
     # If any is missing, try to update from credentials store.
     if not (app_id and app_privkey) and (
         tc_secret_id := (args.taskcluster_secret_id or os.environ.get("TC_SECRET_ID"))
