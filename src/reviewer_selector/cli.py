@@ -129,7 +129,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--github-app-id",
         default=None,
-        help="GitHub application ID (credentials: GITHUD_APP_ID)",
+        help="GitHub application ID (credentials: GITHUB_APP_ID)",
     )
     parser.add_argument(
         "--github-app-privkey",
