@@ -101,7 +101,7 @@ tasks:
           in:
               $if: >
                   tasks_for in ["action", "pr-action", "cron"]
-                  || (tasks_for == "github-release")
+                  || (tasks_for == "github-release" && releaseAction == "published")
                   || (tasks_for == "github-push" && short_head_ref in ["main", "staging", "develop"] )
                   || (isPullRequest && pullRequestAction in ["opened", "reopened", "synchronize"])
               then:
@@ -172,8 +172,10 @@ tasks:
 
                   scopes:
                       $switch:
-                          'tasks_for in ["github-release", "github-push"]':
+                          'tasks_for in ["github-push"]':
                               - 'assume:repo:${repoUrl[8:]}:branch:${short_head_ref}'
+                          'tasks_for in ["github-release"]':
+                              - 'assume:repo:${repoUrl[8:]}:release:${releaseAction}'
                           'isPullRequest':
                               - 'assume:repo:github.com/${event.pull_request.base.repo.full_name}:${tasks_for[7:]}'
                           'tasks_for == "action"':
