@@ -86,8 +86,8 @@ def resolve_github_credentials(args: argparse.Namespace) -> tuple[str, str] | No
         app_id = app_id or tc_secret.get("GITHUB_APP_ID")
         app_privkey = app_privkey or tc_secret.get("GITHUB_APP_PRIVKEY")
 
-    if app_id and app_privkey:
-        return app_id, app_privkey
+        if app_id and app_privkey:
+            return app_id, app_privkey
 
     return None
 
