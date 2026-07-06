@@ -72,8 +72,8 @@ def resolve_github_credentials(args: argparse.Namespace) -> tuple[str, str] | No
     """Resolve GitHub app ID and privkey from CLI options, environment and TaskCluster."""
 
     # Give precedence to explicit options, or default to environment.
-    app_id = args.github_app_id or os.environ.get("GITHUD_APP_ID")
-    app_privkey = args.github_app_privkey or os.environ.get("GITHUD_APP_PRIVKEY")
+    app_id = args.github_app_id or os.environ.get("GITHUB_APP_ID")
+    app_privkey = args.github_app_privkey or os.environ.get("GITHUB_APP_PRIVKEY")
 
     if app_id and app_privkey:
         return app_id, app_privkey
@@ -85,8 +85,8 @@ def resolve_github_credentials(args: argparse.Namespace) -> tuple[str, str] | No
         )
         tc = Taskcluster()
         tc_secret = tc.fetch_secret(tc_secret_id)
-        app_id = app_id or tc_secret.get("GITHUD_APP_ID")
-        app_privkey = app_privkey or tc_secret.get("GITHUD_APP_PRIVKEY")
+        app_id = app_id or tc_secret.get("GITHUB_APP_ID")
+        app_privkey = app_privkey or tc_secret.get("GITHUB_APP_PRIVKEY")
 
         if app_id and app_privkey:
             return app_id, app_privkey
