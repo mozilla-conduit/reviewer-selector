@@ -81,7 +81,7 @@ def resolve_github_credentials(args: argparse.Namespace) -> tuple[str, str] | No
     # If any is missing, try to update from credentials store.
     if tc_secret_id := (args.taskcluster_secret_id or os.environ.get("TC_SECRET_ID")):
         logger.debug(
-            f"Fetching GitHup app credentials from TC_SECRET_ID {tc_secret_id} ..."
+            f"Fetching GitHub app credentials from TC_SECRET_ID {tc_secret_id} ..."
         )
         tc = Taskcluster()
         tc_secret = tc.fetch_secret(tc_secret_id)
