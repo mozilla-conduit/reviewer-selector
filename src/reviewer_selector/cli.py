@@ -57,6 +57,7 @@ def cli() -> None:
             logger.warning(
                 "Missing GitHub credentials (GITHUB_APP_ID and GITHUB_APP_PRIVKEY, or TC_SECRET_ID, reviewers will be output to stdout instead"
             )
+
     patch = Patch(patch_source.fetch_patch())
 
     reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, repos)
