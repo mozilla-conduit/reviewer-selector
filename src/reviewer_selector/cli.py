@@ -40,7 +40,7 @@ def cli() -> None:
         ghpr = GitHubPR(args.pr_url, rules)
         repo_branch = f"{ghpr.repository}-{ghpr.target_branch_name}"
 
-        logger.info(f"PR URL provided; using GitHub adapters for {repo_branch} ...")
+        logger.info(f"PR URL provided ({args.pr_url}); using GitHub adapters for {repo_branch} ...")
 
         repos.append(repo_branch)
 
