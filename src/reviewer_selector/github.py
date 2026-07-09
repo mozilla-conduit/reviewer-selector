@@ -194,17 +194,22 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     @override  # From Reviewable.
     @github_authenticated
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
-        requested_reviewers = {
+        # XXX: Surely we won't have a user and a team with the same name?
+        current_reviewers = [r.name for r in self.reviewers]
+        requested_reviewers: dict[str, list[str]] = {
             "reviewers": [],
             "team_reviewers": [],
         }
         for r in reviewers:
+            if r.name in current_reviewers:
+                continue
             if r.is_group:
                 requested_reviewers["team_reviewers"].append(r.name)
             else:
                 requested_reviewers["reviewers"].append(r.name)
 
         self.api_request("/requested_reviewers", "POST", requested_reviewers)
+        self._requested_reviewers(refresh=True)
 
     @property
     @override  # From Reviewable.
@@ -214,13 +219,7 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
         for r in requested_reviewers.get("users", []):
             reviewers.append(Reviewer(r["login"], False))
         for t in requested_reviewers.get("teams", []):
-            slug: str = t["slug"]
-            if slug.startswith("ent:"):
-                # As of 2026-07-29, the GitHub API requires a `/ent:` prefix when adding
-                # reviewers, but returns them without a leading `/`. We normalise the
-                # data to the former.
-                slug = "/" + slug
-            reviewers.append(Reviewer(slug, True))
+            reviewers.append(Reviewer(t["slug"], True))
 
         return reviewers
 

@@ -1,3 +1,5 @@
+import json
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -140,24 +142,60 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
 
 
 @patch("reviewer_selector.github.GitHubApp.generate_token")
-def test_github_reviewable(mock_gh_generate_token: Mock, mocked_github_request: Mocker):
-    """add_reviewers"""
+def test_github_reviewable(
+    mock_gh_generate_token: Mock,
+    mocked_github_request: Mocker,
+    github_api_response_pull_request_requested_reviewers: str,
+):
+    api_requested_reviewers_data = json.loads(
+        github_api_response_pull_request_requested_reviewers
+    )
+
+    def add_reviewers_callback(
+        request: requests.Request, _context: requests_mock.response._Context
+    ) -> dict[str, Any]:
+        """Callback implementing side-effects of add_reviewers requests in memory.
+
+        This does not create full user/team objects, but should be enough to satisfy the
+        adapter.
+        """
+        payload = request.json()
+
+        for r in payload["reviewers"]:
+            api_requested_reviewers_data["users"].append({"login": r})
+        for t in payload["team_reviewers"]:
+            # As of 2026-07-29, the GitHub API requires a `/ent:` prefix when adding
+            # reviewers, but returns them without a leading `/`. We normalise the
+            # data to the latter.
+            if t.startswith("/ent:"):
+                t = t.removeprefix("/")
+            api_requested_reviewers_data["teams"].append({"slug": t})
+
+        return {}
+
+    def get_reviewers_callback(request, context):
+        """Callback returning our in-memory set of reviewers."""
+        return api_requested_reviewers_data
 
     with mocked_github_request as mock:
         mock_requested_reviewers_post = mock.post(
             "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
-            json={},
+            json=add_reviewers_callback,
+        )
+        mock_requested_reviewers_get = mock.get(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
+            json=get_reviewers_callback,
         )
         gh = GitHubPR(
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
         mock_gh_generate_token.return_value = "THE_TOKEN"
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
-        reviewers = {
-            Reviewer("jsmith", False),
-            Reviewer("fluent-reviewers", True),
-            Reviewer("ent:fluent-reviewers", True),
-        }
+        test_reviewer = Reviewer("test-reviewer", False)
+        jsmith = Reviewer("jsmith", False)
+        fluent_reviewers = Reviewer("fluent-reviewers", True)
+        ent_fluent_reviewers = Reviewer("ent:fluent-reviewers", True)
+        reviewers = {test_reviewer, jsmith, fluent_reviewers, ent_fluent_reviewers}
 
         _ = gh.add_reviewers(reviewers)
 
@@ -187,3 +225,21 @@ def test_github_reviewable(mock_gh_generate_token: Mock, mocked_github_request: 
             "ent:fluent-reviewers"
             in mock_requested_reviewers_post.last_request.json()["team_reviewers"]
         ), "Missing reviewer group in request"
+
+        assert (
+            "test-reviewer"
+            not in mock_requested_reviewers_post.last_request.json()["reviewers"]
+        ), "Existing reviewer re-requested"
+
+        assert jsmith in gh.reviewers
+        assert fluent_reviewers in gh.reviewers
+        assert ent_fluent_reviewers in gh.reviewers
+        assert test_reviewer in gh.reviewers
+
+        assert mock_requested_reviewers_post.call_count == 1, (
+            "Unexpected number of POST requests to requested_reviewers"
+        )
+        # Expectations: 1 initial request + 1 refreshed after adding reviewers
+        assert mock_requested_reviewers_get.call_count == 2, (
+            "Unexpected number of GET requests to requested_reviewers"
+        )
