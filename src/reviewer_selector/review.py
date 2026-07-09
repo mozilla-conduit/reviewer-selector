@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Reviewer:
     name: str
-    is_group: bool
+    is_group: bool = False
 
     @override
     def __hash__(self):
@@ -23,9 +23,11 @@ class Reviewer:
 class Reviewable(metaclass=ABCMeta):
     """An interface for something able to receive a list of reviewers."""
 
-    @abstractmethod
+    reviewers: Iterable[Reviewer]
+
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         """Set reviewers on the target."""
+        self.reviewers = reviewers
 
 
 class StdoutReviewable(Reviewable):
@@ -39,6 +41,7 @@ class StdoutReviewable(Reviewable):
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         print(self.reviewer_separator.join(sorted(r.name for r in reviewers)))
+        super().add_reviewers(reviewers)
 
 
 class UserResolver(metaclass=ABCMeta):

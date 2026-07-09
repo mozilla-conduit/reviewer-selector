@@ -1,3 +1,6 @@
+import pytest
+
+from reviewer_selector import StdoutReviewable
 from reviewer_selector.review import Reviewer, MappingUserResolver
 
 
@@ -46,3 +49,16 @@ def test_user_mixed_users_and_groups(sample_rules_data: dict):
 
     assert Reviewer("jsmith", False) in resolved
     assert Reviewer("#fluent-reviewers", True) in resolved
+
+
+def test_stdout_reviewable_add_reviewers(capsys: pytest.CaptureFixture):
+    sr = StdoutReviewable()
+
+    r = Reviewer("bob")
+
+    sr.add_reviewers([r])
+
+    outerr = capsys.readouterr()
+
+    assert r in sr.reviewers
+    assert "bob" in outerr.out
