@@ -100,6 +100,7 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     # Will be populated on first access to _metadata
     _metadata_json: dict[str, Any] = {}
+    _requested_reviewers_json: dict[str, Any] = {}
 
     def __init__(self, pr_url: str, default_rules: Rules | None = None):
 
@@ -204,6 +205,36 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
                 requested_reviewers["reviewers"].append(r.name)
 
         self.api_request("/requested_reviewers", "POST", requested_reviewers)
+
+    @property
+    @override  # From Reviewable.
+    def reviewers(self) -> Iterable[Reviewer]:
+        reviewers = []
+        requested_reviewers = self._requested_reviewers()
+        for r in requested_reviewers.get("users", []):
+            reviewers.append(Reviewer(r["login"], False))
+        for t in requested_reviewers.get("teams", []):
+            slug: str = t["slug"]
+            if slug.startswith("ent:"):
+                # As of 2026-07-29, the GitHub API requires a `/ent:` prefix when adding
+                # reviewers, but returns them without a leading `/`. We normalise the
+                # data to the former.
+                slug = "/" + slug
+            reviewers.append(Reviewer(slug, True))
+
+        return reviewers
+
+    @github_authenticated
+    def _requested_reviewers(self, refresh: bool = False) -> dict[str, Any]:
+        """Return PR requested_reviewers, fetching it if needed."""
+        if not self._requested_reviewers_json or refresh:
+            # As of 2026-07-29, the basic GitHub PR metadata does contain
+            # `requested_reviewers` and `requested_teams` properties, but the latter is
+            # always empty. This is not the case for the /requested_reviewers endpoint
+            # we use here.
+            self._requested_reviewers_json = self.api_request("/requested_reviewers")
+
+        return self._requested_reviewers_json
 
     @property
     def repo_url(self):
