@@ -93,7 +93,8 @@ def test_github_user_resolver(
         reviewers = {
             Reviewer("jsmith", False),
             Reviewer("fluent-reviewers", True),
-            Reviewer("/ent:fluent-reviewers", True),
+            Reviewer("ent:fluent-reviewers", True),
+            Reviewer("/ent:normalise-this", True),
         }
 
         resolved = gh.resolve_reviewers(reviewers)
@@ -107,8 +108,11 @@ def test_github_user_resolver(
     assert Reviewer("@fluent-reviewers", True) in resolved, (
         "Review group should be prefixed"
     )
-    assert Reviewer("/ent:fluent-reviewers", True) in resolved, (
+    assert Reviewer("ent:fluent-reviewers", True) in resolved, (
         "Enterprise teams should be unchanged"
+    )
+    assert Reviewer("ent:normalise-this", True) in resolved, (
+        "Enterprise teams should be normalised"
     )
 
 
@@ -129,7 +133,7 @@ def test_github_reviewable(mock_gh_generate_token: Mock, mocked_github_request: 
         reviewers = {
             Reviewer("jsmith", False),
             Reviewer("fluent-reviewers", True),
-            Reviewer("/ent:fluent-reviewers", True),
+            Reviewer("ent:fluent-reviewers", True),
         }
 
         _ = gh.add_reviewers(reviewers)
@@ -157,6 +161,6 @@ def test_github_reviewable(mock_gh_generate_token: Mock, mocked_github_request: 
             in mock_requested_reviewers_post.last_request.json()["team_reviewers"]
         ), "Missing reviewer group in request"
         assert (
-            "/ent:fluent-reviewers"
+            "ent:fluent-reviewers"
             in mock_requested_reviewers_post.last_request.json()["team_reviewers"]
         ), "Missing reviewer group in request"

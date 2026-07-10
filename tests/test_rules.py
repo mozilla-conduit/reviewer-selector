@@ -221,7 +221,7 @@ def test_rule_collects_from_matching_rules(sample_rules_data: dict):
     reviewers = rules.collect_reviewers(patch, [])
 
     assert Reviewer("fluent-reviewers", True) in reviewers
-    assert Reviewer("/ent:fluent-reviewers", True) in reviewers
+    assert Reviewer("ent:fluent-reviewers", True) in reviewers
 
 
 def test_rule_respects_repo_filter(sample_rules_data: dict):

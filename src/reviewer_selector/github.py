@@ -172,6 +172,9 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     def custom_map(r: Reviewer) -> Reviewer | None:
         """Custom reviewer mapping function preventing enterprise teams from being prefixed."""
         if r.name.startswith("/ent:"):
+            # Workaround oddities in naming/display of enterprise team slugs.
+            r.name = r.name.removeprefix("/")
+        if r.name.startswith("ent:"):
             return r
 
         return None
@@ -208,8 +211,6 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
         """Return PR metadata, fetching it if needed."""
         if not self._metadata_json:
             self._metadata_json = self.api_request()
-        return self._metadata_json
-
         return self._metadata_json
 
     def api_request(

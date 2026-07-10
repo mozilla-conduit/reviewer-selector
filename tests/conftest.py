@@ -543,7 +543,7 @@ def sample_rules_data() -> dict[str, Any]:
                     {
                         "type": "add-reviewers",
                         "reviewers": [
-                            {"target": "/ent:fluent-reviewers", "is_group": True}
+                            {"target": "ent:fluent-reviewers", "is_group": True},
                         ],
                     }
                 ],
@@ -552,7 +552,7 @@ def sample_rules_data() -> dict[str, Any]:
         "groups": {
             "fluent-reviewers": {"members": ["alice", "bob"]},
             "test-reviewers": {"members": ["charlie"]},
-            "/ent:fluent-reviewers": {"members": ["bob"]},
+            "ent:fluent-reviewers": {"members": ["bob"]},
         },
         "github_users": {
             "alice": {"username": "alice-gh"},
