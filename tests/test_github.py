@@ -197,7 +197,7 @@ def test_github_reviewable(
         ent_fluent_reviewers = Reviewer("ent:fluent-reviewers", True)
         reviewers = {test_reviewer, jsmith, fluent_reviewers, ent_fluent_reviewers}
 
-        _ = gh.add_reviewers(reviewers)
+        _ = gh.add_new_reviewers(reviewers)
 
         assert (
             "application/vnd.github+json"

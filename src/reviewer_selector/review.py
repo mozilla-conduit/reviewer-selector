@@ -23,7 +23,18 @@ class Reviewer:
 class Reviewable(metaclass=ABCMeta):
     """An interface for something able to receive a list of reviewers."""
 
-    reviewers: Iterable[Reviewer]
+    reviewers: Iterable[Reviewer] = []
+
+    def add_new_reviewers(self, reviewers: Iterable[Reviewer]):
+        """Add reviewers from the list, who are not already requested."""
+        # XXX: Surely we won't have a user and a team with the same name?
+        current_reviewers = [r.name for r in self.reviewers]
+
+        # Not very performant, but we should only be dealing with short lists.
+        new_reviewers = [r for r in reviewers if r.name not in current_reviewers]
+
+        logger.info(f"Adding new reviewers: {new_reviewers} ...")
+        self.add_reviewers(new_reviewers)
 
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         """Set reviewers on the target."""

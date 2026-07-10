@@ -66,7 +66,7 @@ def cli() -> None:
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
-    reviewable.add_reviewers(resolved)
+    reviewable.add_new_reviewers(resolved)
 
 
 def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:

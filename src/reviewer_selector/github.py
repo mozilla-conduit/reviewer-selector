@@ -194,15 +194,11 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     @override  # From Reviewable.
     @github_authenticated
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
-        # XXX: Surely we won't have a user and a team with the same name?
-        current_reviewers = [r.name for r in self.reviewers]
         requested_reviewers: dict[str, list[str]] = {
             "reviewers": [],
             "team_reviewers": [],
         }
         for r in reviewers:
-            if r.name in current_reviewers:
-                continue
             if r.is_group:
                 requested_reviewers["team_reviewers"].append(r.name)
             else:

@@ -1,4 +1,5 @@
 import pytest
+from unittest import mock
 
 from reviewer_selector import StdoutReviewable
 from reviewer_selector.review import Reviewer, MappingUserResolver
@@ -62,3 +63,17 @@ def test_stdout_reviewable_add_reviewers(capsys: pytest.CaptureFixture):
 
     assert r in sr.reviewers
     assert "bob" in outerr.out
+
+
+def test_stdout_reviewable_add_new_reviewers():
+    sr = StdoutReviewable()
+
+    alice = Reviewer("alice")
+    sr.add_reviewers([alice])
+
+    sr.add_reviewers = mock.MagicMock()
+
+    bob = Reviewer("bob")
+    sr.add_new_reviewers([alice, bob])
+
+    sr.add_reviewers.assert_called_with([bob])
