@@ -165,7 +165,7 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     @override  # From UserResolver.
     def resolve_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
         user_resolver = MappingUserResolver(
-            group_prefix="@",
+            group_prefix="",
             user_map=self.rules.get_rules().get("github_users", {}),
             custom_map=self.custom_map,
         )

@@ -107,8 +107,8 @@ def test_github_user_resolver(
         assert Reviewer("jsmith-default", False) in resolved, (
             "GitHub user should be mapped to the default rules"
         )
-    assert Reviewer("@fluent-reviewers", True) in resolved, (
-        "Review group should be prefixed"
+    assert Reviewer("fluent-reviewers", True) in resolved, (
+        "Review group should not be prefixed"
     )
     assert Reviewer("ent:fluent-reviewers", True) in resolved, (
         "Enterprise teams should be unchanged"

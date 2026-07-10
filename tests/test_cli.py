@@ -134,7 +134,7 @@ def test_github(
             capsys,
         )
 
-    assert "@fluent-reviewers" in outerr.out
+    assert "fluent-reviewers" in outerr.out
     assert "ent:fluent-reviewers" in outerr.out
 
 
