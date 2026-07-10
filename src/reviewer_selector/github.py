@@ -232,7 +232,14 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
             },
             json=json,
         )
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as exc:
+            if exc.response.status_code == 422:
+                logger.error(
+                    f"422 error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
+                )
+            raise exc
         return resp.json()
 
     @property

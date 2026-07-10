@@ -1,6 +1,8 @@
 from unittest.mock import Mock, patch
 
 import pytest
+import requests
+import requests_mock
 from requests_mock.mocker import Mocker
 
 from reviewer_selector.github import GitHubPR
@@ -114,6 +116,27 @@ def test_github_user_resolver(
     assert Reviewer("ent:normalise-this", True) in resolved, (
         "Enterprise teams should be normalised"
     )
+
+
+def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
+
+    def callback(request: requests.Request, context: requests_mock.response._Context):
+        context.status_code = 422
+        return "422 Client Error: Unprocessable Entity for test"
+
+    with Mocker() as mock:
+        mock.get(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18",
+            text=callback,
+        )
+
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        with pytest.raises(requests.exceptions.HTTPError):
+            gh.api_request()
+
+        assert "Unprocessable Entity for test" in caplog.text
 
 
 @patch("reviewer_selector.github.GitHubApp.generate_token")
