@@ -57,6 +57,7 @@ def github_authenticated(fn: Callable) -> Callable:
 
     Requires the decorated method to be on a class which the following attributes:
         * _gh_app: GitHubApp attribute
+        * _gh_token: GitHub token
         * _session: Requests.Session
     """
 
@@ -64,12 +65,13 @@ def github_authenticated(fn: Callable) -> Callable:
     def wrapped(*args, **kwargs):
         self: GitHubPR = args[0]
 
-        if not self._gh_app:
-            raise ValueError("Missing GitHub app credentials, cannot set reviewers")
-
         # create token
-        gh_token = self._gh_app.generate_token()
-        self._session.headers["Authorization"] = f"Bearer {gh_token}"
+        if not self._gh_token:
+            if not self._gh_app:
+                raise ValueError("Missing GitHub app credentials, cannot set reviewers")
+            self._gh_token = self._gh_app.generate_token()
+
+        self._session.headers["Authorization"] = f"Bearer {self._gh_token}"
 
         return fn(*args, **kwargs)
 
@@ -90,6 +92,7 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
     _session: requests.Session
     _gh_app: GitHubApp | None = None
+    _gh_token: str | None = None
 
     # Use the rule @property to access those.
     _rules: Rules
@@ -179,9 +182,13 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
         return None
 
-    def set_app_credentials(self, app_id: str, app_privkey: str):
+    def set_app_credentials(
+        self, *, app_id: str = "", app_privkey: str = "", gh_token: str = ""
+    ):
         """Configure the GitHub application credentials."""
-        self._gh_app = GitHubApp(app_id, app_privkey, self.owner, self.repository)
+        self._gh_token = gh_token
+        if app_id and app_privkey:
+            self._gh_app = GitHubApp(app_id, app_privkey, self.owner, self.repository)
 
     @override  # From Reviewable.
     @github_authenticated

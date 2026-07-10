@@ -53,7 +53,7 @@ def cli() -> None:
         resolver = ghpr
 
         if github_creds := resolve_github_credentials(args):
-            ghpr.set_app_credentials(*github_creds)
+            ghpr.set_app_credentials(**github_creds)
             reviewable = ghpr
         else:
             logger.warning(
@@ -69,15 +69,25 @@ def cli() -> None:
     reviewable.add_reviewers(resolved)
 
 
-def resolve_github_credentials(args: argparse.Namespace) -> tuple[str, str] | None:
-    """Resolve GitHub app ID and privkey from CLI options, environment and TaskCluster."""
+def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:
+    """Resolve GitHub token, app ID and privkey from CLI options, environment and TaskCluster."""
 
     # Give precedence to explicit options, or default to environment.
+
+    # Support “standard” GH_TOKEN as a fallback.
+    gh_token = (
+        args.github_token
+        or os.environ.get("GITHUB_TOKEN")
+        or os.environ.get("GH_TOKEN")
+    )
     app_id = args.github_app_id or os.environ.get("GITHUB_APP_ID")
     app_privkey = args.github_app_privkey or os.environ.get("GITHUB_APP_PRIVKEY")
 
+    if gh_token:
+        return {"gh_token": gh_token}
+
     if app_id and app_privkey:
-        return app_id, app_privkey
+        return {"app_id": app_id, "app_privkey": app_privkey}
 
     # If any is missing, try to update from credentials store.
     if tc_secret_id := (args.taskcluster_secret_id or os.environ.get("TC_SECRET_ID")):
@@ -88,11 +98,13 @@ def resolve_github_credentials(args: argparse.Namespace) -> tuple[str, str] | No
         tc_secret = tc.fetch_secret(tc_secret_id)
         app_id = app_id or tc_secret.get("GITHUB_APP_ID")
         app_privkey = app_privkey or tc_secret.get("GITHUB_APP_PRIVKEY")
+        # We allow passing the GITHUB_TOKEN via secrets, but it's not recommended.
+        gh_token = tc_secret.get("GITHUB_TOKEN", "")
 
         if app_id and app_privkey:
-            return app_id, app_privkey
+            return {"app_id": app_id, "app_privkey": app_privkey, "gh_token": gh_token}
 
-    return None
+    return {}
 
 
 def parse_args() -> argparse.Namespace:
@@ -136,6 +148,11 @@ def parse_args() -> argparse.Namespace:
         "--github-app-privkey",
         default=None,
         help="GitHub application private key (credentials: GITHUB_APP_PRIVKEY)",
+    )
+    parser.add_argument(
+        "--github-token",
+        default=None,
+        help="GitHub token (credentials: GITHUB_TOKEN; env: also GH_TOKEN)",
     )
 
     parser.add_argument(

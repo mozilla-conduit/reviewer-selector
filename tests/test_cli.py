@@ -98,6 +98,15 @@ def test_group_prefix(
     assert "@fluent-reviewers" in outerr.out
 
 
+@pytest.fixture(autouse=True)
+def hide_github_tokens(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Shield the tests from real GitHub env variables."""
+    monkeypatch.setenv("GITHUB_TOKEN", "")
+    monkeypatch.setenv("GH_TOKEN", "")
+
+
 def test_github(
     tmp_path: pathlib.Path,
     mocked_github_request: Mocker,
@@ -171,12 +180,17 @@ def test_github_repo_added(
 @mock.patch("reviewer_selector.taskcluster.TaskclusterConfig")
 @mock.patch("reviewer_selector.taskcluster.load_secrets")
 @pytest.mark.parametrize(
-    "env_app_id,env_app_privkey,env_tc_secret_id,tc_app_id,tc_app_privkey,expected_app_credentials,needs_tc_secrets",
+    "env_github_token,env_gh_token,env_app_id,env_app_privkey,env_tc_secret_id,tc_app_id,tc_app_privkey,expected_app_credentials,needs_tc_secrets",
     (
-        ("", "", "", "", "", ("", ""), False),
-        ("", "", "", "TC_APP_ID", "TC_APP_PRIVKEY", ("", ""), False),
-        # TC secrets are used only if env missing
+        ("", "", "", "", "", "", "", ("", ""), False),
+        ("", "", "", "", "", "TC_APP_ID", "TC_APP_PRIVKEY", ("", ""), False),
+        # Support immediate GitHub tokens.
+        ("GITHUB_TOKEN", "", "", "", "", "", "", ("", "", "GITHUB_TOKEN"), False),
+        ("", "GH_TOKEN", "", "", "", "", "", ("", "", "GH_TOKEN"), False),
+        # TC secrets are used only if env missing.
         (
+            "",
+            "",
             "ENV_APP_ID",
             "ENV_APP_PRIVKEY",
             "ENV_TC_SECRET_ID",
@@ -188,14 +202,18 @@ def test_github_repo_added(
         (
             "",
             "",
+            "",
+            "",
             "ENV_TC_SECRET_ID",
             "TC_APP_ID",
             "TC_APP_PRIVKEY",
             ("TC_APP_ID", "TC_APP_PRIVKEY"),
             True,
         ),
-        # Some env takes priority over TC secrets
+        # Some env takes priority over TC secrets.
         (
+            "",
+            "",
             "ENV_APP_ID",
             "",
             "ENV_TC_SECRET_ID",
@@ -205,6 +223,8 @@ def test_github_repo_added(
             True,
         ),
         (
+            "",
+            "",
             "",
             "ENV_APP_PRIVKEY",
             "ENV_TC_SECRET_ID",
@@ -227,6 +247,8 @@ def test_github_env(
     mocked_github_request: Mocker,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
+    env_github_token: str,
+    env_gh_token: str,
     env_app_id: str,
     env_app_privkey: str,
     env_tc_secret_id: str,
@@ -238,6 +260,8 @@ def test_github_env(
     """Test precedence between environment and TC secrets, including for incomplete data."""
     rules_path = _write_rules(tmp_path / "rules.json", {})
 
+    monkeypatch.setenv("GITHUB_TOKEN", env_github_token)
+    monkeypatch.setenv("GH_TOKEN", env_gh_token)
     monkeypatch.setenv("GITHUB_APP_ID", env_app_id)
     monkeypatch.setenv("GITHUB_APP_PRIVKEY", env_app_privkey)
     monkeypatch.setenv("TC_SECRET_ID", env_tc_secret_id)
@@ -270,7 +294,11 @@ def test_github_env(
             *expected_app_credentials, "mozilla-conduit", "reviewer-selector"
         )
         assert mock_requested_reviewers.call_count == 1, (
-            "Incorrect number of requests to the requested reviewers endpoint"
+            "Incorrect number of requests to the requested reviewers endpoint (app credentials)"
+        )
+    elif any([env_github_token, env_gh_token]):
+        assert mock_requested_reviewers.call_count == 1, (
+            "Incorrect number of requests to the requested reviewers endpoint (gh tokens)"
         )
     else:
         assert mock_github_app.call_count == 0, (

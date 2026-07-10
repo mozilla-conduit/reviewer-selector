@@ -129,7 +129,7 @@ def test_github_reviewable(mock_gh_generate_token: Mock, mocked_github_request: 
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
         mock_gh_generate_token.return_value = "THE_TOKEN"
-        gh.set_app_credentials("THE_APP_ID", "THE_APP_PRIVKEY")
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
         reviewers = {
             Reviewer("jsmith", False),
             Reviewer("fluent-reviewers", True),
