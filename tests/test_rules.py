@@ -158,7 +158,7 @@ def test_rule_extracts_reviewers():
         ],
     }
     reviewers = Rules.get_rule_reviewers(rule)
-    assert Reviewer("jsmith", False) in reviewers
+    assert Reviewer("jsmith") in reviewers
 
 
 def test_rule_extracts_groups():
@@ -173,7 +173,22 @@ def test_rule_extracts_groups():
         ],
     }
     reviewers = Rules.get_rule_reviewers(rule)
-    assert Reviewer("my-group", True) in reviewers
+    assert Reviewer("my-group", is_group=True) in reviewers
+
+
+def test_rule_extracts_blocking():
+    rule = {
+        "id": "test_extracts_blocking",
+        "name": "test_extracts_blocking",
+        "actions": [
+            {
+                "type": "add-reviewers",
+                "reviewers": [{"target": "my-group", "blocking": True}],
+            }
+        ],
+    }
+    reviewers = Rules.get_rule_reviewers(rule)
+    assert Reviewer("my-group", blocking=True) in reviewers
 
 
 def test_rule_multiple_reviewers():
@@ -220,8 +235,8 @@ def test_rule_collects_from_matching_rules(sample_rules_data: dict):
 
     reviewers = rules.collect_reviewers(patch, [])
 
-    assert Reviewer("fluent-reviewers", True) in reviewers
-    assert Reviewer("ent:fluent-reviewers", True) in reviewers
+    assert Reviewer("fluent-reviewers", is_group=True) in reviewers
+    assert Reviewer("ent:fluent-reviewers", is_group=True) in reviewers
 
 
 def test_rule_respects_repo_filter(sample_rules_data: dict):
@@ -231,7 +246,7 @@ def test_rule_respects_repo_filter(sample_rules_data: dict):
 
     reviewers = rules.collect_reviewers(patch, ["mozilla-central"])
 
-    assert Reviewer("jsmith", False) in reviewers
+    assert Reviewer("jsmith") in reviewers
 
 
 def test_rule_excludes_non_matching_repo(sample_rules_data: dict):
@@ -241,7 +256,7 @@ def test_rule_excludes_non_matching_repo(sample_rules_data: dict):
 
     reviewers = rules.collect_reviewers(patch, ["comm-central"])
 
-    assert Reviewer("jsmith", False) not in reviewers
+    assert Reviewer("jsmith") not in reviewers
 
 
 def test_rule_deduplicates_reviewers(sample_rules_data: dict):

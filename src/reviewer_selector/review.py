@@ -13,11 +13,12 @@ logger = logging.getLogger(__name__)
 class Reviewer:
     name: str
     is_group: bool = False
+    blocking: bool = False
 
     @override
     def __hash__(self):
         """Make this dataclass hashable for use in sets."""
-        return (self.name, self.is_group).__hash__()
+        return (self.name, self.is_group, self.blocking).__hash__()
 
 
 class Reviewable(metaclass=ABCMeta):
@@ -45,13 +46,22 @@ class StdoutReviewable(Reviewable):
     """A Reviewable implementation outputting reviewers to STDOUT."""
 
     reviewer_separator: str
+    blocking_suffix: str
 
-    def __init__(self, reviewer_separator: str = ","):
+    def __init__(self, reviewer_separator: str = ",", blocking_suffix: str = "!"):
         self.reviewer_separator = reviewer_separator
+        self.blocking_suffix = blocking_suffix
 
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
-        print(self.reviewer_separator.join(sorted(r.name for r in reviewers)))
+        print(
+            self.reviewer_separator.join(
+                sorted(
+                    r.name + (self.blocking_suffix if r.blocking else "")
+                    for r in reviewers
+                )
+            )
+        )
         super().add_reviewers(reviewers)
 
 
@@ -116,5 +126,5 @@ class MappingUserResolver(UserResolver):
                 mapped = self._user_map[r.name]["username"]
                 logger.debug(f"Resolved {r.name} to {mapped}")
 
-            result.add(Reviewer(mapped, r.is_group))
+            result.add(Reviewer(mapped, r.is_group, r.blocking))
         return result

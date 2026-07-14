@@ -33,7 +33,7 @@ class Rules:
     def collect_reviewers(
         self, patch: Patch, repos: Iterable[str]
     ) -> Iterable[Reviewer]:
-        """Return set of (target, is_group) tuples from matching rules."""
+        """Return set of Reviewers from matching rules."""
 
         changed_files = patch.get_changed_files()
         reviewers: set[Reviewer] = set()
@@ -85,7 +85,11 @@ class Rules:
                 action_reviewers_set: set[str] = set()
                 for reviewer in action.get("reviewers", []):
                     result.add(
-                        Reviewer(reviewer["target"], reviewer.get("is_group", False))
+                        Reviewer(
+                            name=reviewer["target"],
+                            is_group=reviewer.get("is_group", False),
+                            blocking=reviewer.get("blocking", False),
+                        )
                     )
                     action_reviewers_set.add(reviewer["target"])
                 logger.info(
