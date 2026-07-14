@@ -60,9 +60,11 @@ def cli() -> None:
                 "Missing GitHub credentials (GITHUB_APP_ID and GITHUB_APP_PRIVKEY, or TC_SECRET_ID, reviewers will be output to stdout instead"
             )
 
-    patch = Patch(patch_source.fetch_patch())
+    patch = Patch(patch_source.fetch_patch(), patch_source.get_patch_subject())
 
-    reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, repos)
+    reviewers: set[Reviewer] = set(patch.get_subject_reviewers()) | set(
+        rules.collect_reviewers(patch, repos)
+    )
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 

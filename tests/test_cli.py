@@ -98,6 +98,23 @@ def test_group_prefix(
     assert "@fluent-reviewers" in outerr.out
 
 
+def test_subject_reviewer(
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_patch: str,
+    sample_rules_data: dict[str, Any],
+):
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    outerr = _run_cli(
+        [rules_path, "--group-prefix", "@"],
+        sample_patch,
+        capsys,
+    )
+
+    assert "@ent:lando-reviewers!" in outerr.out
+
+
 @pytest.fixture(autouse=True)
 def hide_github_tokens(
     monkeypatch: pytest.MonkeyPatch,
