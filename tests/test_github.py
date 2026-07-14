@@ -52,6 +52,10 @@ def test_github_patch_source(mocked_github_request: Mocker):
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
 
+        assert (
+            gh.get_patch_subject()
+            == "reviewer_selector: add GitHub Site support (bug 2030600)"
+        ), "Unexpected patch text"
         assert gh.fetch_patch() == patch_text, "Unexpected patch text"
 
 

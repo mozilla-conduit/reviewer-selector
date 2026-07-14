@@ -64,6 +64,32 @@ def sample_diff_remote() -> str:
     return SAMPLE_DIFF_REMOTE
 
 
+SAMPLE_PATCH = """\
+From d633a65852a20879289e0e1f613b8efb5f9cc9be Mon Sep 17 00:00:00 2001
+From: Olivier Mehani <omehani@mozilla.com>
+Date: Tue, 14 Jul 2026 17:48:35 +1000
+Subject: [PATCH] patch: support parsing r? from subject line r?#ent:lando-reviewers! (bug 2023719)
+
+---
+ test | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test b/test
+index 529d85073f838..ead51b49da5ef 100644
+--- a/test
++++ b/test
+@@ -1 +1 @@
+-14b4db08-8232-471e-8ba6-d9467607ef9f
++49fdaf00-2d64-41e9-86e3-cb5aec774930
+"""
+
+
+@pytest.fixture
+def sample_patch() -> str:
+    """A patch with metadata header."""
+    return SAMPLE_PATCH
+
+
 #
 # GITHUB FIXTURES
 #

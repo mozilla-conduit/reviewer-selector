@@ -3,7 +3,7 @@ from collections.abc import Mapping, Sequence
 import logging
 import re
 import sys
-from typing import Any, override
+from typing import Any, Iterable, override
 
 import rs_parsepatch
 
@@ -75,10 +75,36 @@ class PatchSource(metaclass=ABCMeta):
     def fetch_patch(self) -> str:
         """Return a patch from this source."""
 
+    @abstractmethod
+    def get_patch_subject(self) -> str:
+        """Return a subject line for this patch."""
+
 
 class StdinPatchSource(PatchSource):
-    """A PatchSource implementation reading a diff from STDIN."""
+    """A PatchSource implementation reading a diff from STDIN.
+
+    The patch is only read once, on the first request to the object's methods.
+    """
+
+    SUBJECT: str = "Subject: "
+
+    _patch: str | None = None
 
     @override
     def fetch_patch(self) -> str:
-        return sys.stdin.read()
+        if self._patch is None:
+            self._patch = sys.stdin.read()
+        return self._patch
+
+    @override
+    def get_patch_subject(self) -> str:
+        """Return the first `Subject` line from a patch.
+
+        If the patch hasn't been read yet, do it now.
+        """
+        patch = self.fetch_patch()
+        for line in patch.splitlines():
+            if line.startswith(self.SUBJECT):
+                return line.removeprefix(self.SUBJECT)
+
+        return ""

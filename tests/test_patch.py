@@ -1,5 +1,8 @@
+import io
+
 import pytest
 
+from reviewer_selector import StdinPatchSource
 from reviewer_selector.patch import Patch
 from reviewer_selector.review import Reviewer
 
@@ -82,3 +85,14 @@ def test_parse_subject_reviewers(subject: str, expected: list[str]):
 def test_get_subject_reviewers(subject: str, expected: list[Reviewer]):
     patch = Patch("", subject)
     assert patch.get_subject_reviewers() == expected
+
+
+def test_stdin_patch_source(monkeypatch: pytest.MonkeyPatch, sample_patch: str):
+    monkeypatch.setattr("sys.stdin", io.StringIO(sample_patch))
+    patch_source = StdinPatchSource()
+
+    assert patch_source.fetch_patch() == sample_patch
+    assert (
+        patch_source.get_patch_subject()
+        == "[PATCH] patch: support parsing r? from subject line r?#ent:lando-reviewers! (bug 2023719)"
+    )

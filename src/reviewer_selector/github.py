@@ -155,6 +155,10 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
         resp.raise_for_status()
         return resp.text
 
+    @override  # From PatchSource.
+    def get_patch_subject(self) -> str:
+        return self._metadata.get("title")
+
     @property
     def patch_url(self) -> str:
         return self.pr_url + ".patch"
