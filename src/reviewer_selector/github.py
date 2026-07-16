@@ -1,3 +1,4 @@
+from abc import ABCMeta
 import asyncio
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -23,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GitHubApp:
+    """Wrapper providing GitHub authentication via a GitHub app."""
+
     app_id: str
     app_privkey: str
     gh_owner: str
@@ -52,47 +55,64 @@ class GitHubApp:
         return token
 
 
-def github_authenticated(fn: Callable) -> Callable:
-    """Decorator to generate a GitHub token for the Requests session.
+class GitHubApiObject(metaclass=ABCMeta):
+    """Abstract class providing authentication utilities to make requests to arbitrary
+        GitHub API objects.
 
-    Requires the decorated method to be on a class which the following attributes:
-        * _gh_app: GitHubApp attribute
-        * _gh_token: GitHub token
-        * _session: Requests.Session
+    `owner` and `repository` need to be set by the inheriting class prior to using those
+    methods.
     """
 
-    @wraps(fn)
-    def wrapped(*args, **kwargs):
-        self: GitHubPR = args[0]
+    owner: str
+    repository: str
 
-        # create token
-        if not self._gh_token:
-            if not self._gh_app:
-                raise ValueError("Missing GitHub app credentials, cannot set reviewers")
-            self._gh_token = self._gh_app.generate_token()
+    _session: requests.Session
+    _gh_app: GitHubApp | None = None
+    _gh_token: str | None = None
 
-        self._session.headers["Authorization"] = f"Bearer {self._gh_token}"
+    def __init__(self):
+        self._session = requests.Session()
 
-        return fn(*args, **kwargs)
+    def set_app_credentials(
+        self, *, app_id: str = "", app_privkey: str = "", gh_token: str = ""
+    ):
+        """Configure the GitHub application credentials."""
+        self._gh_token = gh_token
+        if app_id and app_privkey:
+            self._gh_app = GitHubApp(app_id, app_privkey, self.owner, self.repository)
 
-    return wrapped
+    @staticmethod
+    def authenticated(fn: Callable) -> Callable:
+        """Decorator to generate a GitHub token for the Requests session."""
+
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            self: GitHubPR = args[0]
+
+            # create token
+            if not self._gh_token:
+                if not self._gh_app:
+                    raise ValueError(
+                        "Missing GitHub app credentials, cannot set reviewers"
+                    )
+                self._gh_token = self._gh_app.generate_token()
+
+            self._session.headers["Authorization"] = f"Bearer {self._gh_token}"
+
+            return fn(*args, **kwargs)
+
+        return wrapped
 
 
 @final
-class GitHubPR(PatchSource, Reviewable, UserResolver):
+class GitHubPR(GitHubApiObject, PatchSource, Reviewable, UserResolver):
     URL_RE = re.compile(
         r"https://github.com/(?P<owner>[-A-Za-z0-9]+)/(?P<repository>[^/]+?)/pull/(?P<pr_number>\d+)"
     )
 
     pr_url: str
 
-    owner: str
-    repository: str
     pr_number: int
-
-    _session: requests.Session
-    _gh_app: GitHubApp | None = None
-    _gh_token: str | None = None
 
     # Use the rule @property to access those.
     _rules: Rules
@@ -102,18 +122,19 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     _metadata_json: dict[str, Any] = {}
 
     def __init__(self, pr_url: str, default_rules: Rules | None = None):
+        GitHubApiObject.__init__(self)
 
         match = self.URL_RE.match(pr_url)
         if not match:
             raise ValueError(f"Can't parse GitHub PR URL from {pr_url}")
 
+        # From GitHubApiObject.
         self.owner = match["owner"]
         self.repository = match["repository"]
+
         self.pr_number = int(match["pr_number"])
 
         self.pr_url = pr_url
-
-        self._session = requests.Session()
 
         self._rules = default_rules or Rules({})
 
@@ -182,16 +203,8 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
         return None
 
-    def set_app_credentials(
-        self, *, app_id: str = "", app_privkey: str = "", gh_token: str = ""
-    ):
-        """Configure the GitHub application credentials."""
-        self._gh_token = gh_token
-        if app_id and app_privkey:
-            self._gh_app = GitHubApp(app_id, app_privkey, self.owner, self.repository)
-
     @override  # From Reviewable.
-    @github_authenticated
+    @GitHubApiObject.authenticated
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         requested_reviewers = {
             "reviewers": [],
