@@ -159,7 +159,7 @@ def test_github_reviewable(mock_gh_generate_token: Mock, mocked_github_request: 
             Reviewer("ent:fluent-reviewers", True),
         }
 
-        _ = gh.add_reviewers(reviewers)
+        gh.add_reviewers(reviewers)
 
         assert (
             "application/vnd.github+json"
