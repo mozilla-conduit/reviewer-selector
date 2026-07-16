@@ -83,7 +83,9 @@ def test_gh_overrides(
 
     main()
 
-    assert mock_tc_fetch_secret.call_count == 0, "Taskcluster.fetch_secret should not have been called with GitHub credentials in the ENV"
+    assert mock_tc_fetch_secret.call_count == 0, (
+        "Taskcluster.fetch_secret should not have been called with GitHub credentials in the ENV"
+    )
     mock_gh_generate_token.assert_called_once_with()
 
     outerr = capsys.readouterr()
