@@ -59,6 +59,7 @@ def test_main(
     outerr = capsys.readouterr()
     assert outerr.out == "THE_TOKEN\n"
 
+
 @patch("reviewer_selector.taskcluster.Taskcluster.fetch_secret")
 @patch("reviewer_selector.github.GitHubApp.generate_token")
 def test_gh_overrides(
