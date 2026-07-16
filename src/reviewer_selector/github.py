@@ -82,8 +82,12 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     def _blob_url(self, path: str) -> str:
         return f"{self.repo_url}/raw/refs/heads/{self._target_branch_name}/{path}"
 
-    @override  # From PatchSource.
+    @override
     def fetch_patch(self) -> str:
+        """Return a patch from this source.
+
+        From the PatchSource interface.
+        """
         resp = self.fetch(self.patch_url)
         resp.raise_for_status()
         return resp.text
@@ -92,8 +96,12 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     def patch_url(self) -> str:
         return self.pr_url + ".patch"
 
-    @override  # From UserResolver.
+    @override
     def resolve_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
+        """Update the content of the reviewers based on arbitrary criteria.
+
+        From the UserResolver interface.
+        """
         user_resolver = MappingUserResolver(
             group_prefix="@",
             user_map=self.rules.get_rules().get("github_users", {}),
@@ -109,8 +117,12 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
 
         return None
 
-    @override  # From Reviewable.
+    @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
+        """Set reviewers on the target.
+
+        From the Reviewable interface.
+        """
         # create token
 
         # send request
