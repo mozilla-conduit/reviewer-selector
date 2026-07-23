@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 from requests import Response
 
-from lando.utils.github import GitHubAPIClient
+from ..github import GitHubAPIClient
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent
 def mock_github_fetch_token(monkeypatch: pytest.MonkeyPatch) -> mock.Mock:
     mock_fetch_token = mock.MagicMock()
     mock_fetch_token.return_value = "mock_token"
-    monkeypatch.setattr("lando.utils.github.GitHub._fetch_token", mock_fetch_token)
+    monkeypatch.setattr("conduit_github.GitHub._fetch_token", mock_fetch_token)
     return mock_fetch_token
 
 
@@ -82,7 +82,7 @@ def mock_github_api_get(
             return response
 
         mock_api_get = mock.Mock(side_effect=_mock_api_get)
-        monkeypatch.setattr("lando.utils.github.GitHubAPI.get", mock_api_get)
+        monkeypatch.setattr("conduit_github.GitHubAPI.get", mock_api_get)
 
         return mock_api_get
 
@@ -99,7 +99,7 @@ def github_pr_response() -> str:
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             https://api.github.com/repos/mozilla-conduit/test-repo/pulls/1 \
-            > src/lando/utils/tests/data/github_api_response_pull.json
+            > src/conduit_tests/data/github_api_response_pull.json
     """
     json_data_path = BASE_DIR / "data" / "github_api_response_pull.json"
     with open(json_data_path) as f:
@@ -116,7 +116,7 @@ def github_pr_commits_response() -> str:
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             https://api.github.com/repos/mozilla-conduit/test-repo/pulls/1/commits \
-            > src/lando/utils/tests/data/github_api_response_pull_commits.json
+            > src/conduit_tests/data/github_api_response_pull_commits.json
     """
     json_data_path = BASE_DIR / "data" / "github_api_response_pull_commits.json"
     with open(json_data_path) as f:

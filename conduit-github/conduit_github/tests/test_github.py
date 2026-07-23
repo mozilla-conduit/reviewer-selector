@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from lando.utils.github import (
+from ..github import (
     PR_DELIMITER,
     GitHub,
     GitHubAPI,
@@ -131,8 +131,8 @@ def test_api_client_build_pr(
     assert github_api_client.get_patch.call_args.args == (1,)
 
 
-@mock.patch("lando.utils.github.GitHub._fetch_token")
-@mock.patch("lando.utils.github.GitHub.parse_url")
+@mock.patch("conduit_github.GitHub._fetch_token")
+@mock.patch("conduit_github.GitHub.parse_url")
 def test_api_client_get_pull_request_commits(
     parse_url: mock.Mock, fetch_token: mock.Mock
 ):
