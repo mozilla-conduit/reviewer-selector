@@ -261,7 +261,7 @@ class GitHubPR(GitHubApiObject):
         """Custom reviewer mapping function preventing enterprise teams from being prefixed."""
         if r.name.startswith("/ent:"):
             # Workaround oddities in naming/display of enterprise team slugs.
-            r.name = r.name.removeprefix("/")
+            r = r.mutate(name=r.name.removeprefix("/"))
         if r.name.startswith("ent:"):
             return r
 

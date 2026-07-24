@@ -2,22 +2,26 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 import logging
-from typing import Callable, override
+from typing import Callable, Self, override
 
 UserMap = Mapping[str, Mapping[str, str]]
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Reviewer:
     name: str
     is_group: bool
 
-    @override
-    def __hash__(self):
-        """Make this dataclass hashable for use in sets."""
-        return (self.name, self.is_group).__hash__()
+    def mutate(self, **kwargs) -> Self:
+        """Return a mutated Reviewer based on the current instance."""
+        # XXX: If we ever pass collections here, we should use copy.deepcopy()
+        values = self.__dict__.copy()
+
+        values.update(**kwargs)
+
+        return Reviewer(**values)
 
 
 class Reviewable(metaclass=ABCMeta):
