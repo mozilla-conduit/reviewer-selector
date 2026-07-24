@@ -136,6 +136,7 @@ def test_github(
 
     assert "fluent-reviewers" in outerr.out
     assert "ent:fluent-reviewers" in outerr.out
+    assert "/ent:fluent-reviewers" not in outerr.out, "Enterprise team name should have been normalised"
 
 
 @mock.patch("reviewer_selector.GitHubPR.fetch_rules")
