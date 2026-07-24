@@ -33,10 +33,11 @@ fi
 
 DIFF=$(mktemp)
 if [ -n "${DIFF_URL:-}" ]; then
+	echo "Fetching diff from DIFF_URL from environment ..." >&2
   ${CURL} "${DIFF_URL}" --output "${DIFF}"
 
-else
-	echo "No DIFF_URL in environment, reading from stdin ..." >&2
+elif [ -z "${PR_URL:-}" ]; then
+	echo "No DIFF_URL or PR_URL in environment, reading from stdin ..." >&2
 	cat > "${DIFF}"
 
 fi
@@ -61,6 +62,7 @@ REVIEWERS=$(cat "${DIFF}" \
 	| reviewer-selector \
     --verbose \
     ${REPO_BRANCH:+--repo "${REPO_BRANCH}"} \
+    ${PR_URL:+--pr-url "${PR_URL}"} \
     --group-prefix "${GROUP_PREFIX}" --reviewer-separator , \
     "${HERALD_RULES_JSON}" \
 )

@@ -3,8 +3,9 @@ import logging
 from collections.abc import Iterable
 
 
+from reviewer_selector.github import GitHubPR
 from reviewer_selector.patch import Patch, StdinPatchSource
-from reviewer_selector.review import Reviewer, StdoutReviewable, UserResolver
+from reviewer_selector.review import Reviewer, StdoutReviewable, MappingUserResolver
 from reviewer_selector.rules import Rules
 
 
@@ -23,16 +24,30 @@ def cli() -> None:
 
     rules = Rules.from_file(args.rules_file)
 
-    patch_source = StdinPatchSource()
+    repos = args.repo
+
+    if args.pr_url:
+        ghpr = GitHubPR(args.pr_url, rules)
+
+        # Override rules with in-tree file if present.
+        rules = ghpr.rules or rules
+
+        repos.append(ghpr.repository)
+
+        patch_source = ghpr
+        resolver = ghpr
+
+    else:
+        patch_source = StdinPatchSource()
+        resolver = MappingUserResolver(
+            args.group_prefix, rules.get_rules().get("github_users", {})
+        )
+    # We don't have a functional GitHub Reviewable implementation for now.
     reviewable = StdoutReviewable(args.reviewer_separator)
 
     patch = Patch(patch_source.fetch_patch())
 
-    reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, args.repo)
-
-    resolver = UserResolver(
-        rules.get_rules().get("github_users", {}), args.group_prefix
-    )
+    reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, repos)
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
@@ -58,9 +73,14 @@ def parse_args() -> argparse.Namespace:
         default=False,
         help="Log debug message of the reviewer selection",
     )
+
     parser.add_argument(
         "--repo", action="append", default=[], help="Filter by repository (repeatable)"
     )
+    parser.add_argument(
+        "--pr-url", default=None, help="HTML URL of the GitHub PR to process"
+    )
+
     parser.add_argument(
         "--group-prefix", default="#", help="Prefix for group names in output"
     )
