@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import logging
 from typing import Callable, Self, override
 
@@ -16,8 +16,7 @@ class Reviewer:
 
     def mutate(self, **kwargs) -> Self:
         """Return a mutated Reviewer based on the current instance."""
-        # XXX: If we ever pass collections here, we should use copy.deepcopy()
-        values = self.__dict__.copy()
+        values = asdict(self)
 
         values.update(**kwargs)
 
