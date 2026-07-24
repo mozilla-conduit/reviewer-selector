@@ -136,7 +136,9 @@ def test_github(
 
     assert "fluent-reviewers" in outerr.out
     assert "ent:fluent-reviewers" in outerr.out
-    assert "/ent:fluent-reviewers" not in outerr.out, "Enterprise team name should have been normalised"
+    assert "/ent:fluent-reviewers" not in outerr.out, (
+        "Enterprise team name should have been normalised"
+    )
 
 
 @mock.patch("reviewer_selector.GitHubPR.fetch_rules")
@@ -151,6 +153,7 @@ def test_github_repo_added(
     sample_diff: str,
     sample_rules_data: dict[str, Any],
 ):
+    # Empty rules. The real ones should be coming from in-tree.
     rules_path = _write_rules(tmp_path / "rules.json", {})
 
     rules_resp = requests.Response()

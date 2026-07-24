@@ -41,7 +41,6 @@ def test_github__target_branch_name(mocked_github_request: Mocker):
 
 
 def test_github_patch_source(mocked_github_request: Mocker):
-    """fetch_patch"""
     patch_text = "Imaa patch!"
     with mocked_github_request as mock:
         patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"

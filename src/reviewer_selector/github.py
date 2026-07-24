@@ -70,7 +70,9 @@ class GitHubApiObject(metaclass=ABCMeta):
     _gh_app: GitHubApp | None = None
     _gh_token: str | None = None
 
-    def __init__(self):
+    def __init__(self, owner: str, repository: str):
+        self.owner = owner
+        self.repository = repository
         self._session = requests.Session()
 
     def set_app_credentials(
@@ -184,15 +186,13 @@ class GitHubPR(GitHubApiObject):
     _user_resolver: UserResolver | None = None
 
     def __init__(self, pr_url: str, default_rules: Rules | None = None):
-        GitHubApiObject.__init__(self)
-
         match = self.URL_RE.match(pr_url)
         if not match:
             raise ValueError(f"Can't parse GitHub PR URL from {pr_url}")
 
-        # From GitHubApiObject.
-        self.owner = match["owner"]
-        self.repository = match["repository"]
+        GitHubApiObject.__init__(
+            self, owner=match["owner"], repository=match["repository"]
+        )
 
         self.pr_number = int(match["pr_number"])
 
