@@ -103,9 +103,67 @@ class GitHubApiObject(metaclass=ABCMeta):
 
         return wrapped
 
+    def api_request(
+        self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
+    ) -> dict[str, Any]:
+        resp = self._session.request(
+            method,
+            f"{self._repo_api_url}/pulls/{self.pr_number}{path}",
+            headers={
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2026-03-10",
+            },
+            json=json,
+        )
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as exc:
+            if exc.response.status_code == 422:
+                logger.error(
+                    f"422 error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
+                )
+            raise exc
+        return resp.json()
+
+    @authenticated
+    def authenticated_api_request(self, *args, **kwargs) -> dict[str, Any]:
+        return self.api_request(*args, **kwargs)
+
+
+@dataclass
+class GitHubPatchSource(PatchSource):
+    _pr: "GitHubPR"
+
+    @override
+    def fetch_patch(self) -> str:
+        resp = self._pr.fetch(self._pr.patch_url)
+        resp.raise_for_status()
+        return resp.text
+
+
+@dataclass
+class GitHubReviewable(Reviewable):
+    _pr: "GitHubPR"
+
+    @override
+    def add_reviewers(self, reviewers: Iterable[Reviewer]):
+        requested_reviewers = {
+            "reviewers": [],
+            "team_reviewers": [],
+        }
+        for r in reviewers:
+            if r.is_group:
+                requested_reviewers["team_reviewers"].append(r.name)
+            else:
+                requested_reviewers["reviewers"].append(r.name)
+
+        self._pr.authenticated_api_request(
+            "/requested_reviewers", "POST", requested_reviewers
+        )
+
 
 @final
-class GitHubPR(GitHubApiObject, PatchSource, Reviewable, UserResolver):
+class GitHubPR(GitHubApiObject):
     URL_RE = re.compile(
         r"https://github.com/(?P<owner>[-A-Za-z0-9]+)/(?P<repository>[^/]+?)/pull/(?P<pr_number>\d+)"
     )
@@ -119,7 +177,11 @@ class GitHubPR(GitHubApiObject, PatchSource, Reviewable, UserResolver):
     _remote_rules_checked: bool = False
 
     # Will be populated on first access to _metadata
-    _metadata_json: dict[str, Any] = {}
+    _metadata_json: dict[str, Any] | None = None
+
+    _patch_source: PatchSource | None = None
+    _reviewable: Reviewable | None = None
+    _user_resolver: UserResolver | None = None
 
     def __init__(self, pr_url: str, default_rules: Rules | None = None):
         GitHubApiObject.__init__(self)
@@ -169,11 +231,12 @@ class GitHubPR(GitHubApiObject, PatchSource, Reviewable, UserResolver):
     def _blob_url(self, path: str) -> str:
         return f"{self.repo_url}/raw/refs/heads/{self.target_branch_name}/{path}"
 
-    @override  # From PatchSource.
-    def fetch_patch(self) -> str:
-        resp = self.fetch(self.patch_url)
-        resp.raise_for_status()
-        return resp.text
+    @property
+    def patch_source(self) -> PatchSource:
+        if not self._patch_source:
+            self._patch_source = GitHubPatchSource(self)
+
+        return self._patch_source
 
     @property
     def patch_url(self) -> str:
@@ -183,17 +246,18 @@ class GitHubPR(GitHubApiObject, PatchSource, Reviewable, UserResolver):
         resp = self._session.get(url)
         return resp
 
-    @override  # From UserResolver.
-    def resolve_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
-        user_resolver = MappingUserResolver(
-            group_prefix="",
-            user_map=self.rules.get_rules().get("github_users", {}),
-            custom_map=self.custom_map,
-        )
-        return user_resolver.resolve_reviewers(reviewers)
+    @property
+    def user_resolver(self) -> UserResolver:
+        if not self._user_resolver:
+            self._user_resolver = MappingUserResolver(
+                group_prefix="",
+                user_map=self.rules.get_rules().get("github_users", {}),
+                custom_map=self._custom_map,
+            )
+        return self._user_resolver
 
     @staticmethod
-    def custom_map(r: Reviewer) -> Reviewer | None:
+    def _custom_map(r: Reviewer) -> Reviewer | None:
         """Custom reviewer mapping function preventing enterprise teams from being prefixed."""
         if r.name.startswith("/ent:"):
             # Workaround oddities in naming/display of enterprise team slugs.
@@ -203,20 +267,12 @@ class GitHubPR(GitHubApiObject, PatchSource, Reviewable, UserResolver):
 
         return None
 
-    @override  # From Reviewable.
-    @GitHubApiObject.authenticated
-    def add_reviewers(self, reviewers: Iterable[Reviewer]):
-        requested_reviewers = {
-            "reviewers": [],
-            "team_reviewers": [],
-        }
-        for r in reviewers:
-            if r.is_group:
-                requested_reviewers["team_reviewers"].append(r.name)
-            else:
-                requested_reviewers["reviewers"].append(r.name)
+    @property
+    def reviewable(self) -> Reviewable:
+        if not self._reviewable:
+            self._reviewable = GitHubReviewable(self)
 
-        self.api_request("/requested_reviewers", "POST", requested_reviewers)
+        return self._reviewable
 
     @property
     def repo_url(self):
@@ -232,28 +288,6 @@ class GitHubPR(GitHubApiObject, PatchSource, Reviewable, UserResolver):
         if not self._metadata_json:
             self._metadata_json = self.api_request()
         return self._metadata_json
-
-    def api_request(
-        self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
-    ) -> dict[str, Any]:
-        resp = self._session.request(
-            method,
-            f"{self._repo_api_url}/pulls/{self.pr_number}{path}",
-            headers={
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2026-03-10",
-            },
-            json=json,
-        )
-        try:
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as exc:
-            if exc.response.status_code == 422:
-                logger.error(
-                    f"422 error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
-                )
-            raise exc
-        return resp.json()
 
     @property
     def _repo_api_url(self) -> str:

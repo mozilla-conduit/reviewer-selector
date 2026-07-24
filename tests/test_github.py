@@ -50,7 +50,7 @@ def test_github_patch_source(mocked_github_request: Mocker):
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
 
-        assert gh.fetch_patch() == patch_text, "Unexpected patch text"
+        assert gh.patch_source.fetch_patch() == patch_text, "Unexpected patch text"
 
 
 def test_github_rules_caching(mocked_github_request: Mocker, sample_rules_data: dict):
@@ -99,7 +99,7 @@ def test_github_user_resolver(
             Reviewer("/ent:normalise-this", True),
         }
 
-        resolved = gh.resolve_reviewers(reviewers)
+        resolved = gh.user_resolver.resolve_reviewers(reviewers)
 
     if in_tree_status == 200:
         assert Reviewer("jsmith-gh", False) in resolved, "GitHub user should be mapped"
@@ -159,7 +159,7 @@ def test_github_reviewable(mock_gh_generate_token: Mock, mocked_github_request: 
             Reviewer("ent:fluent-reviewers", True),
         }
 
-        gh.add_reviewers(reviewers)
+        gh.reviewable.add_reviewers(reviewers)
 
         assert (
             "application/vnd.github+json"

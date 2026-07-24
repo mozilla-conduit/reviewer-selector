@@ -139,7 +139,7 @@ def test_github(
 
 
 @mock.patch("reviewer_selector.GitHubPR.fetch_rules")
-@mock.patch("reviewer_selector.GitHubPR.fetch_patch")
+@mock.patch("reviewer_selector.github.GitHubPatchSource.fetch_patch")
 @mock.patch("reviewer_selector.Rules.collect_reviewers")
 def test_github_repo_added(
     mock_collect_reviewers: mock.Mock,
@@ -174,7 +174,7 @@ def test_github_repo_added(
 
 
 @mock.patch("reviewer_selector.GitHubPR.fetch_rules")
-@mock.patch("reviewer_selector.GitHubPR.fetch_patch")
+@mock.patch("reviewer_selector.github.GitHubPatchSource.fetch_patch")
 @mock.patch("reviewer_selector.Rules.collect_reviewers")
 @mock.patch("reviewer_selector.github.GitHubApp")
 @mock.patch("reviewer_selector.taskcluster.TaskclusterConfig")
