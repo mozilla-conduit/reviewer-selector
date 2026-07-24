@@ -1,0 +1,14 @@
+[project]
+name = "conduit-github"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "simple-github>=3.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
