@@ -112,8 +112,8 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
     @staticmethod
     def custom_map(reviewer: Reviewer) -> Reviewer | None:
         """Custom reviewer mapping function preventing enterprise teams from being prefixed."""
-        if r.name.startswith("/ent:"):
-            return r
+        if reviewer.name.startswith("/ent:"):
+            return reviewer
 
         return None
 
