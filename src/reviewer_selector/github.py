@@ -110,7 +110,7 @@ class GitHubPR(PatchSource, Reviewable, UserResolver):
         return user_resolver.resolve_reviewers(reviewers)
 
     @staticmethod
-    def custom_map(r: Reviewer) -> Reviewer | None:
+    def custom_map(reviewer: Reviewer) -> Reviewer | None:
         """Custom reviewer mapping function preventing enterprise teams from being prefixed."""
         if r.name.startswith("/ent:"):
             return r
