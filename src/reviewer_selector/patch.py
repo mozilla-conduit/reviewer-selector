@@ -1,9 +1,9 @@
 from abc import ABCMeta, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 import logging
 import re
 import sys
-from typing import Any, Iterable, override
+from typing import Any, override
 
 import rs_parsepatch
 
@@ -56,7 +56,9 @@ class Patch:
             reviewers.append(
                 Reviewer(name=name, is_group=is_group, blocking=is_blocking)
             )
-        logger.info(f"Reviewers from commit message: {', '.join(subject_reviewers)} ...")
+        logger.info(
+            f"Reviewers from commit message: {', '.join(subject_reviewers)} ..."
+        )
 
         return reviewers
 
@@ -81,7 +83,7 @@ class PatchSource(metaclass=ABCMeta):
 
 
 class StdinPatchSource(PatchSource):
-    """A PatchSource implementation reading a diff from STDIN.
+    """A PatchSource implementation reading a diff or patch from STDIN.
 
     The patch is only read once, on the first request to the object's methods.
     """
