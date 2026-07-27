@@ -48,14 +48,12 @@ class Patch:
         """Parse the patch subject, looking for r[?=] patterns."""
         subject_reviewers = self.parse_subject_reviewers(self._subject)
 
-        reviewers = []
+        reviewers = set()
         for r in subject_reviewers:
             is_group = GROUP_MARKER in r
             is_blocking = BLOCKING_MARKER in r
             name = r.removeprefix(GROUP_MARKER).removesuffix(BLOCKING_MARKER)
-            reviewers.append(
-                Reviewer(name=name, is_group=is_group, blocking=is_blocking)
-            )
+            reviewers.add(Reviewer(name=name, is_group=is_group, blocking=is_blocking))
         logger.info(
             f"Reviewers from commit message: {', '.join(subject_reviewers)} ..."
         )

@@ -52,40 +52,40 @@ def test_parse_subject_reviewers(subject: str, expected: list[str]):
 @pytest.mark.parametrize(
     "subject,expected",
     (
-        ("a commit message", []),
-        ("a commit message r=bob", [Reviewer("bob")]),
-        ("a commit message r?bob", [Reviewer("bob")]),
-        ("a commit message r=#bob", [Reviewer("bob", is_group=True)]),
+        ("a commit message", set()),
+        ("a commit message r=bob", {Reviewer("bob")}),
+        ("a commit message r?bob", {Reviewer("bob")}),
+        ("a commit message r=#bob", {Reviewer("bob", is_group=True)}),
         (
             "a commit message r?#bob!",
-            [Reviewer("bob", is_group=True, blocking=True)],
+            {Reviewer("bob", is_group=True, blocking=True)},
         ),
         (
             "a commit message r=bob,#alice!",
-            [Reviewer("bob"), Reviewer("alice", is_group=True, blocking=True)],
+            {Reviewer("bob"), Reviewer("alice", is_group=True, blocking=True)},
         ),
         (
             "a commit message r?#ent:infra-testing-reviewers,alice!,bob",
-            [
+            {
                 Reviewer("ent:infra-testing-reviewers", is_group=True),
                 Reviewer("alice", blocking=True),
                 Reviewer("bob"),
-            ],
+            },
         ),
         (
             "a commit message r=#ent:infra-testing-reviewers,alice!,bob",
-            [
+            {
                 Reviewer("ent:infra-testing-reviewers", is_group=True),
                 Reviewer("alice", blocking=True),
                 Reviewer("bob"),
-            ],
+            },
         ),
         (
             "reviewer=alice r=#ent:infra-testing-reviewers,bob",
-            [
+            {
                 Reviewer("ent:infra-testing-reviewers", is_group=True),
                 Reviewer("bob"),
-            ],
+            },
         ),
     ),
 )

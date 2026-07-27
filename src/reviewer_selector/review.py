@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Mapping
 from dataclasses import asdict, dataclass
 import logging
-from typing import Callable, Self, override
+from typing import Callable, override
 
 UserMap = Mapping[str, Mapping[str, str]]
 
@@ -15,7 +15,7 @@ class Reviewer:
     is_group: bool = False
     blocking: bool = False
 
-    def mutate(self, **kwargs) -> Self:
+    def mutate(self, **kwargs) -> "Reviewer":
         """Return a mutated Reviewer based on the current instance."""
         values = asdict(self)
 
