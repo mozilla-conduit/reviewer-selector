@@ -146,6 +146,8 @@ def test_github_reviewable(
     mocked_github_request: Mocker,
     github_api_response_pull_request_requested_reviewers: str,
 ):
+    # We store this data locally, so the POST callback can modify it, and the changes
+    # are reflected in subsequent GET callbacks.
     api_requested_reviewers_data = json.loads(
         github_api_response_pull_request_requested_reviewers
     )
