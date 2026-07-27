@@ -43,7 +43,6 @@ def test_github__target_branch_name(mocked_github_request: Mocker):
 
 
 def test_github_patch_source(mocked_github_request: Mocker):
-    """fetch_patch"""
     patch_text = "Imaa patch!"
     with mocked_github_request as mock:
         patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
@@ -53,10 +52,10 @@ def test_github_patch_source(mocked_github_request: Mocker):
         )
 
         assert (
-            gh.get_patch_subject()
+            gh.patch_source.get_patch_subject()
             == "reviewer_selector: add GitHub Site support (bug 2030600)"
         ), "Unexpected patch text"
-        assert gh.fetch_patch() == patch_text, "Unexpected patch text"
+        assert gh.patch_source.fetch_patch() == patch_text, "Unexpected patch text"
 
 
 def test_github_rules_caching(mocked_github_request: Mocker, sample_rules_data: dict):
@@ -105,7 +104,7 @@ def test_github_user_resolver(
             Reviewer("/ent:normalise-this", True),
         }
 
-        resolved = gh.resolve_reviewers(reviewers)
+        resolved = gh.user_resolver.resolve_reviewers(reviewers)
 
     if in_tree_status == 200:
         assert Reviewer("jsmith-gh", False) in resolved, "GitHub user should be mapped"
@@ -151,6 +150,8 @@ def test_github_reviewable(
     mocked_github_request: Mocker,
     github_api_response_pull_request_requested_reviewers: str,
 ):
+    # We store this data locally, so the POST callback can modify it, and the changes
+    # are reflected in subsequent GET callbacks.
     api_requested_reviewers_data = json.loads(
         github_api_response_pull_request_requested_reviewers
     )
@@ -201,7 +202,7 @@ def test_github_reviewable(
         ent_fluent_reviewers = Reviewer("ent:fluent-reviewers", True)
         reviewers = {test_reviewer, jsmith, fluent_reviewers, ent_fluent_reviewers}
 
-        _ = gh.add_new_reviewers(reviewers)
+        gh.reviewable.add_new_reviewers(reviewers)
 
         assert (
             "application/vnd.github+json"
@@ -235,10 +236,10 @@ def test_github_reviewable(
             not in mock_requested_reviewers_post.last_request.json()["reviewers"]
         ), "Existing reviewer re-requested"
 
-        assert jsmith in gh.reviewers
-        assert fluent_reviewers in gh.reviewers
-        assert ent_fluent_reviewers in gh.reviewers
-        assert test_reviewer in gh.reviewers
+        assert jsmith in gh.reviewable.reviewers
+        assert fluent_reviewers in gh.reviewable.reviewers
+        assert ent_fluent_reviewers in gh.reviewable.reviewers
+        assert test_reviewer in gh.reviewable.reviewers
 
         assert mock_requested_reviewers_post.call_count == 1, (
             "Unexpected number of POST requests to requested_reviewers"

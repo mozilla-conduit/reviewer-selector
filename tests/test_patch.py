@@ -110,4 +110,6 @@ def test_stdin_patch_source_diff(monkeypatch: pytest.MonkeyPatch, sample_diff: s
     patch_source = StdinPatchSource()
 
     assert patch_source.fetch_patch() == sample_diff
-    assert patch_source.get_patch_subject() == "", "A subject-less diff should be accepted without error"
+    assert patch_source.get_patch_subject() == "", (
+        "A subject-less diff should be accepted without error"
+    )
