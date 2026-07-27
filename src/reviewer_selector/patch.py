@@ -11,15 +11,14 @@ from reviewer_selector.review import Reviewer
 
 logger = logging.getLogger(__name__)
 
-# Note that we only allows a subset of legal IRC-nick characters.
-# Specifically, we do not allow [ \ ] ^ ` { | }
+# Allow Phabricator usernames.
 # In addition, allow `:` to allow GitHub ent:-prefix enterprise teams.
-NICK = r"[a-zA-Z0-9\-\_.]*[a-zA-Z0-9\-\_:]+"
+USERNAME = r"[a-zA-Z0-9\-\_.]*[a-zA-Z0-9\-\_:]+"
 GROUP_MARKER = r"#"
 BLOCKING_MARKER = r"!"
-REVIEWER = GROUP_MARKER + r"?" + NICK + BLOCKING_MARKER + r"?"
+REVIEWER = GROUP_MARKER + r"?" + USERNAME + BLOCKING_MARKER + r"?"
 SEPARATOR = r"[;,\/\\]\s*"
-REVIEWERS_TAG = r"r[=?](?P<reviewers>((" + SEPARATOR + ")?" + REVIEWER + ")+)"
+REVIEWERS_TAG = r"\Wr[=?](?P<reviewers>((" + SEPARATOR + ")?" + REVIEWER + ")+)"
 
 
 class Patch:
@@ -57,6 +56,7 @@ class Patch:
             reviewers.append(
                 Reviewer(name=name, is_group=is_group, blocking=is_blocking)
             )
+        logger.info(f"Reviewers from commit message: {', '.join(subject_reviewers)} ...")
 
         return reviewers
 

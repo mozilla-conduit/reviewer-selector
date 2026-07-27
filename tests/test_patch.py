@@ -80,6 +80,13 @@ def test_parse_subject_reviewers(subject: str, expected: list[str]):
                 Reviewer("bob"),
             ],
         ),
+        (
+            "reviewer=alice r=#ent:infra-testing-reviewers,bob",
+            [
+                Reviewer("ent:infra-testing-reviewers", is_group=True),
+                Reviewer("bob"),
+            ],
+        ),
     ),
 )
 def test_get_subject_reviewers(subject: str, expected: list[Reviewer]):
