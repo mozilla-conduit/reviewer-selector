@@ -49,12 +49,12 @@ def cli() -> None:
         # Override rules with in-tree file if present.
         rules = ghpr.rules or rules
 
-        patch_source = ghpr
-        resolver = ghpr
+        patch_source = ghpr.patch_source
+        resolver = ghpr.user_resolver
 
         if github_creds := resolve_github_credentials(args):
             ghpr.set_app_credentials(**github_creds)
-            reviewable = ghpr
+            reviewable = ghpr.reviewable
         else:
             logger.warning(
                 "Missing GitHub credentials (GITHUB_APP_ID and GITHUB_APP_PRIVKEY, or TC_SECRET_ID, reviewers will be output to stdout instead"

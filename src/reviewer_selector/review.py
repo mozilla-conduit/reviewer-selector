@@ -1,44 +1,55 @@
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import logging
-from typing import Callable, override
+from typing import Callable, Self, override
 
 UserMap = Mapping[str, Mapping[str, str]]
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Reviewer:
     name: str
     is_group: bool = False
 
-    @override
-    def __hash__(self):
-        """Make this dataclass hashable for use in sets."""
-        return (self.name, self.is_group).__hash__()
+    def mutate(self, **kwargs) -> Self:
+        """Return a mutated Reviewer based on the current instance."""
+        values = asdict(self)
+
+        values.update(**kwargs)
+
+        return Reviewer(**values)
 
 
 class Reviewable(metaclass=ABCMeta):
     """An interface for something able to receive a list of reviewers."""
 
-    reviewers: Iterable[Reviewer] = []
+    _reviewers: set[Reviewer] | None = None
 
-    def add_new_reviewers(self, reviewers: Iterable[Reviewer]):
-        """Add reviewers from the list, who are not already requested."""
-        # XXX: Surely we won't have a user and a team with the same name?
-        current_reviewers = [r.name for r in self.reviewers]
+    @property
+    def reviewers(self) -> set[Reviewer]:
+        if not self._reviewers:
+            return set()
+        return self._reviewers
 
+    def add_new_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
+        """Add reviewers from the list, who are not already requested.
+
+        Return a set of all reviewers, new and pre-existing.
+        """
         # Not very performant, but we should only be dealing with short lists.
-        new_reviewers = [r for r in reviewers if r.name not in current_reviewers]
+        new_reviewers = [r for r in reviewers if r not in self.reviewers]
 
         logger.info(f"Adding new reviewers: {new_reviewers} ...")
         self.add_reviewers(new_reviewers)
 
+        return self.reviewers
+
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         """Set reviewers on the target."""
-        self.reviewers = reviewers
+        self._reviewers = self.reviewers | set(reviewers)
 
 
 class StdoutReviewable(Reviewable):

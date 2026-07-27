@@ -136,10 +136,13 @@ def test_github(
 
     assert "fluent-reviewers" in outerr.out
     assert "ent:fluent-reviewers" in outerr.out
+    assert "/ent:fluent-reviewers" not in outerr.out, (
+        "Enterprise team name should have been normalised"
+    )
 
 
 @mock.patch("reviewer_selector.GitHubPR.fetch_rules")
-@mock.patch("reviewer_selector.GitHubPR.fetch_patch")
+@mock.patch("reviewer_selector.github.GitHubPatchSource.fetch_patch")
 @mock.patch("reviewer_selector.Rules.collect_reviewers")
 def test_github_repo_added(
     mock_collect_reviewers: mock.Mock,
@@ -150,6 +153,7 @@ def test_github_repo_added(
     sample_diff: str,
     sample_rules_data: dict[str, Any],
 ):
+    # Empty rules. The real ones should be coming from in-tree.
     rules_path = _write_rules(tmp_path / "rules.json", {})
 
     rules_resp = requests.Response()
@@ -174,7 +178,7 @@ def test_github_repo_added(
 
 
 @mock.patch("reviewer_selector.GitHubPR.fetch_rules")
-@mock.patch("reviewer_selector.GitHubPR.fetch_patch")
+@mock.patch("reviewer_selector.github.GitHubPatchSource.fetch_patch")
 @mock.patch("reviewer_selector.Rules.collect_reviewers")
 @mock.patch("reviewer_selector.github.GitHubApp")
 @mock.patch("reviewer_selector.taskcluster.TaskclusterConfig")
