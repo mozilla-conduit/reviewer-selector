@@ -54,7 +54,7 @@ def test_github_patch_source(mocked_github_request: Mocker):
         assert (
             gh.patch_source.get_patch_subject()
             == "reviewer_selector: add GitHub Site support (bug 2030600)"
-        ), "Unexpected patch text"
+        ), "Unexpected patch subject"
         assert gh.patch_source.fetch_patch() == patch_text, "Unexpected patch text"
 
 
