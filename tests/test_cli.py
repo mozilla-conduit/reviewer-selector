@@ -1,6 +1,7 @@
 import io
 import logging
 import pathlib
+import re
 import sys
 
 import json
@@ -11,6 +12,7 @@ import requests
 from requests_mock import Mocker
 
 from reviewer_selector import cli
+from reviewer_selector.review import Reviewer
 
 MAIN_SCRIPT = "reviewer-selector"
 
@@ -113,6 +115,39 @@ def test_subject_reviewer(
     )
 
     assert "@ent:lando-reviewers!" in outerr.out
+
+
+@mock.patch("reviewer_selector.patch.Patch.get_subject_reviewers")
+@mock.patch("reviewer_selector.rules.Rules.collect_reviewers")
+def test_subject_reviewer_blocking(
+    mock_rules_collect_reviewers: mock.Mock,
+    mock_patch_get_subject_reviewers: mock.Mock,
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_patch: str,
+    sample_rules_data: dict[str, Any],
+):
+    """Test that blocking and non-blocking requests for the same reviewer are flattened
+    to only a blocking one."""
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    mock_patch_get_subject_reviewers.return_value = {
+        Reviewer("ent:lando-reviewers", is_group=True, blocking=False)
+    }
+    mock_rules_collect_reviewers.return_value = {
+        Reviewer("ent:lando-reviewers", is_group=True, blocking=True)
+    }
+
+    outerr = _run_cli(
+        [rules_path, "--group-prefix", "@"],
+        sample_patch,
+        capsys,
+    )
+
+    assert "@ent:lando-reviewers!" in outerr.out
+    assert not re.search(r"@ent:lando-reviewers[\w$]", outerr.out), (
+        "Duplicated non-blocking reviewer found"
+    )
 
 
 @pytest.fixture(autouse=True)

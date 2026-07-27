@@ -23,6 +23,20 @@ class Reviewer:
 
         return Reviewer(**values)
 
+    @staticmethod
+    def flatten_blocking(reviewers: Iterable["Reviewer"]) -> Iterable["Reviewer"]:
+        """Flatten a set of reviewers by only preserving blocking ones in case of
+        duplicates."""
+        reviewers = set(reviewers)
+        reviewers_list = list(reviewers)
+        for r in reversed(reviewers_list):
+            if r.blocking:
+                continue
+            if r.mutate(blocking=True) in reviewers:
+                reviewers_list.remove(r)
+
+        return set(reviewers_list)
+
 
 class Reviewable(metaclass=ABCMeta):
     """An interface for something able to receive a list of reviewers."""

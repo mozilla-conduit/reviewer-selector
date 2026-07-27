@@ -18,6 +18,26 @@ def test_reviewer_hashable():
     )
 
 
+@pytest.mark.parametrize(
+    "input,expected",
+    (
+        ({Reviewer("alice")}, {Reviewer("alice")}),
+        (
+            {Reviewer("alice"), Reviewer("alice", blocking=True)},
+            {Reviewer("alice", blocking=True)},
+        ),
+        (
+            {Reviewer("alice"), Reviewer("bob", blocking=True)},
+            {Reviewer("alice"), Reviewer("bob", blocking=True)},
+        ),
+    ),
+)
+def test_reviewer_flatten_blocking(input: set[Reviewer], expected: set[Reviewer]):
+    assert Reviewer.flatten_blocking(input) == expected, (
+        "Blocking reviewers were incorrectly flattened"
+    )
+
+
 def test_user_resolves_user_with_map(sample_rules_data: dict):
     resolver = MappingUserResolver(
         group_prefix="IS_A_GROUP:", user_map=sample_rules_data["github_users"]
