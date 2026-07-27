@@ -1,5 +1,14 @@
 from reviewer_selector.review import Reviewer, MappingUserResolver
 
+def test_reviewer_hashable():
+    r = Reviewer('bob', is_group=False)
+    rbis = Reviewer('bob', is_group=False)
+    rgroup = Reviewer('bob', is_group=True)
+
+    assert r == rbis, "Equal reviewers don't compare as equal"
+    assert len ({r, rbis}) == 1, "Equal reviewers duplicated in set"
+    assert r != rgroup, "User and group with the same name should be different"
+    assert len ({r, rgroup}) == 2, "User and group with the same name should be retained in set"
 
 def test_user_resolves_user_with_map(sample_rules_data: dict):
     resolver = MappingUserResolver(
