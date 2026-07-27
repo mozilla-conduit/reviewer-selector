@@ -22,15 +22,15 @@ REVIEWERS_TAG = r"\Wr[=?](?P<reviewers>((" + SEPARATOR + ")?" + REVIEWER + ")+)"
 
 
 class Patch:
-    """Wrapper around patch data, with optional patch metadata header."""
+    """Wrapper around patch or diff data, with optional patch metadata header."""
 
     _subject: str
     _patch: str
     _parsed_diffs: Sequence[Mapping[str, Any]]
 
-    def __init__(self, diff: str, subject: str = ""):
+    def __init__(self, patch: str, subject: str = ""):
         self._subject = subject
-        self._patch = diff
+        self._patch = patch
         self._parse_patch()
 
     def _parse_patch(self):
