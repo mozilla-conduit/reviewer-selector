@@ -32,12 +32,9 @@ class Reviewable(metaclass=ABCMeta):
         """Get all reviewers assigned to this Reviewable."""
 
     def add_new_reviewers(self, reviewers: Iterable[Reviewer]):
-        """Add reviewers from the list, who are not already requested.
-
-        Return a set of all reviewers, new and pre-existing.
-        """
-        # Not very performant, but we should only be dealing with short lists.
-        new_reviewers = [r for r in reviewers if r not in self.reviewers]
+        """Add reviewers from the list, who are not already requested."""
+        current_reviewers = set(self.reviewers)
+        new_reviewers = [r for r in reviewers if r not in current_reviewers]
 
         logger.info(f"Adding new reviewers: {new_reviewers} ...")
         self.add_reviewers(new_reviewers)
