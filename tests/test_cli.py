@@ -98,6 +98,11 @@ def test_group_prefix(
     assert "@fluent-reviewers" in outerr.out
 
 
+#
+# GitHub CLI tests
+#
+
+
 def test_github(
     tmp_path: pathlib.Path,
     mocked_github_request: Mocker,
@@ -306,6 +311,45 @@ def test_github_env(
     assert needs_tc_secrets == mock_tc_load_secrets.called, (
         "Use of load_secrets doesn't match expectation"
     )
+
+
+#
+# Phabricator CLI tests
+#
+
+
+@pytest.mark.xfail()
+def test_phabricator(
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict[str, Any],
+):
+    # Empty rules. The real ones should be coming from in-tree.
+    rules_path = _write_rules(tmp_path / "rules.json", {})
+
+    outerr = _run_cli(
+        [
+            rules_path,
+            "--phabricator-revision-url",
+            # "https://phabricator.test/D1",
+            "https://phabricator.services.mozilla.com/D315228",
+            # "https://phabricator.services.mozilla.com/D315229"
+        ],
+        "",
+        capsys,
+    )
+
+    assert "fluent-reviewers" in outerr.out
+    assert "ent:fluent-reviewers" in outerr.out
+    assert "/ent:fluent-reviewers" not in outerr.out, (
+        "Enterprise team name should have been normalised"
+    )
+
+
+#
+# Test utilities
+#
 
 
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:
