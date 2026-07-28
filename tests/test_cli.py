@@ -147,6 +147,11 @@ def test_subject_reviewer_blocking(
     assert outerr.out.strip() == "@ent:lando-reviewers!"
 
 
+#
+# GitHub CLI tests
+#
+
+
 def test_github(
     tmp_path: pathlib.Path,
     configurable_mocked_github_request: Callable,
@@ -450,6 +455,45 @@ def test_github_reports(
                 check_json["output"]["summary"]
                 == f"Reviewers successfully assigned.{tc_trailer}"
             )
+
+
+#
+# Phabricator CLI tests
+#
+
+
+@pytest.mark.xfail()
+def test_phabricator(
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict[str, Any],
+):
+    # Empty rules. The real ones should be coming from in-tree.
+    rules_path = _write_rules(tmp_path / "rules.json", {})
+
+    outerr = _run_cli(
+        [
+            rules_path,
+            "--phabricator-revision-url",
+            # "https://phabricator.test/D1",
+            "https://phabricator.services.mozilla.com/D315228",
+            # "https://phabricator.services.mozilla.com/D315229"
+        ],
+        "",
+        capsys,
+    )
+
+    assert "fluent-reviewers" in outerr.out
+    assert "ent:fluent-reviewers" in outerr.out
+    assert "/ent:fluent-reviewers" not in outerr.out, (
+        "Enterprise team name should have been normalised"
+    )
+
+
+#
+# Test utilities
+#
 
 
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:
