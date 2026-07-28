@@ -52,9 +52,7 @@ class InMemoryReviewable(Reviewable):
     @property
     @override
     def reviewers(self) -> Iterable[Reviewer]:
-        if not self._reviewers:
-            return set()
-        return self._reviewers
+        return self._reviewers or set()
 
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
