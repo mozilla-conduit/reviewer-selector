@@ -1,7 +1,7 @@
 from abc import ABCMeta
 import asyncio
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import wraps
 import logging
 from typing import Any, Callable, final, override
@@ -148,10 +148,10 @@ class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
     # Will be populated on first access to _requested_reviewers
-    _requested_reviewers_json: dict[str, Any] | None = None
+    _reviewers: list[Reviewer] | None = field(default=None, init=False)
 
     @override
-    def add_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
+    def add_reviewers(self, reviewers: Iterable[Reviewer]):
         requested_reviewers = {
             "reviewers": [],
             "team_reviewers": [],
@@ -165,32 +165,35 @@ class GitHubReviewable(Reviewable):
         self._pr.authenticated_api_request(
             "/requested_reviewers", "POST", requested_reviewers
         )
-        return self._requested_reviewers(refresh=True)
+        # Force a refresh of the cached reviewers JSON.
+        self._reviewers = self._fetch_requested_reviewers(refresh=True)
 
     @property
     @override  # From Reviewable.
     def reviewers(self) -> Iterable[Reviewer]:
-        reviewers = []
-        requested_reviewers = self._requested_reviewers()
-        for r in requested_reviewers.get("users", []):
-            reviewers.append(Reviewer(r["login"], False))
-        for t in requested_reviewers.get("teams", []):
-            reviewers.append(Reviewer(t["slug"], True))
+        if not self._reviewers:
+            self._reviewers = self._fetch_requested_reviewers()
+        return self._reviewers
 
-        return reviewers
-
-    def _requested_reviewers(self, refresh: bool = False) -> dict[str, Any]:
+    def _fetch_requested_reviewers(self, refresh: bool = False) -> list[Reviewer]:
         """Return PR requested_reviewers, fetching it if needed."""
-        if not self._requested_reviewers_json or refresh:
-            # As of 2026-07-29, the basic GitHub PR metadata does contain
+        reviewers = self._reviewers
+
+        if not reviewers or refresh:
+            # As of 2026-07-09, the basic GitHub PR metadata does contain
             # `requested_reviewers` and `requested_teams` properties, but the latter is
             # always empty. This is not the case for the /requested_reviewers endpoint
             # we use here.
-            self._requested_reviewers_json = self._pr.authenticated_api_request(
+            requested_reviewers_json = self._pr.authenticated_api_request(
                 "/requested_reviewers"
             )
+            reviewers = []
+            for r in requested_reviewers_json.get("users", []):
+                reviewers.append(Reviewer(r["login"], False))
+            for t in requested_reviewers_json.get("teams", []):
+                reviewers.append(Reviewer(t["slug"], True))
 
-        return self._requested_reviewers_json
+        return reviewers
 
 
 @final

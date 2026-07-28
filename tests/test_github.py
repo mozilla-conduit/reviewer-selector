@@ -165,7 +165,7 @@ def test_github_reviewable(
         for r in payload["reviewers"]:
             api_requested_reviewers_data["users"].append({"login": r})
         for t in payload["team_reviewers"]:
-            # As of 2026-07-29, the GitHub API requires a `/ent:` prefix when adding
+            # As of 2026-07-09, the GitHub API requires a `/ent:` prefix when adding
             # reviewers, but returns them without a leading `/`. We normalise the
             # data to the latter.
             if t.startswith("/ent:"):
