@@ -148,7 +148,7 @@ class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
     # Will be populated on first access to _requested_reviewers
-    _reviewers: list[Reviewer] | None = field(default=None, init=False)
+    _reviewers: list[Reviewer] = field(default_factory=list, init=False)
 
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
