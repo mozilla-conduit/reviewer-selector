@@ -26,15 +26,12 @@ class Reviewer:
 class Reviewable(metaclass=ABCMeta):
     """An interface for something able to receive a list of reviewers."""
 
-    _reviewers: set[Reviewer] | None = None
-
     @property
-    def reviewers(self) -> set[Reviewer]:
-        if not self._reviewers:
-            return set()
-        return self._reviewers
+    @abstractmethod
+    def reviewers(self) -> Iterable[Reviewer]:
+        """Get all reviewers assigned to this Reviewable."""
 
-    def add_new_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
+    def add_new_reviewers(self, reviewers: Iterable[Reviewer]):
         """Add reviewers from the list, who are not already requested.
 
         Return a set of all reviewers, new and pre-existing.
@@ -45,14 +42,30 @@ class Reviewable(metaclass=ABCMeta):
         logger.info(f"Adding new reviewers: {new_reviewers} ...")
         self.add_reviewers(new_reviewers)
 
-        return self.reviewers
-
+    @abstractmethod
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         """Set reviewers on the target."""
-        self._reviewers = self.reviewers | set(reviewers)
 
 
-class StdoutReviewable(Reviewable):
+class InMemoryReviewable(Reviewable):
+    """An Reviewable implementation storing state in memory."""
+
+    _reviewers: set[Reviewer] | None = None
+
+    @property
+    @override
+    def reviewers(self) -> Iterable[Reviewer]:
+        if not self._reviewers:
+            return set()
+        return self._reviewers
+
+    @override
+    def add_reviewers(self, reviewers: Iterable[Reviewer]):
+        """Set reviewers on the target."""
+        self._reviewers = set(self.reviewers) | set(reviewers)
+
+
+class StdoutReviewable(InMemoryReviewable):
     """A Reviewable implementation outputting reviewers to STDOUT."""
 
     reviewer_separator: str
