@@ -36,6 +36,10 @@ class Reviewable(metaclass=ABCMeta):
         current_reviewers = set(self.reviewers)
         new_reviewers = [r for r in reviewers if r not in current_reviewers]
 
+        if not new_reviewers:
+            logger.info("No new reviewers to add")
+            return
+
         logger.info(f"Adding new reviewers: {new_reviewers} ...")
         self.add_reviewers(new_reviewers)
 

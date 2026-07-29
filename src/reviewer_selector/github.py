@@ -147,7 +147,7 @@ class GitHubPatchSource(PatchSource):
 class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
-    # Will be populated on first access to _requested_reviewers
+    # Will be populated on first access to the reviewers property.
     _reviewers: list[Reviewer] | None = field(default=None, init=False)
 
     @override
