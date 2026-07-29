@@ -45,7 +45,7 @@ class Reviewable(metaclass=ABCMeta):
 
 
 class InMemoryReviewable(Reviewable):
-    """An Reviewable implementation storing state in memory."""
+    """A `Reviewable` implementation storing state in memory."""
 
     _reviewers: set[Reviewer] | None = None
 
