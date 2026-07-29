@@ -148,7 +148,7 @@ class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
     # Will be populated on first access to _requested_reviewers
-    _reviewers: list[Reviewer] = field(default_factory=list, init=False)
+    _reviewers: list[Reviewer] | None = field(default=None, init=False)
 
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
@@ -165,33 +165,30 @@ class GitHubReviewable(Reviewable):
         self._pr.authenticated_api_request(
             "/requested_reviewers", "POST", requested_reviewers
         )
-        # Force a refresh of the cached reviewers JSON.
-        self._reviewers = self._fetch_requested_reviewers(refresh=True)
+        # Invalidate cache.
+        self._reviewers = None
 
     @property
     @override  # From Reviewable.
     def reviewers(self) -> Iterable[Reviewer]:
-        if not self._reviewers:
+        if self._reviewers is None:
             self._reviewers = self._fetch_requested_reviewers()
         return self._reviewers
 
-    def _fetch_requested_reviewers(self, refresh: bool = False) -> list[Reviewer]:
+    def _fetch_requested_reviewers(self) -> list[Reviewer]:
         """Return PR requested_reviewers, fetching it if needed."""
-        reviewers = self._reviewers
-
-        if not reviewers or refresh:
-            # As of 2026-07-09, the basic GitHub PR metadata does contain
-            # `requested_reviewers` and `requested_teams` properties, but the latter is
-            # always empty. This is not the case for the /requested_reviewers endpoint
-            # we use here.
-            requested_reviewers_json = self._pr.authenticated_api_request(
-                "/requested_reviewers"
-            )
-            reviewers = []
-            for r in requested_reviewers_json.get("users", []):
-                reviewers.append(Reviewer(r["login"], False))
-            for t in requested_reviewers_json.get("teams", []):
-                reviewers.append(Reviewer(t["slug"], True))
+        # As of 2026-07-09, the basic GitHub PR metadata does contain
+        # `requested_reviewers` and `requested_teams` properties, but the latter is
+        # always empty. This is not the case for the /requested_reviewers endpoint
+        # we use here.
+        requested_reviewers_json = self._pr.authenticated_api_request(
+            "/requested_reviewers"
+        )
+        reviewers = []
+        for r in requested_reviewers_json.get("users", []):
+            reviewers.append(Reviewer(r["login"], False))
+        for t in requested_reviewers_json.get("teams", []):
+            reviewers.append(Reviewer(t["slug"], True))
 
         return reviewers
 
