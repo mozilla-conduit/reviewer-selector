@@ -2,7 +2,7 @@ from abc import ABCMeta
 import asyncio
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from functools import wraps
+from functools import cached_property, wraps
 import logging
 from typing import Any, Callable, final, override
 
@@ -165,17 +165,14 @@ class GitHubReviewable(Reviewable):
         self._pr.authenticated_api_request(
             "/requested_reviewers", "POST", requested_reviewers
         )
-        # Invalidate cache.
-        self._reviewers = None
 
-    @property
+        # Invalidate cached_property.
+        if hasattr(self, "reviewers"):
+            del self.reviewers
+
+    @cached_property
     @override  # From Reviewable.
     def reviewers(self) -> Iterable[Reviewer]:
-        if self._reviewers is None:
-            self._reviewers = self._fetch_requested_reviewers()
-        return self._reviewers
-
-    def _fetch_requested_reviewers(self) -> list[Reviewer]:
         """Return PR requested_reviewers, fetching it if needed."""
         # As of 2026-07-09, the basic GitHub PR metadata does contain
         # `requested_reviewers` and `requested_teams` properties, but the latter is
@@ -203,16 +200,8 @@ class GitHubPR(GitHubApiObject):
 
     pr_number: int
 
-    # Use the rule @property to access those.
-    _rules: Rules
-    _remote_rules_checked: bool = False
-
-    # Will be populated on first access to _metadata
-    _metadata_json: dict[str, Any] | None = None
-
-    _patch_source: PatchSource | None = None
-    _reviewable: Reviewable | None = None
-    _user_resolver: UserResolver | None = None
+    # We need default rules if they exist, so we can apply default user-mapping.
+    _default_rules: Rules
 
     def __init__(self, pr_url: str, default_rules: Rules | None = None):
         match = self.URL_RE.match(pr_url)
@@ -227,30 +216,25 @@ class GitHubPR(GitHubApiObject):
 
         self.pr_url = pr_url
 
-        self._rules = default_rules or Rules({})
+        self._default_rules = default_rules or Rules({})
 
-    @property
+    @cached_property
     def rules(self) -> Rules:
-        if self._remote_rules_checked:
-            return self._rules
-
         r: requests.Response = self.fetch_rules()
 
-        if r.status_code == 404:
-            logger.debug("No in-tree rules found ...")
-            self._remote_rules_checked = True
-
-        elif r.status_code == 200:
+        if r.status_code == 200:
             logger.info("Using in-tree rules ...")
-            self._remote_rules_checked = True
-            self._rules = Rules(r.json())
+            return Rules(r.json())
+
+        if r.status_code == 404:
+            logger.debug("No in-tree rules found, using default ...")
 
         else:
             logger.warning(
                 f"Error fetching in-tree rules, using default; {r.status_code=} {r.text=}"
             )
 
-        return self._rules
+        return self._default_rules
 
     def fetch_rules(self) -> requests.Response:
         rules_url = self._blob_url("herald_rules.json")
@@ -260,12 +244,9 @@ class GitHubPR(GitHubApiObject):
     def _blob_url(self, path: str) -> str:
         return f"{self.repo_url}/raw/refs/heads/{self.target_branch_name}/{path}"
 
-    @property
+    @cached_property
     def patch_source(self) -> PatchSource:
-        if not self._patch_source:
-            self._patch_source = GitHubPatchSource(self)
-
-        return self._patch_source
+        return GitHubPatchSource(self)
 
     @property
     def patch_url(self) -> str:
@@ -275,15 +256,13 @@ class GitHubPR(GitHubApiObject):
         resp = self._session.get(url)
         return resp
 
-    @property
+    @cached_property
     def user_resolver(self) -> UserResolver:
-        if not self._user_resolver:
-            self._user_resolver = MappingUserResolver(
-                group_prefix="",
-                user_map=self.rules.get_rules().get("github_users", {}),
-                custom_map=self._custom_map,
-            )
-        return self._user_resolver
+        return MappingUserResolver(
+            group_prefix="",
+            user_map=self.rules.get_rules().get("github_users", {}),
+            custom_map=self._custom_map,
+        )
 
     @staticmethod
     def _custom_map(r: Reviewer) -> Reviewer | None:
@@ -296,12 +275,9 @@ class GitHubPR(GitHubApiObject):
 
         return None
 
-    @property
+    @cached_property
     def reviewable(self) -> Reviewable:
-        if not self._reviewable:
-            self._reviewable = GitHubReviewable(self)
-
-        return self._reviewable
+        return GitHubReviewable(self)
 
     @property
     def repo_url(self):
@@ -311,12 +287,10 @@ class GitHubPR(GitHubApiObject):
     def target_branch_name(self) -> str:
         return self._metadata["base"]["ref"]
 
-    @property
+    @cached_property
     def _metadata(self) -> dict[str, Any]:
         """Return PR metadata, fetching it if needed."""
-        if not self._metadata_json:
-            self._metadata_json = self.api_request()
-        return self._metadata_json
+        return self.api_request()
 
     @property
     def _repo_api_url(self) -> str:
