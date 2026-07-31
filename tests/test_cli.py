@@ -98,15 +98,6 @@ def test_group_prefix(
     assert "@fluent-reviewers" in outerr.out
 
 
-@pytest.fixture(autouse=True)
-def hide_github_tokens(
-    monkeypatch: pytest.MonkeyPatch,
-):
-    """Shield the tests from real GitHub env variables."""
-    monkeypatch.setenv("GITHUB_TOKEN", "")
-    monkeypatch.setenv("GH_TOKEN", "")
-
-
 def test_github(
     tmp_path: pathlib.Path,
     mocked_github_request: Mocker,
