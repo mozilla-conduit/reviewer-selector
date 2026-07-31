@@ -71,6 +71,17 @@ def sample_diff_remote() -> str:
 #
 
 
+@pytest.fixture(autouse=True)
+def hide_github_tokens(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Shield the tests from real GitHub env variables."""
+    monkeypatch.setenv("GITHUB_APP_ID", "")
+    monkeypatch.setenv("GITHUB_APP_PRIVKEY", "")
+    monkeypatch.setenv("GITHUB_TOKEN", "")
+    monkeypatch.setenv("GH_TOKEN", "")
+
+
 GITHUB_API_PARTIAL_USER = """\
 {
   "login": "test-reviewer",
