@@ -18,6 +18,7 @@ from reviewer_selector.review import (
     UserResolver,
 )
 from reviewer_selector.rules import Rules
+from reviewer_selector.utils import instance_cache
 
 logger = logging.getLogger(__name__)
 
@@ -175,8 +176,10 @@ class GitHubPR(GitHubApiObject):
     pr_number: int
 
     # Use the rule @property to access those.
-    _rules: Rules
-    _remote_rules_checked: bool = False
+    _rules: Rules | None = None
+
+    # We need default rules if they exist, so we can apply default user-mapping.
+    _default_rules: Rules
 
     # Will be populated on first access to _metadata
     _metadata_json: dict[str, Any] | None = None
@@ -198,30 +201,26 @@ class GitHubPR(GitHubApiObject):
 
         self.pr_url = pr_url
 
-        self._rules = default_rules or Rules({})
+        self._default_rules = default_rules or Rules({})
 
     @property
+    @instance_cache("_rules")
     def rules(self) -> Rules:
-        if self._remote_rules_checked:
-            return self._rules
-
         r: requests.Response = self.fetch_rules()
 
-        if r.status_code == 404:
-            logger.debug("No in-tree rules found ...")
-            self._remote_rules_checked = True
-
-        elif r.status_code == 200:
+        if r.status_code == 200:
             logger.info("Using in-tree rules ...")
-            self._remote_rules_checked = True
-            self._rules = Rules(r.json())
+            return Rules(r.json())
+
+        if r.status_code == 404:
+            logger.debug("No in-tree rules found, using default ...")
 
         else:
             logger.warning(
                 f"Error fetching in-tree rules, using default; {r.status_code=} {r.text=}"
             )
 
-        return self._rules
+        return self._default_rules
 
     def fetch_rules(self) -> requests.Response:
         rules_url = self._blob_url("herald_rules.json")
@@ -232,11 +231,9 @@ class GitHubPR(GitHubApiObject):
         return f"{self.repo_url}/raw/refs/heads/{self.target_branch_name}/{path}"
 
     @property
+    @instance_cache("_patch_source")
     def patch_source(self) -> PatchSource:
-        if not self._patch_source:
-            self._patch_source = GitHubPatchSource(self)
-
-        return self._patch_source
+        return GitHubPatchSource(self)
 
     @property
     def patch_url(self) -> str:
@@ -247,14 +244,13 @@ class GitHubPR(GitHubApiObject):
         return resp
 
     @property
+    @instance_cache("_user_resolver")
     def user_resolver(self) -> UserResolver:
-        if not self._user_resolver:
-            self._user_resolver = MappingUserResolver(
-                group_prefix="",
-                user_map=self.rules.get_rules().get("github_users", {}),
-                custom_map=self._custom_map,
-            )
-        return self._user_resolver
+        return MappingUserResolver(
+            group_prefix="",
+            user_map=self.rules.get_rules().get("github_users", {}),
+            custom_map=self._custom_map,
+        )
 
     @staticmethod
     def _custom_map(r: Reviewer) -> Reviewer | None:
@@ -268,11 +264,9 @@ class GitHubPR(GitHubApiObject):
         return None
 
     @property
+    @instance_cache("_reviewable")
     def reviewable(self) -> Reviewable:
-        if not self._reviewable:
-            self._reviewable = GitHubReviewable(self)
-
-        return self._reviewable
+        return GitHubReviewable(self)
 
     @property
     def repo_url(self):
@@ -283,11 +277,10 @@ class GitHubPR(GitHubApiObject):
         return self._metadata["base"]["ref"]
 
     @property
+    @instance_cache("_metadata_json")
     def _metadata(self) -> dict[str, Any]:
         """Return PR metadata, fetching it if needed."""
-        if not self._metadata_json:
-            self._metadata_json = self.api_request()
-        return self._metadata_json
+        return self.api_request()
 
     @property
     def _repo_api_url(self) -> str:
