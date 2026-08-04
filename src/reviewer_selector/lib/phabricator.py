@@ -1,8 +1,9 @@
 import json
 import logging
+from collections.abc import Iterable
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 from enum import (
     Enum,
@@ -11,13 +12,10 @@ from enum import (
 from json.decoder import JSONDecodeError
 from typing import (
     Any,
-    Iterable,
-    Optional,
     Self,
 )
 
 import requests
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +109,7 @@ class PhabricatorRevisionStatus(Enum):
         return self.meta().get(self, {}).get("closed", False)
 
     @property
-    def color(self) -> Optional[str]:
+    def color(self) -> str | None:
         return self.meta().get(self, {}).get("color.ansi")
 
 
@@ -162,14 +160,14 @@ class PhabricatorClient:
     """
 
     def __init__(
-        self, url: str, api_token: str, *, session: Optional[requests.Session] = None
+        self, url: str, api_token: str, *, session: requests.Session | None = None
     ):
         self.url_base = url
         self.api_url = url + "api/" if url[-1] == "/" else url + "/api/"
         self.api_token = api_token
         self.session = session or self.create_session()
 
-    def call_conduit(self, method: str, **kwargs) -> Any:  # noqa: ANN401
+    def call_conduit(self, method: str, **kwargs) -> Any:
         """Return the result of an RPC call to a conduit method.
 
         Args:
@@ -242,17 +240,15 @@ class PhabricatorClient:
     @staticmethod
     def create_session() -> requests.Session:
         session = requests.Session()
-        headers = {"User-Agent": settings.HTTP_USER_AGENT}
-        session.headers.update(headers)
         return session
 
     @classmethod
     def single(
         cls,
-        result: Any,  # noqa: ANN401
+        result: Any,
         *subkeys: Iterable[int | str],
-        none_when_empty: bool = False,  # noqa: ANN401
-    ) -> Optional[Any]:  # noqa: ANN401
+        none_when_empty: bool = False,
+    ) -> Any | None:
         """Return the first item of a phabricator result.
 
         Args:
@@ -277,13 +273,13 @@ class PhabricatorClient:
 
         if len(result) > 1 or (not result and not none_when_empty):
             raise PhabricatorCommunicationException(
-                "Phabricator responded with unexpected data: %s" % result
+                f"Phabricator responded with unexpected data: {result}"
             )
 
         return result[0] if result else None
 
     @staticmethod
-    def expect(result: Any, *args) -> Any:  # noqa: ANN401
+    def expect(result: Any, *args) -> Any:
         """Return data from a phabricator result.
 
         Args:
@@ -320,7 +316,7 @@ class PhabricatorClient:
         Returns:
             A python datetime object for the same time.
         """
-        return datetime.fromtimestamp(int(timestamp), timezone.utc)
+        return datetime.fromtimestamp(int(timestamp), UTC)
 
     def verify_api_token(self) -> dict | None:
         """Verifies that the api token is valid.
@@ -338,7 +334,7 @@ class PhabricatorAPIException(Exception):
     """Exception to be raised when Phabricator returns an error response."""
 
     def __init__(
-        self, *args, error_code: Optional[str] = None, error_info: Optional[str] = None
+        self, *args, error_code: str | None = None, error_info: str | None = None
     ):
         super().__init__(*args)
         self.error_code = error_code
@@ -380,16 +376,3 @@ def result_list_to_phid_dict(
         result[phid] = i
 
     return result
-
-
-def get_phabricator_client(
-    privileged: Optional[bool] = False, api_key: Optional[str] = None
-) -> PhabricatorClient:
-    """Return an initialized PhabricatorClient object with relevant API key."""
-    if api_key is None:
-        api_key = (
-            settings.PHABRICATOR_ADMIN_API_KEY
-            if privileged
-            else settings.PHABRICATOR_UNPRIVILEGED_API_KEY
-        )
-    return PhabricatorClient(settings.PHABRICATOR_URL, api_key)
