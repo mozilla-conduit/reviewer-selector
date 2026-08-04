@@ -74,11 +74,11 @@ def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:
 
     # Give precedence to explicit options, or default to environment.
 
-    # Support “standard” GH_TOKEN as a fallback.
+    # Support standard GH_TOKEN/GITHUB_TOKEN order of precedence.
     gh_token = (
         args.github_token
-        or os.environ.get("GITHUB_TOKEN")
         or os.environ.get("GH_TOKEN")
+        or os.environ.get("GITHUB_TOKEN")
     )
     app_id = args.github_app_id or os.environ.get("GITHUB_APP_ID")
     app_privkey = args.github_app_privkey or os.environ.get("GITHUB_APP_PRIVKEY")
