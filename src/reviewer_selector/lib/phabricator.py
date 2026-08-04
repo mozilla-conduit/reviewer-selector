@@ -17,7 +17,6 @@ from typing import (
 )
 
 import requests
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -242,8 +241,6 @@ class PhabricatorClient:
     @staticmethod
     def create_session() -> requests.Session:
         session = requests.Session()
-        headers = {"User-Agent": settings.HTTP_USER_AGENT}
-        session.headers.update(headers)
         return session
 
     @classmethod
@@ -380,16 +377,3 @@ def result_list_to_phid_dict(
         result[phid] = i
 
     return result
-
-
-def get_phabricator_client(
-    privileged: Optional[bool] = False, api_key: Optional[str] = None
-) -> PhabricatorClient:
-    """Return an initialized PhabricatorClient object with relevant API key."""
-    if api_key is None:
-        api_key = (
-            settings.PHABRICATOR_ADMIN_API_KEY
-            if privileged
-            else settings.PHABRICATOR_UNPRIVILEGED_API_KEY
-        )
-    return PhabricatorClient(settings.PHABRICATOR_URL, api_key)
