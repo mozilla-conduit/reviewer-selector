@@ -2,7 +2,7 @@ from abc import ABCMeta
 import asyncio
 from collections.abc import Iterable
 from dataclasses import dataclass
-from functools import wraps
+from functools import cached_property, wraps
 import logging
 from typing import Any, Callable, final, override
 
@@ -18,7 +18,6 @@ from reviewer_selector.review import (
     UserResolver,
 )
 from reviewer_selector.rules import Rules
-from reviewer_selector.utils import instance_cache
 
 logger = logging.getLogger(__name__)
 
@@ -175,18 +174,8 @@ class GitHubPR(GitHubApiObject):
 
     pr_number: int
 
-    # Use the rule @property to access those.
-    _rules: Rules | None = None
-
     # We need default rules if they exist, so we can apply default user-mapping.
     _default_rules: Rules
-
-    # Will be populated on first access to _metadata
-    _metadata_json: dict[str, Any] | None = None
-
-    _patch_source: PatchSource | None = None
-    _reviewable: Reviewable | None = None
-    _user_resolver: UserResolver | None = None
 
     def __init__(self, pr_url: str, default_rules: Rules | None = None):
         match = self.URL_RE.match(pr_url)
@@ -203,8 +192,7 @@ class GitHubPR(GitHubApiObject):
 
         self._default_rules = default_rules or Rules({})
 
-    @property
-    @instance_cache("_rules")
+    @cached_property
     def rules(self) -> Rules:
         r: requests.Response = self.fetch_rules()
 
@@ -230,8 +218,7 @@ class GitHubPR(GitHubApiObject):
     def _blob_url(self, path: str) -> str:
         return f"{self.repo_url}/raw/refs/heads/{self.target_branch_name}/{path}"
 
-    @property
-    @instance_cache("_patch_source")
+    @cached_property
     def patch_source(self) -> PatchSource:
         return GitHubPatchSource(self)
 
@@ -243,8 +230,7 @@ class GitHubPR(GitHubApiObject):
         resp = self._session.get(url)
         return resp
 
-    @property
-    @instance_cache("_user_resolver")
+    @cached_property
     def user_resolver(self) -> UserResolver:
         return MappingUserResolver(
             group_prefix="",
@@ -263,8 +249,7 @@ class GitHubPR(GitHubApiObject):
 
         return None
 
-    @property
-    @instance_cache("_reviewable")
+    @cached_property
     def reviewable(self) -> Reviewable:
         return GitHubReviewable(self)
 
@@ -276,8 +261,7 @@ class GitHubPR(GitHubApiObject):
     def target_branch_name(self) -> str:
         return self._metadata["base"]["ref"]
 
-    @property
-    @instance_cache("_metadata_json")
+    @cached_property
     def _metadata(self) -> dict[str, Any]:
         """Return PR metadata, fetching it if needed."""
         return self.api_request()
