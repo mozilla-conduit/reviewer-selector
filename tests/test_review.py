@@ -14,6 +14,15 @@ def test_reviewer_hashable():
     )
 
 
+def test_reviewer_mutate():
+    r = Reviewer("alice", is_group=False, metadata={"meta": "data"})
+    r2 = r.mutate(name="bob")
+
+    assert r.name == "alice", "Original data changed"
+    assert r2.name == "bob", "Unexpected data in mutated copy"
+    assert r2.metadata == r.metadata, "Reviewer.metadata not preserved via mutate"
+
+
 def test_user_resolves_user_with_map(sample_rules_data: dict):
     resolver = MappingUserResolver(
         group_prefix="IS_A_GROUP:", user_map=sample_rules_data["github_users"]

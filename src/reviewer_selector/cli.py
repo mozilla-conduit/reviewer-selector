@@ -4,11 +4,18 @@ from collections.abc import Iterable
 import os
 
 
-from reviewer_selector.taskcluster import Taskcluster
 from reviewer_selector.github import GitHubPR
-from reviewer_selector.patch import Patch, StdinPatchSource
-from reviewer_selector.review import Reviewer, StdoutReviewable, MappingUserResolver
+from reviewer_selector.patch import Patch, PatchSource, StdinPatchSource
+from reviewer_selector.phabricator import PhabricatorRevision
+from reviewer_selector.review import (
+    Reviewer,
+    Reviewable,
+    StdoutReviewable,
+    UserResolver,
+    MappingUserResolver,
+)
 from reviewer_selector.rules import Rules
+from reviewer_selector.taskcluster import Taskcluster
 
 
 logger = logging.getLogger(__name__)
@@ -37,28 +44,16 @@ def cli() -> None:
 
     # Override the parameters based on context.
     if args.pr_url:
-        ghpr = GitHubPR(args.pr_url, rules)
-        repo_branch = f"{ghpr.repository}-{ghpr.target_branch_name}"
-
-        logger.info(
-            f"PR URL provided ({args.pr_url}); using GitHub adapters for {repo_branch} ..."
+        rules, patch_source, resolver, gh_reviewable = create_github_objects(
+            args, rules, repos
         )
 
-        repos.append(repo_branch)
+        reviewable = gh_reviewable or reviewable
 
-        # Override rules with in-tree file if present.
-        rules = ghpr.rules or rules
-
-        patch_source = ghpr.patch_source
-        resolver = ghpr.user_resolver
-
-        if github_creds := resolve_github_credentials(args):
-            ghpr.set_app_credentials(**github_creds)
-            reviewable = ghpr.reviewable
-        else:
-            logger.warning(
-                "Missing GitHub credentials (GITHUB_APP_ID and GITHUB_APP_PRIVKEY, or TC_SECRET_ID, reviewers will be output to stdout instead"
-            )
+    elif args.phabricator_revision_url:
+        rules, patch_source, resolver, reviewable = create_phabricator_objects(
+            args, rules, repos
+        )
 
     patch = Patch(patch_source.fetch_patch())
 
@@ -67,6 +62,36 @@ def cli() -> None:
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
     reviewable.add_reviewers(resolved)
+
+
+def create_github_objects(
+    args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
+) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
+    """Create the GitHub adapters."""
+    ghpr = GitHubPR(args.pr_url, default_rules)
+
+    repo_branch = f"{ghpr.repository}-{ghpr.target_branch_name}"
+    logger.info(
+        f"PR URL provided ({args.pr_url}); using GitHub adapters for {repo_branch} ..."
+    )
+    repos_to_update.append(repo_branch)
+
+    # Override rules with in-tree file if present.
+    rules = ghpr.rules or default_rules
+
+    patch_source = ghpr.patch_source
+    resolver = ghpr.user_resolver
+
+    reviewable = None
+    if github_creds := resolve_github_credentials(args):
+        ghpr.set_app_credentials(**github_creds)
+        reviewable = ghpr.reviewable
+    else:
+        logger.warning(
+            "Missing GitHub credentials (GITHUB_APP_ID and GITHUB_APP_PRIVKEY, or TC_SECRET_ID, reviewers will be output to stdout instead"
+        )
+
+    return rules, patch_source, resolver, reviewable
 
 
 def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:
@@ -107,6 +132,48 @@ def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:
     return {}
 
 
+def create_phabricator_objects(
+    args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
+) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
+    """Create the Phabricator adapters."""
+    phabricator_api_token = resolve_phabricator_credentials(args)
+
+    phabrev = PhabricatorRevision(args.phabricator_revision_url, phabricator_api_token)
+    repo_branch = f"{phabrev.repository}"
+
+    logger.info(
+        f"Phabricator Revision URL provided ({args.phabricator_revision_url}); using Phabricator adapters for {repo_branch} ..."
+    )
+
+    repos_to_update.append(repo_branch)
+
+    patch_source = phabrev.patch_source
+    # No need to remap users for Phabricator.
+    resolver = MappingUserResolver("#", {})
+    reviewable = phabrev.reviewable
+
+    return default_rules, patch_source, resolver, reviewable
+
+
+def resolve_phabricator_credentials(args: argparse.Namespace):
+    """Resolve Phabricator API Token from CLI options, environment and TaskCluster."""
+    if args.phabricator_api_token:
+        return args.phabricator_api_token
+
+    if conduit_token := PhabricatorRevision.get_token_from_env():
+        return conduit_token
+
+    if tc_secret_id := (args.taskcluster_secret_id or os.environ.get("TC_SECRET_ID")):
+        logger.debug(f"Fetching Phabricator token from TC_SECRET_ID {tc_secret_id} ...")
+        tc = Taskcluster()
+        tc_secret = tc.fetch_secret(tc_secret_id)
+
+        if conduit_token := tc_secret.get("PHABRICATOR_API_TOKEN"):
+            return conduit_token
+
+    raise ValueError("Cannot determine Phabricator API token.")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Select reviewers from Herald rules and git diff",
@@ -133,8 +200,10 @@ def parse_args() -> argparse.Namespace:
         "--repo", action="append", default=[], help="Filter by repository (repeatable)"
     )
 
+    reviewable_type = parser.add_argument_group()
+
     # GitHub options.
-    parser.add_argument(
+    reviewable_type.add_argument(
         "--pr-url",
         default=None,
         help="HTML URL of the GitHub PR to process. If app credentials are provided, the reviewers will be set on the PR automatically.",
@@ -142,17 +211,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--github-app-id",
         default=None,
-        help="GitHub application ID (credentials: GITHUB_APP_ID)",
+        help="GitHub application ID (env/credentials: GITHUB_APP_ID)",
     )
     parser.add_argument(
         "--github-app-privkey",
         default=None,
-        help="GitHub application private key (credentials: GITHUB_APP_PRIVKEY)",
+        help="GitHub application private key (env/credentials: GITHUB_APP_PRIVKEY)",
     )
     parser.add_argument(
         "--github-token",
         default=None,
-        help="GitHub token (credentials: GITHUB_TOKEN; env: also GH_TOKEN)",
+        help="GitHub token (env/credentials: GITHUB_TOKEN; env: also GH_TOKEN)",
+    )
+
+    # Phabricator options.
+    reviewable_type.add_argument(
+        "--phabricator-revision-url",
+        help="HTML URL of the Phabricator Revision to process",
+    )
+    parser.add_argument(
+        "--phabricator-api-token",
+        default=None,
+        help="Phabricator API token (env/credentials: PHABRICATOR_API_TOKEN)",
     )
 
     parser.add_argument(
