@@ -83,7 +83,7 @@ def create_github_objects(
         reviewable = ghpr.reviewable
     else:
         logger.warning(
-            "Missing GitHub credentials (GITHUB_APP_ID and GITHUB_APP_PRIVKEY, or TC_SECRET_ID, reviewers will be output to stdout instead"
+            "Missing GitHub credentials (GH_TOKEN, GITHUB_TOKEN, GITHUB_APP_ID & GITHUB_APP_PRIVKEY, or TC_SECRET_ID, reviewers will be output to stdout instead"
         )
 
     return rules, patch_source, resolver, reviewable
