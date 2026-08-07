@@ -2,8 +2,8 @@ import logging
 import sys
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import asdict, dataclass
-from typing import override
+from dataclasses import asdict, dataclass, field
+from typing import Any, Self, override
 
 UserMap = Mapping[str, Mapping[str, str]]
 
@@ -16,7 +16,12 @@ class Reviewer:
     is_group: bool = False
     blocking: bool = False
 
-    def mutate(self, **kwargs) -> "Reviewer":
+    # Metadata is a free-form dict for implementation to store additional information as
+    # needed. It is not use for comparison operations.
+    # It is recommended to always use `get` over indexing to handle missing cases.
+    metadata: dict[str, Any] = field(default_factory=dict, hash=False, compare=False)
+
+    def mutate(self, **kwargs) -> Self:
         """Return a mutated Reviewer based on the current instance."""
         values = asdict(self)
 
