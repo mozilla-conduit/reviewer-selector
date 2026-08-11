@@ -22,6 +22,8 @@ from reviewer_selector.rules import Rules
 
 logger = logging.getLogger(__name__)
 
+GITHUB_CHECK_NAME = "reviewer-selector"
+
 
 @dataclass
 class GitHubApp:
@@ -249,17 +251,53 @@ class GitHubReviewable(Reviewable):
         return requested_reviewers
 
     @override
+    def report_error(self, message: str, **kwargs):
+        super().report_error(message)
+        self._report_check("failure", message)
+
+    @override
     def report_info(self, message: str, **kwargs):
         super().report_info(message)
         try:
             self._pr.authenticated_api_request(
-                "/issue_comments",
+                "-issues/comments",
                 "POST",
                 {"body": message},
             )
         except Exception as exc:
             logger.warning(f"Failed to report info `{message}` on PR: {exc}")
 
+    def _find_existing_check(self, check_name: str) -> int | None:
+        checks = self._pr.authenticated_api_request(
+            f"-commits/{self._pr.head_sha}/check-runs?check_name={check_name}&filter=latest"
+        )
+        if checks and (check_runs := checks.get("check_runs")):
+            return check_runs[0].get("id")
+
+    @override
+    def report_warning(self, message: str, **kwargs):
+        super().report_warning(message)
+        self._report_check("neutral", message)
+
+    def _report_check(self, conclusion: str, message: str):
+        try:
+            check_data = (
+                {
+                    "name": GITHUB_CHECK_NAME,
+                    "status": "completed",
+                    "title": "Reviewer selection",
+                    "summary": message,
+                    "conclusion": conclusion,
+                },
+            )
+            if check_id := self._find_existing_check(GITHUB_CHECK_NAME):
+                self._pr.authenticated_api_request(
+                    f"-check-runs/{check_id}", "PATCH", check_data
+                )
+            else:
+                self._pr.authenticated_api_request("-check-runs", "POST", check_data)
+        except Exception as exc:
+            logger.warning(f"Failed to report {conclusion} `{message}` on PR: {exc}")
 
 @final
 class GitHubPR(GitHubApiObject):
@@ -358,9 +396,13 @@ class GitHubPR(GitHubApiObject):
     def target_branch_name(self) -> str:
         return self.metadata["base"]["ref"]
 
+    @property
+    def head_sha(self) -> str:
+        return self.metadata["head"]["sha"]
+
     @cached_property
     def metadata(self) -> dict[str, Any]:
-        """Return PR metadata, fetching it if needed."""
+        """Return PR metadata."""
         return self.api_request()
 
     @override
@@ -369,11 +411,18 @@ class GitHubPR(GitHubApiObject):
     ) -> dict[str, Any]:
         qualified_path = f"/pulls/{self.pr_number}{path}"
 
-        # issue_comments is not a real GitHub endpoint, but PR comments are added
-        # using the issue endpoints, which don't share the same REST path. We
-        # rewrite it here so callers don't need to know about it.
-        issue_comments_path = "/issue_comments"
-        if path.startswith(issue_comments_path):
-            qualified_path = f"/issues/{self.pr_number}/comments{path.removeprefix(issue_comments_path)}"
+        # Some PR interactions (comments, checks, ...) are done via non pull-scoped
+        # endpoints.
+        checks_runs_path = "-check-runs"
+        if path.startswith(checks_runs_path):
+            qualified_path = f"/check-runs{path.removeprefix(checks_runs_path)}"
+
+        commits_path = "-commits"
+        if path.startswith(commits_path):
+            qualified_path = f"/commits{path.removeprefix(commits_path)}"
+
+        issues_path = "-issues"
+        if path.startswith(issues_path):
+            qualified_path = f"/issues/{self.pr_number}{path.removeprefix(issues_path)}"
 
         return super().api_request(qualified_path, method, json)
