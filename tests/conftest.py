@@ -548,11 +548,11 @@ def mocked_github_request(
     github_api_response_pull_request_requested_reviewers: str,
 ) -> requests_mock.Mocker:
     mock = requests_mock.Mocker()
-    mock.get(
+    mock.pull_request_get = mock.get(
         "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18",
         text=github_api_response_pull_request,
     )
-    mock.get(
+    mock.requested_reviewers_get = mock.get(
         "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
         text=github_api_response_pull_request_requested_reviewers,
     )
@@ -560,9 +560,9 @@ def mocked_github_request(
 
 
 @pytest.fixture
-def configurable_mocked_github_request() -> Callable[
-    [list[str], list[str]], requests_mock.Mocker
-]:
+def configurable_mocked_github_request(
+    mocked_github_request,
+) -> Callable[[list[str], list[str]], requests_mock.Mocker]:
 
     def _configurable_mocked_github_request(
         initial_reviewers: list[str] | None = None,
@@ -603,7 +603,7 @@ def configurable_mocked_github_request() -> Callable[
             """Callback returning our in-memory set of reviewers."""
             return requested_reviewers_data
 
-        mock = requests_mock.Mocker()
+        mock = mocked_github_request
 
         # Attach sub-mock and data to the mock, for easier inspection by the caller.
         mock.requested_reviewers_post = mock.post(
@@ -613,6 +613,10 @@ def configurable_mocked_github_request() -> Callable[
         mock.requested_reviewers_get = mock.get(
             "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
             json=get_reviewers_callback,
+        )
+        mock.issue_comment_post = mock.post(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/issues/18/comments",
+            json={},
         )
         mock.requested_reviewers_data = requested_reviewers_data
 

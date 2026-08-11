@@ -182,6 +182,14 @@ class GitHubReviewable(Reviewable):
         If an error from the server occurs, we retry to add one reviewer at a time.
         If no reviewers were added after this retry, the exception is re-raised for
         processing in the caller.
+
+        Parameters:
+
+        reviewers: Iterable[Reviewer]
+
+        nested: bool (default False)
+
+            Whether we are in a nested call which shouldn't repord info on the PR.
         """
         reviewers = list(reviewers)
         requested_reviewers = self._build_request_reviewers_payload(reviewers)
@@ -239,6 +247,18 @@ class GitHubReviewable(Reviewable):
                 requested_reviewers["reviewers"].append(r.name)
 
         return requested_reviewers
+
+    @override
+    def report_info(self, message: str, **kwargs):
+        super().report_info(message)
+        try:
+            self._pr.authenticated_api_request(
+                "/issue_comments",
+                "POST",
+                {"body": message},
+            )
+        except Exception as exc:
+            logger.warning(f"Failed to report info `{message}` on PR: {exc}")
 
 
 @final
@@ -347,4 +367,13 @@ class GitHubPR(GitHubApiObject):
     def api_request(
         self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
     ) -> dict[str, Any]:
-        return super().api_request(f"/pulls/{self.pr_number}{path}", method, json)
+        qualified_path = f"/pulls/{self.pr_number}{path}"
+
+        # issue_comments is not a real GitHub endpoint, but PR comments are added
+        # using the issue endpoints, which don't share the same REST path. We
+        # rewrite it here so callers don't need to know about it.
+        issue_comments_path = "/issue_comments"
+        if path.startswith(issue_comments_path):
+            qualified_path = f"/issues/{self.pr_number}/comments{path.removeprefix(issue_comments_path)}"
+
+        return super().api_request(qualified_path, method, json)
