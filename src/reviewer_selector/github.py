@@ -1,3 +1,4 @@
+from requests.models import HTTPError
 import asyncio
 import logging
 import re
@@ -160,6 +161,12 @@ class GitHubReviewable(Reviewable):
 
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
+        """Add reviewers from the list, who are not already requested.
+
+        If an error from the server occurs, we retry to add one reviewer at a time.
+        If no reviewer were added after this retry, the exception is re-raised for
+        processing in the caller.
+        """
         requested_reviewers = {
             "reviewers": [],
             "team_reviewers": [],
@@ -170,9 +177,28 @@ class GitHubReviewable(Reviewable):
             else:
                 requested_reviewers["reviewers"].append(r.name)
 
-        self._pr.authenticated_api_request(
-            "/requested_reviewers", "POST", requested_reviewers
-        )
+        try:
+            self._pr.authenticated_api_request(
+                "/requested_reviewers", "POST", requested_reviewers
+            )
+        except requests.HTTPError as exc:
+            added = False
+            if (
+                exc.response.status_code >= 400
+                and exc.response.status_code < 500
+                and len(list(reviewers)) > 1
+            ):
+                logger.warning("Adding one reviewer at a time ...")
+
+                for r in reviewers:
+                    try:
+                        self.add_reviewers([r])
+                        added = True
+                    except HTTPError as exc:
+                        logger.warning(f"Failed to add reviewer {r.name}: {exc}")
+
+            if not added:
+                raise
 
         # Invalidate cached_property.
         if hasattr(self, "reviewers"):

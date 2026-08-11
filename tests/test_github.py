@@ -266,3 +266,74 @@ def test_github_reviewable(
         assert (
             mock.requested_reviewers_get.call_count == expected_post_call_count + 1
         ), "Unexpected number of GET requests to requested_reviewers"
+
+
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable_add_reviewers_retry(
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    caplog: pytest.LogCaptureFixture,
+):
+    rejected_enterprise_team = Reviewer("ent:fluent-reviewers", True)
+    expected_reviewers = [
+        Reviewer("test-reviewer", False),
+        Reviewer("jsmith", False),
+        Reviewer("fluent-reviewers", True),
+    ]
+    reviewers = expected_reviewers + [rejected_enterprise_team]
+
+    with configurable_mocked_github_request() as mock:
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        def matcher(request: requests.Request):
+            if (
+                request.method != "POST"
+                or request.url
+                != "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers"
+            ):
+                return None
+
+            payload = request.json()
+            # Reject requests with the enterprise team.
+            if rejected_enterprise_team.name in payload.get("team_reviewers", []):
+                resp = requests.Response()
+                resp.request = request
+                resp.status_code = 422
+                # Insert a respo
+                resp._content = (
+                    b"Rejected in test_github_reviewable_add_reviewers_retry"
+                )
+                return resp
+
+            # Delegate to pre-existing matchers.
+            return None
+
+        mock._adapter.add_matcher(matcher)
+
+        requested_reviewers_post = mock.requested_reviewers_post
+
+        gh.reviewable.add_new_reviewers(reviewers)
+
+        assert "Adding one reviewer at a time ..." in caplog.text
+        assert f"Failed to add reviewer {rejected_enterprise_team.name}" in caplog.text
+
+        # The original mock doesn't see the requests summarily rejected by the matcher we added.
+        assert requested_reviewers_post.call_count == len(expected_reviewers)
+
+        # Make sure all reviewers are now present.
+        for user in [r for r in expected_reviewers if not r.is_group]:
+            assert user in gh.reviewable.reviewers, (
+                f"Missing user reviewer: {user.name}"
+            )
+        for group in [r for r in expected_reviewers if r.is_group]:
+            assert group in gh.reviewable.reviewers, (
+                f"Missing group reviewer: {group.name}"
+            )
+
+        assert rejected_enterprise_team not in gh.reviewable.reviewers, (
+            "Test logic error: The rejected group reviewer was added"
+        )
