@@ -19,13 +19,24 @@ def add_index_routes(config, tasks):
             index_prefix = "reviewer-selector-pr"
 
         trust_domain = config.graph_config["trust-domain"]
-        task.setdefault("routes", []).extend(
-            [
-                # XXX: We should be using `task['name']` as the last component,
-                # but it's not defined in the task dict.
-                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.revision.{head_rev}.{config.kind}.reviewer-selector",
-                f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.latest.{config.kind}.reviewer-selector",
-            ]
-        )
+
+        if params["tasks_for"] == "github-pull-request":
+            task.setdefault("routes", []).extend(
+                [
+                    # XXX: We should be using `task['name']` as the last component,
+                    # but it's not defined in the task dict.
+                    f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.revision.{head_rev}.{config.kind}.reviewer-selector",
+                    f"index.{trust_domain}.v2.{index_prefix}.branch.{head_ref}.latest.{config.kind}.reviewer-selector",
+                ]
+            )
+
+        elif params["tasks_for"] == "github-release":
+            task.setdefault("routes", []).extend(
+                [
+                    f"index.{trust_domain}.v2.{index_prefix}.release.{head_ref}.revision.{head_rev}.{config.kind}.reviewer-selector",
+                    f"index.{trust_domain}.v2.{index_prefix}.release.{head_ref}.latest.{config.kind}.reviewer-selector",
+                    f"index.{trust_domain}.v2.{index_prefix}.release.latest.{config.kind}.reviewer-selector",
+                ]
+            )
 
         yield task

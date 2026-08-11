@@ -1,20 +1,20 @@
-from abc import ABCMeta
 import asyncio
-from collections.abc import Iterable
+import logging
+import re
+from abc import ABCMeta
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from functools import cached_property, wraps
-import logging
-from typing import Any, Callable, final, override
+from typing import Any, final, override
 
 import requests
-import re
-
 from simple_github import AppAuth, AppInstallationAuth
+
 from reviewer_selector.patch import PatchSource
 from reviewer_selector.review import (
     MappingUserResolver,
-    Reviewer,
     Reviewable,
+    Reviewer,
     UserResolver,
 )
 from reviewer_selector.rules import Rules
@@ -110,7 +110,7 @@ class GitHubApiObject(metaclass=ABCMeta):
     ) -> dict[str, Any]:
         resp = self._session.request(
             method,
-            f"{self._repo_api_url}/pulls/{self.pr_number}{path}",
+            f"{self._repo_api_url}{path}",
             headers={
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2026-03-10",
@@ -120,12 +120,16 @@ class GitHubApiObject(metaclass=ABCMeta):
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as exc:
-            if exc.response.status_code == 422:
+            if exc.response.status_code >= 400 and exc.response.status_code < 500:
                 logger.error(
-                    f"422 error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
+                    f"{exc.response.status_code} error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
                 )
-            raise exc
+            raise
         return resp.json()
+
+    @property
+    def _repo_api_url(self) -> str:
+        return f"https://api.github.com/repos/{self.owner}/{self.repository}"
 
     @authenticated
     def authenticated_api_request(self, *args, **kwargs) -> dict[str, Any]:
@@ -292,6 +296,8 @@ class GitHubPR(GitHubApiObject):
         """Return PR metadata, fetching it if needed."""
         return self.api_request()
 
-    @property
-    def _repo_api_url(self) -> str:
-        return f"https://api.github.com/repos/{self.owner}/{self.repository}"
+    @override
+    def api_request(
+        self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
+    ) -> dict[str, Any]:
+        return super().api_request(f"/pulls/{self.pr_number}{path}", method, json)
