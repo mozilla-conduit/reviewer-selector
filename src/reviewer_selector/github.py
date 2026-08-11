@@ -110,7 +110,7 @@ class GitHubApiObject(metaclass=ABCMeta):
     ) -> dict[str, Any]:
         resp = self._session.request(
             method,
-            f"{self._repo_api_url}/pulls/{self.pr_number}{path}",
+            f"{self._repo_api_url}{path}",
             headers={
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2026-03-10",
@@ -124,8 +124,12 @@ class GitHubApiObject(metaclass=ABCMeta):
                 logger.error(
                     f"{exc.response.status_code} error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
                 )
-            raise exc
+            raise
         return resp.json()
+
+    @property
+    def _repo_api_url(self) -> str:
+        return f"https://api.github.com/repos/{self.owner}/{self.repository}"
 
     @authenticated
     def authenticated_api_request(self, *args, **kwargs) -> dict[str, Any]:
@@ -289,6 +293,8 @@ class GitHubPR(GitHubApiObject):
             self._metadata_json = self.api_request()
         return self._metadata_json
 
-    @property
-    def _repo_api_url(self) -> str:
-        return f"https://api.github.com/repos/{self.owner}/{self.repository}"
+    @override
+    def api_request(
+        self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
+    ) -> dict[str, Any]:
+        return super().api_request(f"/pulls/{self.pr_number}{path}", method, json)
