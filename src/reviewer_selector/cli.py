@@ -55,7 +55,19 @@ def cli() -> None:
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
-    reviewable.add_new_reviewers(resolved)
+    tc_info = make_tc_task_link()
+    if tc_info:
+        tc_info = f"\n\n{tc_info}"
+
+    try:
+        reviewable.add_new_reviewers(resolved)
+    except Exception:  # noqa: BLE001
+        if not reviewable.reviewers:
+            reviewable.report_error(
+                "Could not assign any reviewer. Please use Phabricator instead."
+            )
+        else:
+            reviewable.report_warning("Failed to add new reviewers.")
 
 
 def create_github_objects(
