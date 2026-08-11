@@ -1,20 +1,20 @@
-from abc import ABCMeta
 import asyncio
-from collections.abc import Iterable
+import logging
+import re
+from abc import ABCMeta
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import wraps
-import logging
-from typing import Any, Callable, final, override
+from typing import Any, final, override
 
 import requests
-import re
-
 from simple_github import AppAuth, AppInstallationAuth
+
 from reviewer_selector.patch import PatchSource
 from reviewer_selector.review import (
     MappingUserResolver,
-    Reviewer,
     Reviewable,
+    Reviewer,
     UserResolver,
 )
 from reviewer_selector.rules import Rules
