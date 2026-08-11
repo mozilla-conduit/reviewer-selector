@@ -55,7 +55,15 @@ def cli() -> None:
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
-    reviewable.add_new_reviewers(resolved)
+    try:
+        reviewable.add_new_reviewers(resolved)
+    except Exception:
+        if not reviewable.reviewers:
+            reviewable.report_error(
+                "Could not assign any reviewer. Please use Phabricator instead."
+            )
+        else:
+            reviewable.report_warning("Failed to add new reviewers.")
 
 
 def create_github_objects(
