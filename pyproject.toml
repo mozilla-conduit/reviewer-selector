@@ -12,7 +12,7 @@ classifiers = [
 dependencies= [
   "requests",
   "rs_parsepatch",
-  "simple-github",
+  "simple-github >= 3.2.0",
   "taskcluster",
 ]
 description =  "Select reviewers based on a diff and a set of rules"

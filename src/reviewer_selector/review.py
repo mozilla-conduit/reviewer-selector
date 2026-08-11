@@ -41,33 +41,45 @@ class Reviewer:
 class Reviewable(metaclass=ABCMeta):
     """An interface for something able to receive a list of reviewers."""
 
-    _reviewers: set[Reviewer] | None = None
-
     @property
-    def reviewers(self) -> set[Reviewer]:
-        if not self._reviewers:
-            return set()
-        return self._reviewers
+    @abstractmethod
+    def reviewers(self) -> Iterable[Reviewer]:
+        """Get all reviewers assigned to this Reviewable."""
 
-    def add_new_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
-        """Add reviewers from the list, who are not already requested.
+    def add_new_reviewers(self, reviewers: Iterable[Reviewer]):
+        """Add reviewers from the list, who are not already requested."""
+        current_reviewers = set(self.reviewers)
+        new_reviewers = [r for r in reviewers if r not in current_reviewers]
 
-        Return a set of all reviewers, new and pre-existing.
-        """
-        # Not very performant, but we should only be dealing with short lists.
-        new_reviewers = [r for r in reviewers if r not in self.reviewers]
+        if not new_reviewers:
+            logger.info("No new reviewers to add")
+            return
 
         logger.info(f"Adding new reviewers: {new_reviewers} ...")
         self.add_reviewers(new_reviewers)
 
-        return self.reviewers
-
+    @abstractmethod
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
         """Set reviewers on the target."""
-        self._reviewers = self.reviewers | set(reviewers)
 
 
-class StdoutReviewable(Reviewable):
+class InMemoryReviewable(Reviewable):
+    """A `Reviewable` implementation storing state in memory."""
+
+    _reviewers: set[Reviewer] | None = None
+
+    @property
+    @override
+    def reviewers(self) -> Iterable[Reviewer]:
+        return self._reviewers or set()
+
+    @override
+    def add_reviewers(self, reviewers: Iterable[Reviewer]):
+        """Set reviewers on the target."""
+        self._reviewers = set(self.reviewers) | set(reviewers)
+
+
+class StdoutReviewable(InMemoryReviewable):
     """A Reviewable implementation outputting reviewers to STDOUT."""
 
     reviewer_separator: str

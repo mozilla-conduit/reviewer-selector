@@ -1,5 +1,4 @@
-import json
-from typing import Any
+from typing import Callable
 from unittest.mock import Mock, patch
 
 import pytest
@@ -144,107 +143,126 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
         assert "Unprocessable Entity for test" in caplog.text
 
 
+@pytest.mark.parametrize(
+    "initial_reviewers,new_reviewers,expected_post_call_count",
+    (
+        (
+            (),
+            (
+                Reviewer("test-reviewer", False),
+                Reviewer("jsmith", False),
+                Reviewer("fluent-reviewers", True),
+                Reviewer("ent:fluent-reviewers", True),
+            ),
+            1,
+        ),
+        (
+            (
+                Reviewer("test-reviewer", False),
+                Reviewer("fluent-reviewers", True),
+            ),
+            (
+                Reviewer("jsmith", False),
+                Reviewer("ent:fluent-reviewers", True),
+            ),
+            1,
+        ),
+        (
+            (
+                Reviewer("test-reviewer", False),
+                Reviewer("jsmith", False),
+                Reviewer("fluent-reviewers", True),
+                Reviewer("ent:fluent-reviewers", True),
+            ),
+            (),
+            0,
+        ),
+    ),
+)
 @patch("reviewer_selector.github.GitHubApp.generate_token")
 def test_github_reviewable(
     mock_gh_generate_token: Mock,
-    mocked_github_request: Mocker,
-    github_api_response_pull_request_requested_reviewers: str,
+    configurable_mocked_github_request: Callable,
+    initial_reviewers: list[Reviewer],
+    new_reviewers: list[Reviewer],
+    expected_post_call_count: int,
 ):
-    # We store this data locally, so the POST callback can modify it, and the changes
-    # are reflected in subsequent GET callbacks.
-    api_requested_reviewers_data = json.loads(
-        github_api_response_pull_request_requested_reviewers
-    )
+    initial_users = [r.name for r in initial_reviewers if not r.is_group]
+    initial_teams = [r.name for r in initial_reviewers if r.is_group]
 
-    def add_reviewers_callback(
-        request: requests.Request, _context: requests_mock.response._Context
-    ) -> dict[str, Any]:
-        """Callback implementing side-effects of add_reviewers requests in memory.
-
-        This does not create full user/team objects, but should be enough to satisfy the
-        adapter.
-        """
-        payload = request.json()
-
-        for r in payload["reviewers"]:
-            api_requested_reviewers_data["users"].append({"login": r})
-        for t in payload["team_reviewers"]:
-            # As of 2026-07-29, the GitHub API requires a `/ent:` prefix when adding
-            # reviewers, but returns them without a leading `/`. We normalise the
-            # data to the latter.
-            if t.startswith("/ent:"):
-                t = t.removeprefix("/")
-            api_requested_reviewers_data["teams"].append({"slug": t})
-
-        return {}
-
-    def get_reviewers_callback(request, context):
-        """Callback returning our in-memory set of reviewers."""
-        return api_requested_reviewers_data
-
-    with mocked_github_request as mock:
-        mock_requested_reviewers_post = mock.post(
-            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
-            json=add_reviewers_callback,
-        )
-        mock_requested_reviewers_get = mock.get(
-            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
-            json=get_reviewers_callback,
-        )
+    with configurable_mocked_github_request(
+        initial_reviewers=initial_users, initial_team_reviewers=initial_teams
+    ) as mock:
         gh = GitHubPR(
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
         mock_gh_generate_token.return_value = "THE_TOKEN"
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
-        test_reviewer = Reviewer("test-reviewer", False)
-        jsmith = Reviewer("jsmith", False)
-        fluent_reviewers = Reviewer("fluent-reviewers", True)
-        ent_fluent_reviewers = Reviewer("ent:fluent-reviewers", True)
-        reviewers = {test_reviewer, jsmith, fluent_reviewers, ent_fluent_reviewers}
+        all_reviewers = set(initial_reviewers + new_reviewers)
 
-        gh.reviewable.add_new_reviewers(reviewers)
+        gh.reviewable.add_new_reviewers(all_reviewers)
 
-        assert (
-            "application/vnd.github+json"
-            == mock_requested_reviewers_post.last_request.headers["Accept"]
-        ), "Incorrect Accept header in request"
-        assert (
-            "Bearer THE_TOKEN"
-            == mock_requested_reviewers_post.last_request.headers["Authorization"]
-        ), "Incorrect Authorization header in request"
-        assert (
-            "2026-03-10"
-            == mock_requested_reviewers_post.last_request.headers[
-                "X-GitHub-Api-Version"
-            ]
-        ), "Incorrect X-GitHub-Api-Version header in request"
+        if expected_post_call_count > 0:
+            assert (
+                "application/vnd.github+json"
+                == mock.requested_reviewers_post.last_request.headers["Accept"]
+            ), "Incorrect Accept header in request"
+            assert (
+                "Bearer THE_TOKEN"
+                == mock.requested_reviewers_post.last_request.headers["Authorization"]
+            ), "Incorrect Authorization header in request"
+            assert (
+                "2026-03-10"
+                == mock.requested_reviewers_post.last_request.headers[
+                    "X-GitHub-Api-Version"
+                ]
+            ), "Incorrect X-GitHub-Api-Version header in request"
 
-        assert (
-            "jsmith" in mock_requested_reviewers_post.last_request.json()["reviewers"]
-        ), "Missing reviewer in request"
-        assert (
-            "fluent-reviewers"
-            in mock_requested_reviewers_post.last_request.json()["team_reviewers"]
-        ), "Missing reviewer group in request"
-        assert (
-            "ent:fluent-reviewers"
-            in mock_requested_reviewers_post.last_request.json()["team_reviewers"]
-        ), "Missing reviewer group in request"
+            # Make sure new reviewers were requested.
+            for user_name in [r.name for r in new_reviewers if not r.is_group]:
+                assert (
+                    user_name
+                    in mock.requested_reviewers_post.last_request.json()["reviewers"]
+                ), f"Missing reviewer in request: {user_name}"
+            for group_name in [r.name for r in new_reviewers if r.is_group]:
+                assert (
+                    group_name
+                    in mock.requested_reviewers_post.last_request.json()[
+                        "team_reviewers"
+                    ]
+                ), "Missing reviewer group in request: {group_name}"
 
-        assert (
-            "test-reviewer"
-            not in mock_requested_reviewers_post.last_request.json()["reviewers"]
-        ), "Existing reviewer re-requested"
+            # Make user existing reviewers weren't re-requested.
+            for user_name in [r.name for r in initial_reviewers if not r.is_group]:
+                assert (
+                    user_name
+                    not in mock.requested_reviewers_post.last_request.json()[
+                        "reviewers"
+                    ]
+                ), f"Existing reviewer re-requested: {user_name}"
+            for group_name in [r.name for r in initial_reviewers if not r.is_group]:
+                assert (
+                    group_name
+                    not in mock.requested_reviewers_post.last_request.json()[
+                        "team_reviewers"
+                    ]
+                ), f"Existing reviewer re-requested: {group_name}"
 
-        assert jsmith in gh.reviewable.reviewers
-        assert fluent_reviewers in gh.reviewable.reviewers
-        assert ent_fluent_reviewers in gh.reviewable.reviewers
-        assert test_reviewer in gh.reviewable.reviewers
+        # Make sure all reviewers are now present.
+        for user in [r for r in all_reviewers if not r.is_group]:
+            assert user in gh.reviewable.reviewers, (
+                f"Missing user reviewer: {user.name}"
+            )
+        for group in [r for r in all_reviewers if r.is_group]:
+            assert group in gh.reviewable.reviewers, (
+                f"Missing group reviewer: {group.name}"
+            )
 
-        assert mock_requested_reviewers_post.call_count == 1, (
+        # Expectations: 1 only if new reviewers are added.
+        assert mock.requested_reviewers_post.call_count == expected_post_call_count, (
             "Unexpected number of POST requests to requested_reviewers"
         )
         # Expectations: 1 initial request + 1 refreshed after adding reviewers
-        assert mock_requested_reviewers_get.call_count == 2, (
-            "Unexpected number of GET requests to requested_reviewers"
-        )
+        assert (
+            mock.requested_reviewers_get.call_count == expected_post_call_count + 1
+        ), "Unexpected number of GET requests to requested_reviewers"

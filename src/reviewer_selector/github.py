@@ -1,20 +1,20 @@
-from abc import ABCMeta
 import asyncio
-from collections.abc import Iterable
-from dataclasses import dataclass
-from functools import wraps
 import logging
-from typing import Any, Callable, final, override
+import re
+from abc import ABCMeta
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass, field
+from functools import cached_property, wraps
+from typing import Any, final, override
 
 import requests
-import re
-
 from simple_github import AppAuth, AppInstallationAuth
+
 from reviewer_selector.patch import PatchSource
 from reviewer_selector.review import (
     MappingUserResolver,
-    Reviewer,
     Reviewable,
+    Reviewer,
     UserResolver,
 )
 from reviewer_selector.rules import Rules
@@ -110,7 +110,7 @@ class GitHubApiObject(metaclass=ABCMeta):
     ) -> dict[str, Any]:
         resp = self._session.request(
             method,
-            f"{self._repo_api_url}/pulls/{self.pr_number}{path}",
+            f"{self._repo_api_url}{path}",
             headers={
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2026-03-10",
@@ -120,12 +120,16 @@ class GitHubApiObject(metaclass=ABCMeta):
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as exc:
-            if exc.response.status_code == 422:
+            if exc.response.status_code >= 400 and exc.response.status_code < 500:
                 logger.error(
-                    f"422 error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
+                    f"{exc.response.status_code} error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
                 )
-            raise exc
+            raise
         return resp.json()
+
+    @property
+    def _repo_api_url(self) -> str:
+        return f"https://api.github.com/repos/{self.owner}/{self.repository}"
 
     @authenticated
     def authenticated_api_request(self, *args, **kwargs) -> dict[str, Any]:
@@ -151,11 +155,11 @@ class GitHubPatchSource(PatchSource):
 class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
-    # Will be populated on first access to _requested_reviewers
-    _requested_reviewers_json: dict[str, Any] | None = None
+    # Will be populated on first access to the reviewers property.
+    _reviewers: list[Reviewer] | None = field(default=None, init=False)
 
     @override
-    def add_reviewers(self, reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
+    def add_reviewers(self, reviewers: Iterable[Reviewer]):
         requested_reviewers = {
             "reviewers": [],
             "team_reviewers": [],
@@ -169,32 +173,29 @@ class GitHubReviewable(Reviewable):
         self._pr.authenticated_api_request(
             "/requested_reviewers", "POST", requested_reviewers
         )
-        return self._requested_reviewers(refresh=True)
 
-    @property
+        # Invalidate cached_property.
+        if hasattr(self, "reviewers"):
+            del self.reviewers
+
+    @cached_property
     @override  # From Reviewable.
     def reviewers(self) -> Iterable[Reviewer]:
+        """Return PR requested_reviewers, fetching it if needed."""
+        # As of 2026-07-09, the basic GitHub PR metadata does contain
+        # `requested_reviewers` and `requested_teams` properties, but the latter is
+        # always empty. This is not the case for the /requested_reviewers endpoint
+        # we use here.
+        requested_reviewers_json = self._pr.authenticated_api_request(
+            "/requested_reviewers"
+        )
         reviewers = []
-        requested_reviewers = self._requested_reviewers()
-        for r in requested_reviewers.get("users", []):
+        for r in requested_reviewers_json.get("users", []):
             reviewers.append(Reviewer(r["login"], False))
-        for t in requested_reviewers.get("teams", []):
+        for t in requested_reviewers_json.get("teams", []):
             reviewers.append(Reviewer(t["slug"], True))
 
         return reviewers
-
-    def _requested_reviewers(self, refresh: bool = False) -> dict[str, Any]:
-        """Return PR requested_reviewers, fetching it if needed."""
-        if not self._requested_reviewers_json or refresh:
-            # As of 2026-07-29, the basic GitHub PR metadata does contain
-            # `requested_reviewers` and `requested_teams` properties, but the latter is
-            # always empty. This is not the case for the /requested_reviewers endpoint
-            # we use here.
-            self._requested_reviewers_json = self._pr.authenticated_api_request(
-                "/requested_reviewers"
-            )
-
-        return self._requested_reviewers_json
 
 
 @final
@@ -207,16 +208,8 @@ class GitHubPR(GitHubApiObject):
 
     pr_number: int
 
-    # Use the rule @property to access those.
-    _rules: Rules
-    _remote_rules_checked: bool = False
-
-    # Will be populated on first access to metadata
-    _metadata_json: dict[str, Any] | None = None
-
-    _patch_source: PatchSource | None = None
-    _reviewable: Reviewable | None = None
-    _user_resolver: UserResolver | None = None
+    # We need default rules if they exist, so we can apply default user-mapping.
+    _default_rules: Rules
 
     def __init__(self, pr_url: str, default_rules: Rules | None = None):
         match = self.URL_RE.match(pr_url)
@@ -231,30 +224,25 @@ class GitHubPR(GitHubApiObject):
 
         self.pr_url = pr_url
 
-        self._rules = default_rules or Rules({})
+        self._default_rules = default_rules or Rules({})
 
-    @property
+    @cached_property
     def rules(self) -> Rules:
-        if self._remote_rules_checked:
-            return self._rules
-
         r: requests.Response = self.fetch_rules()
 
-        if r.status_code == 404:
-            logger.debug("No in-tree rules found ...")
-            self._remote_rules_checked = True
-
-        elif r.status_code == 200:
+        if r.status_code == 200:
             logger.info("Using in-tree rules ...")
-            self._remote_rules_checked = True
-            self._rules = Rules(r.json())
+            return Rules(r.json())
+
+        if r.status_code == 404:
+            logger.debug("No in-tree rules found, using default ...")
 
         else:
             logger.warning(
                 f"Error fetching in-tree rules, using default; {r.status_code=} {r.text=}"
             )
 
-        return self._rules
+        return self._default_rules
 
     def fetch_rules(self) -> requests.Response:
         rules_url = self._blob_url("herald_rules.json")
@@ -264,12 +252,9 @@ class GitHubPR(GitHubApiObject):
     def _blob_url(self, path: str) -> str:
         return f"{self.repo_url}/raw/refs/heads/{self.target_branch_name}/{path}"
 
-    @property
+    @cached_property
     def patch_source(self) -> PatchSource:
-        if not self._patch_source:
-            self._patch_source = GitHubPatchSource(self)
-
-        return self._patch_source
+        return GitHubPatchSource(self)
 
     @property
     def patch_url(self) -> str:
@@ -279,15 +264,13 @@ class GitHubPR(GitHubApiObject):
         resp = self._session.get(url)
         return resp
 
-    @property
+    @cached_property
     def user_resolver(self) -> UserResolver:
-        if not self._user_resolver:
-            self._user_resolver = MappingUserResolver(
-                group_prefix="",
-                user_map=self.rules.get_rules().get("github_users", {}),
-                custom_map=self._custom_map,
-            )
-        return self._user_resolver
+        return MappingUserResolver(
+            group_prefix="",
+            user_map=self.rules.get_rules().get("github_users", {}),
+            custom_map=self._custom_map,
+        )
 
     @staticmethod
     def _custom_map(r: Reviewer) -> Reviewer | None:
@@ -300,12 +283,9 @@ class GitHubPR(GitHubApiObject):
 
         return None
 
-    @property
+    @cached_property
     def reviewable(self) -> Reviewable:
-        if not self._reviewable:
-            self._reviewable = GitHubReviewable(self)
-
-        return self._reviewable
+        return GitHubReviewable(self)
 
     @property
     def repo_url(self):
@@ -315,13 +295,13 @@ class GitHubPR(GitHubApiObject):
     def target_branch_name(self) -> str:
         return self.metadata["base"]["ref"]
 
-    @property
+    @cached_property
     def metadata(self) -> dict[str, Any]:
         """Return PR metadata, fetching it if needed."""
-        if not self._metadata_json:
-            self._metadata_json = self.api_request()
-        return self._metadata_json
+        return self.api_request()
 
-    @property
-    def _repo_api_url(self) -> str:
-        return f"https://api.github.com/repos/{self.owner}/{self.repository}"
+    @override
+    def api_request(
+        self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
+    ) -> dict[str, Any]:
+        return super().api_request(f"/pulls/{self.pr_number}{path}", method, json)

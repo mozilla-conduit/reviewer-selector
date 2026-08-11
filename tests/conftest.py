@@ -1,7 +1,9 @@
-from typing import Any
+from typing import Any, Callable
 
 import pytest
-from requests_mock import Mocker
+import requests
+import requests_mock
+
 
 #
 # DIFF FIXTURES
@@ -93,6 +95,17 @@ def sample_patch() -> str:
 #
 # GITHUB FIXTURES
 #
+
+
+@pytest.fixture(autouse=True)
+def hide_github_tokens(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Shield the tests from real GitHub env variables."""
+    monkeypatch.setenv("GITHUB_APP_ID", "")
+    monkeypatch.setenv("GITHUB_APP_PRIVKEY", "")
+    monkeypatch.setenv("GITHUB_TOKEN", "")
+    monkeypatch.setenv("GH_TOKEN", "")
 
 
 GITHUB_API_PARTIAL_USER = """\
@@ -533,8 +546,8 @@ def github_api_response_pull_request_requested_reviewers() -> str:
 def mocked_github_request(
     github_api_response_pull_request: str,
     github_api_response_pull_request_requested_reviewers: str,
-) -> Mocker:
-    mock = Mocker()
+) -> requests_mock.Mocker:
+    mock = requests_mock.Mocker()
     mock.get(
         "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18",
         text=github_api_response_pull_request,
@@ -544,6 +557,68 @@ def mocked_github_request(
         text=github_api_response_pull_request_requested_reviewers,
     )
     return mock
+
+
+@pytest.fixture
+def configurable_mocked_github_request() -> Callable[
+    [list[str], list[str]], requests_mock.Mocker
+]:
+
+    def _configurable_mocked_github_request(
+        initial_reviewers: list[str] | None = None,
+        initial_team_reviewers: list[str] | None = None,
+    ) -> requests_mock.Mocker:
+        initial_reviewers = initial_reviewers or []
+        initial_team_reviewers = initial_team_reviewers or []
+        # We store this data locally, so the POST callback can modify it, and the changes
+        # are reflected in subsequent GET callbacks.
+        requested_reviewers_data = {
+            "users": [{"login": r} for r in initial_reviewers],
+            "teams": [{"slug": r} for r in initial_team_reviewers],
+        }
+
+        def add_reviewers_callback(
+            request: requests.Request, _context: requests_mock.response._Context
+        ) -> dict[str, Any]:
+            """Callback implementing side-effects of add_reviewers requests in memory.
+
+            This does not create full user/team objects, but should be enough to satisfy the
+            adapter.
+            """
+            payload = request.json()
+
+            for r in payload["reviewers"]:
+                requested_reviewers_data["users"].append({"login": r})
+            for t in payload["team_reviewers"]:
+                # As of 2026-07-09, the GitHub API requires a `/ent:` prefix when adding
+                # reviewers, but returns them without a leading `/`. We normalise the
+                # data to the latter.
+                if t.startswith("/ent:"):
+                    t = t.removeprefix("/")
+                requested_reviewers_data["teams"].append({"slug": t})
+
+            return {}
+
+        def get_reviewers_callback(request, context):
+            """Callback returning our in-memory set of reviewers."""
+            return requested_reviewers_data
+
+        mock = requests_mock.Mocker()
+
+        # Attach sub-mock and data to the mock, for easier inspection by the caller.
+        mock.requested_reviewers_post = mock.post(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
+            json=add_reviewers_callback,
+        )
+        mock.requested_reviewers_get = mock.get(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
+            json=get_reviewers_callback,
+        )
+        mock.requested_reviewers_data = requested_reviewers_data
+
+        return mock
+
+    return _configurable_mocked_github_request
 
 
 #

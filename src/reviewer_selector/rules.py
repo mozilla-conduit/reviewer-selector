@@ -22,6 +22,13 @@ class Rules:
     def __init__(self, rules: RulesData):
         self._rules = rules
 
+    def __len__(self) -> int:
+        """Forward length queries to the underlying data.
+
+        This allows an empty Rule-set to be falsey."""
+
+        return len(self._rules)
+
     @classmethod
     def from_file(cls, rules_file: str) -> Self:
         with open(rules_file) as f:

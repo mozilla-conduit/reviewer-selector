@@ -334,7 +334,9 @@ def test_github_env(
 
     with mocked_github_request as mock:
         requested_reviewers_url = "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers"
-        mock_requested_reviewers = mock.post(requested_reviewers_url, text="{}")
+        mock_requested_reviewers = mock.get(
+            requested_reviewers_url, text='{ "reviewers": [], "teams": [] }'
+        )
         _run_cli(
             [
                 rules_path,

@@ -4,10 +4,17 @@ from collections.abc import Iterable
 import os
 
 
+from reviewer_selector.patch import PatchSource
 from reviewer_selector.taskcluster import Taskcluster
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.patch import Patch, StdinPatchSource
-from reviewer_selector.review import Reviewer, StdoutReviewable, MappingUserResolver
+from reviewer_selector.review import (
+    Reviewable,
+    Reviewer,
+    StdoutReviewable,
+    MappingUserResolver,
+    UserResolver,
+)
 from reviewer_selector.rules import Rules
 
 
@@ -37,28 +44,11 @@ def cli() -> None:
 
     # Override the parameters based on context.
     if args.pr_url:
-        ghpr = GitHubPR(args.pr_url, rules)
-        repo_branch = f"{ghpr.repository}-{ghpr.target_branch_name}"
-
-        logger.info(
-            f"PR URL provided ({args.pr_url}); using GitHub adapters for {repo_branch} ..."
+        rules, patch_source, resolver, gh_reviewable = create_github_objects(
+            args, rules, repos
         )
 
-        repos.append(repo_branch)
-
-        # Override rules with in-tree file if present.
-        rules = ghpr.rules or rules
-
-        patch_source = ghpr.patch_source
-        resolver = ghpr.user_resolver
-
-        if github_creds := resolve_github_credentials(args):
-            ghpr.set_app_credentials(**github_creds)
-            reviewable = ghpr.reviewable
-        else:
-            logger.warning(
-                "Missing GitHub credentials (GITHUB_APP_ID and GITHUB_APP_PRIVKEY, or TC_SECRET_ID, reviewers will be output to stdout instead"
-            )
+        reviewable = gh_reviewable or reviewable
 
     patch = Patch(patch_source.fetch_patch(), patch_source.get_patch_subject())
 
@@ -71,16 +61,46 @@ def cli() -> None:
     reviewable.add_new_reviewers(resolved)
 
 
+def create_github_objects(
+    args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
+) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
+    """Create the GitHub adapters."""
+    ghpr = GitHubPR(args.pr_url, default_rules)
+
+    repo_branch = f"{ghpr.repository}-{ghpr.target_branch_name}"
+    logger.info(
+        f"PR URL provided ({args.pr_url}); using GitHub adapters for {repo_branch} ..."
+    )
+    repos_to_update.append(repo_branch)
+
+    # Override rules with in-tree file if present.
+    rules = ghpr.rules or default_rules
+
+    patch_source = ghpr.patch_source
+    resolver = ghpr.user_resolver
+
+    reviewable = None
+    if github_creds := resolve_github_credentials(args):
+        ghpr.set_app_credentials(**github_creds)
+        reviewable = ghpr.reviewable
+    else:
+        logger.warning(
+            "Missing GitHub credentials (GH_TOKEN, GITHUB_TOKEN, GITHUB_APP_ID & GITHUB_APP_PRIVKEY, or TC_SECRET_ID, reviewers will be output to stdout instead"
+        )
+
+    return rules, patch_source, resolver, reviewable
+
+
 def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:
     """Resolve GitHub token, app ID and privkey from CLI options, environment and TaskCluster."""
 
     # Give precedence to explicit options, or default to environment.
 
-    # Support “standard” GH_TOKEN as a fallback.
+    # Support standard GH_TOKEN/GITHUB_TOKEN order of precedence.
     gh_token = (
         args.github_token
-        or os.environ.get("GITHUB_TOKEN")
         or os.environ.get("GH_TOKEN")
+        or os.environ.get("GITHUB_TOKEN")
     )
     app_id = args.github_app_id or os.environ.get("GITHUB_APP_ID")
     app_privkey = args.github_app_privkey or os.environ.get("GITHUB_APP_PRIVKEY")

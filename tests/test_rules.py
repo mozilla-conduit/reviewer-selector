@@ -1,6 +1,35 @@
 from unittest import mock
+
+import pytest
 from reviewer_selector.review import Reviewer
-from reviewer_selector.rules import Rules
+from reviewer_selector.rules import Rules, RulesData
+
+
+@pytest.mark.parametrize(
+    "rules",
+    (
+        ({}),
+        (
+            {
+                "rules": {
+                    "id": "test_no_repo_flag_always_matches",
+                    "name": "test_no_repo_flag_always_matches",
+                    "conditions": [
+                        {"type": "repository", "value": ["mozilla-central"]}
+                    ],
+                }
+            }
+        ),
+    ),
+)
+def test_rules_length(rules: list[RulesData]):
+    assert len(Rules(rules)) == len(rules), (
+        "Length of Rules doesn't match underlying data"
+    )
+    assert bool(Rules(rules)) == bool(rules), (
+        "Truthyness of Rules doesn't match underlying data"
+    )
+
 
 # --- Rules.rule_matches_repos tests ---
 
