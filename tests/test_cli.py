@@ -3,13 +3,16 @@ import json
 import logging
 import pathlib
 import sys
+
+import json
+from collections.abc import Callable
 from typing import Any
 from unittest import mock
 from unittest.mock import PropertyMock
 
+
 import pytest
 import requests
-from requests_mock import Mocker
 
 from reviewer_selector import cli
 from reviewer_selector.review import Reviewer
@@ -149,7 +152,7 @@ def test_subject_reviewer_blocking(
 
 def test_github(
     tmp_path: pathlib.Path,
-    mocked_github_request: Mocker,
+    configurable_mocked_github_request: Callable,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
     sample_rules_data: dict[str, Any],
@@ -157,7 +160,7 @@ def test_github(
     # Empty rules. The real ones should be coming from in-tree.
     rules_path = _write_rules(tmp_path / "rules.json", {})
 
-    with mocked_github_request as mock:
+    with configurable_mocked_github_request() as mock:
         patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
         mock.get(patch_url, text=sample_diff)
 
@@ -283,10 +286,10 @@ def test_github_env(
     mock_github_app: mock.Mock,
     tmp_path: pathlib.Path,
     monkeypatch: pytest.MonkeyPatch,
-    mocked_github_request: Mocker,
+    configurable_mocked_github_request: Callable,
+    capsys: pytest.CaptureFixture,
     sample_diff: str,
     sample_rules_data: str,
-    capsys: pytest.CaptureFixture,
     env_github_token: str,
     env_gh_token: str,
     env_app_id: str,

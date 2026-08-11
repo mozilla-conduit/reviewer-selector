@@ -352,6 +352,10 @@ def test_github_reviewable_add_reviewers_retry(
         # The original mock doesn't see the requests summarily rejected by the matcher we added.
         assert mock.requested_reviewers_post.call_count == len(expected_reviewers)
 
+        assert mock.issue_comment_post.call_count == 1, (
+            "Unexpected number of comments posted"
+        )
+
         # Make sure all reviewers are now present.
         for user in [r for r in expected_reviewers if not r.is_group]:
             assert user in gh.reviewable.reviewers, (
