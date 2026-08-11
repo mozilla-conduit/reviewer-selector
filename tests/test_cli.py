@@ -3,13 +3,10 @@ import json
 import logging
 import pathlib
 import sys
-
-import json
 from collections.abc import Callable
 from typing import Any
 from unittest import mock
-from unittest.mock import PropertyMock
-
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 import requests
@@ -314,7 +311,7 @@ def test_github_env(
         "GITHUB_APP_PRIVKEY": tc_app_privkey,
     }
 
-    with mocked_github_request as mock:
+    with configurable_mocked_github_request() as mock:
         patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
         mock.get(patch_url, text=sample_diff)
 
@@ -363,6 +360,54 @@ def test_github_env(
     assert needs_tc_secrets == mock_tc_load_secrets.called, (
         "Use of load_secrets doesn't match expectation"
     )
+
+
+@patch("reviewer_selector.github.GitHubReviewable.add_new_reviewers")
+@patch("reviewer_selector.github.GitHubReviewable.reviewers", new_callable=PropertyMock)
+@pytest.mark.parametrize("type", ("warning", "error"))
+def test_github_reports(
+    mock_reviewers: Mock,
+    mock_add_new_reviewers: Mock,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+    configurable_mocked_github_request: Callable,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict[str, Any],
+    type: str,
+):
+    monkeypatch.setenv("GH_TOKEN", "gh_token")
+
+    if type == "warning":
+        mock_reviewers.return_value = [Reviewer("alice")]
+    elif type == "error":
+        mock_reviewers.return_value = []
+    else:
+        raise ValueError(f"{type=} is not supported")
+
+    mock_add_new_reviewers.side_effect = Exception(type)
+
+    # Empty rules. The real ones should be coming from in-tree.
+    rules_path = _write_rules(tmp_path / "rules.json", {})
+
+    with configurable_mocked_github_request() as mock:
+        patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
+        mock.get(patch_url, text=sample_diff)
+
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/test-branch/herald_rules.json"
+        mock.get(rules_url, text=json.dumps(sample_rules_data))
+
+        _run_cli(
+            [
+                rules_path,
+                "--pr-url",
+                "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+            ],
+            "",
+            capsys,
+        )
+
+    assert mock_add_new_reviewers.call_count == 1
 
 
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:
