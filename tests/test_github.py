@@ -1,4 +1,8 @@
+from unittest.mock import Mock, patch
+
 import pytest
+import requests
+import requests_mock
 from requests_mock.mocker import Mocker
 
 from reviewer_selector.github import GitHubPR
@@ -24,10 +28,16 @@ def test_github_url_handling_invalid():
 
 
 def test_github__target_branch_name(mocked_github_request: Mocker):
-    with mocked_github_request:
+    with mocked_github_request as mock:
         gh = GitHubPR("https://github.com/mozilla-conduit/reviewer-selector/pull/18")
 
-    assert gh._target_branch_name == "main"
+        _ = gh.target_branch_name
+        request_count = mock.call_count
+        assert gh.target_branch_name == "test-branch"
+
+        assert mock.call_count == request_count, (
+            "Second access to branch name triggered a new request"
+        )
 
 
 def test_github_patch_source(mocked_github_request: Mocker):
@@ -39,12 +49,12 @@ def test_github_patch_source(mocked_github_request: Mocker):
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
 
-        assert gh.fetch_patch() == patch_text, "Unexpected patch text"
+        assert gh.patch_source.fetch_patch() == patch_text, "Unexpected patch text"
 
 
 def test_github_rules_caching(mocked_github_request: Mocker, sample_rules_data: dict):
     with mocked_github_request as mock:
-        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/main/herald_rules.json"
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/test-branch/herald_rules.json"
         mock.get(
             rules_url,
             json=sample_rules_data,
@@ -68,7 +78,7 @@ def test_github_user_resolver(
     mocked_github_request: Mocker, sample_rules_data: dict, in_tree_status
 ):
     with mocked_github_request as mock:
-        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/main/herald_rules.json"
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/test-branch/herald_rules.json"
         if in_tree_status == 200:
             mock.get(
                 rules_url,
@@ -84,10 +94,11 @@ def test_github_user_resolver(
         reviewers = {
             Reviewer("jsmith", False),
             Reviewer("fluent-reviewers", True),
-            Reviewer("/ent:fluent-reviewers", True),
+            Reviewer("ent:fluent-reviewers", True),
+            Reviewer("/ent:normalise-this", True),
         }
 
-        resolved = gh.resolve_reviewers(reviewers)
+        resolved = gh.user_resolver.resolve_reviewers(reviewers)
 
     if in_tree_status == 200:
         assert Reviewer("jsmith-gh", False) in resolved, "GitHub user should be mapped"
@@ -95,15 +106,83 @@ def test_github_user_resolver(
         assert Reviewer("jsmith-default", False) in resolved, (
             "GitHub user should be mapped to the default rules"
         )
-    assert Reviewer("@fluent-reviewers", True) in resolved, (
-        "Review group should be prefixed"
+    assert Reviewer("fluent-reviewers", True) in resolved, (
+        "Review group should not be prefixed"
     )
-    assert Reviewer("/ent:fluent-reviewers", True) in resolved, (
+    assert Reviewer("ent:fluent-reviewers", True) in resolved, (
         "Enterprise teams should be unchanged"
     )
+    assert Reviewer("ent:normalise-this", True) in resolved, (
+        "Enterprise teams should be normalised"
+    )
 
 
-@pytest.mark.xfail()
-def test_github_reviewable():
+def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
+
+    def callback(request: requests.Request, context: requests_mock.response._Context):
+        context.status_code = 422
+        return "422 Client Error: Unprocessable Entity for test"
+
+    with Mocker() as mock:
+        mock.get(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18",
+            text=callback,
+        )
+
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        with pytest.raises(requests.exceptions.HTTPError):
+            gh.api_request()
+
+        assert "Unprocessable Entity for test" in caplog.text
+
+
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable(mock_gh_generate_token: Mock, mocked_github_request: Mocker):
     """add_reviewers"""
-    raise AssertionError("not implemented")
+
+    with mocked_github_request as mock:
+        mock_requested_reviewers_post = mock.post(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
+            json={},
+        )
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+        reviewers = {
+            Reviewer("jsmith", False),
+            Reviewer("fluent-reviewers", True),
+            Reviewer("ent:fluent-reviewers", True),
+        }
+
+        gh.reviewable.add_reviewers(reviewers)
+
+        assert (
+            "application/vnd.github+json"
+            == mock_requested_reviewers_post.last_request.headers["Accept"]
+        ), "Incorrect Accept header in request"
+        assert (
+            "Bearer THE_TOKEN"
+            == mock_requested_reviewers_post.last_request.headers["Authorization"]
+        ), "Incorrect Authorization header in request"
+        assert (
+            "2026-03-10"
+            == mock_requested_reviewers_post.last_request.headers[
+                "X-GitHub-Api-Version"
+            ]
+        ), "Incorrect X-GitHub-Api-Version header in request"
+
+        assert (
+            "jsmith" in mock_requested_reviewers_post.last_request.json()["reviewers"]
+        ), "Missing reviewer in request"
+        assert (
+            "fluent-reviewers"
+            in mock_requested_reviewers_post.last_request.json()["team_reviewers"]
+        ), "Missing reviewer group in request"
+        assert (
+            "ent:fluent-reviewers"
+            in mock_requested_reviewers_post.last_request.json()["team_reviewers"]
+        ), "Missing reviewer group in request"

@@ -70,6 +70,17 @@ def sample_diff_remote() -> str:
 #
 
 
+@pytest.fixture(autouse=True)
+def hide_github_tokens(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Shield the tests from real GitHub env variables."""
+    monkeypatch.setenv("GITHUB_APP_ID", "")
+    monkeypatch.setenv("GITHUB_APP_PRIVKEY", "")
+    monkeypatch.setenv("GITHUB_TOKEN", "")
+    monkeypatch.setenv("GH_TOKEN", "")
+
+
 @pytest.fixture
 def github_api_response_pull_request() -> str:
     return dedent("""\
@@ -265,12 +276,12 @@ def github_api_response_pull_request() -> str:
           "forks": 2,
           "open_issues": 3,
           "watchers": 1,
-          "default_branch": "main"
+          "default_branch": "test-branch"
         }
       },
       "base": {
-        "label": "mozilla-conduit:main",
-        "ref": "main",
+        "label": "mozilla-conduit:test-branch",
+        "ref": "test-branch",
         "sha": "1827bbb5e31c8a1b5f57e68fb5a65e85d9808b6e",
         "user": {
           "login": "mozilla-conduit",
@@ -402,7 +413,7 @@ def github_api_response_pull_request() -> str:
           "forks": 2,
           "open_issues": 3,
           "watchers": 1,
-          "default_branch": "main"
+          "default_branch": "test-branch"
         }
       },
       "_links": {
@@ -543,7 +554,7 @@ def sample_rules_data() -> dict[str, Any]:
                     {
                         "type": "add-reviewers",
                         "reviewers": [
-                            {"target": "/ent:fluent-reviewers", "is_group": True}
+                            {"target": "ent:fluent-reviewers", "is_group": True},
                         ],
                     }
                 ],
@@ -552,7 +563,7 @@ def sample_rules_data() -> dict[str, Any]:
         "groups": {
             "fluent-reviewers": {"members": ["alice", "bob"]},
             "test-reviewers": {"members": ["charlie"]},
-            "/ent:fluent-reviewers": {"members": ["bob"]},
+            "ent:fluent-reviewers": {"members": ["bob"]},
         },
         "github_users": {
             "alice": {"username": "alice-gh"},
