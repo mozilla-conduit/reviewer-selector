@@ -156,6 +156,25 @@ class GitHubPatchSource(PatchSource):
 class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
+    @cached_property
+    @override  # From Reviewable.
+    def reviewers(self) -> Iterable[Reviewer]:
+        """Return PR requested_reviewers, fetching it if needed."""
+        # As of 2026-07-09, the basic GitHub PR metadata does contain
+        # `requested_reviewers` and `requested_teams` properties, but the latter is
+        # always empty. This is not the case ftor the /requested_reviewers endpoint
+        # we use here.
+        requested_reviewers_json = self._pr.authenticated_api_request(
+            "/requested_reviewers"
+        )
+        reviewers = []
+        for r in requested_reviewers_json.get("users", []):
+            reviewers.append(Reviewer(r["login"], False))
+        for t in requested_reviewers_json.get("teams", []):
+            reviewers.append(Reviewer(t["slug"], True))
+
+        return reviewers
+
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
         """Set reviewers on the target.
@@ -220,25 +239,6 @@ class GitHubReviewable(Reviewable):
                 requested_reviewers["reviewers"].append(r.name)
 
         return requested_reviewers
-
-    @cached_property
-    @override  # From Reviewable.
-    def reviewers(self) -> Iterable[Reviewer]:
-        """Return PR requested_reviewers, fetching it if needed."""
-        # As of 2026-07-09, the basic GitHub PR metadata does contain
-        # `requested_reviewers` and `requested_teams` properties, but the latter is
-        # always empty. This is not the case for the /requested_reviewers endpoint
-        # we use here.
-        requested_reviewers_json = self._pr.authenticated_api_request(
-            "/requested_reviewers"
-        )
-        reviewers = []
-        for r in requested_reviewers_json.get("users", []):
-            reviewers.append(Reviewer(r["login"], False))
-        for t in requested_reviewers_json.get("teams", []):
-            reviewers.append(Reviewer(t["slug"], True))
-
-        return reviewers
 
 
 @final
