@@ -97,17 +97,15 @@ def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:
     # Give precedence to explicit options, or default to environment.
 
     # Support standard GH_TOKEN/GITHUB_TOKEN order of precedence.
-    gh_token = (
+    if gh_token := (
         args.github_token
         or os.environ.get("GH_TOKEN")
         or os.environ.get("GITHUB_TOKEN")
-    )
-    app_id = args.github_app_id or os.environ.get("GITHUB_APP_ID")
-    app_privkey = args.github_app_privkey or os.environ.get("GITHUB_APP_PRIVKEY")
-
-    if gh_token:
+    ):
         return {"gh_token": gh_token}
 
+    app_id = args.github_app_id or os.environ.get("GITHUB_APP_ID")
+    app_privkey = args.github_app_privkey or os.environ.get("GITHUB_APP_PRIVKEY")
     if app_id and app_privkey:
         return {"app_id": app_id, "app_privkey": app_privkey}
 
@@ -118,12 +116,12 @@ def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:
         )
         tc = Taskcluster()
         tc_secret = tc.fetch_secret(tc_secret_id)
-        app_id = app_id or tc_secret.get("GITHUB_APP_ID")
-        app_privkey = app_privkey or tc_secret.get("GITHUB_APP_PRIVKEY")
+        app_id = app_id or tc_secret.get("GITHUB_APP_ID", "")
+        app_privkey = app_privkey or tc_secret.get("GITHUB_APP_PRIVKEY", "")
         # We allow passing the GITHUB_TOKEN via secrets, but it's not recommended.
         gh_token = tc_secret.get("GITHUB_TOKEN", "")
 
-        if app_id and app_privkey:
+        if app_id and app_privkey or gh_token:
             return {"app_id": app_id, "app_privkey": app_privkey, "gh_token": gh_token}
 
     return {}

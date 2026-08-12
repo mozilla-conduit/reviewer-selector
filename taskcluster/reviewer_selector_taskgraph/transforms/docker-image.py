@@ -20,7 +20,11 @@ def add_index_routes(config, tasks):
 
         trust_domain = config.graph_config["trust-domain"]
 
-        if params["tasks_for"] == "github-pull-request":
+        if (
+            params["tasks_for"] in ["github-pull-request"]
+            or params["tasks_for"] in ["github-push"]
+            and head_ref in ["main", "staging", "develop"]
+        ):
             task.setdefault("routes", []).extend(
                 [
                     # XXX: We should be using `task['name']` as the last component,
