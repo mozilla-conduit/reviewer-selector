@@ -1,9 +1,9 @@
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 import requests
 import requests_mock
-
 
 #
 # DIFF FIXTURES
