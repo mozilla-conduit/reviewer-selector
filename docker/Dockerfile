@@ -13,6 +13,8 @@ COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /uvx /bin/
 RUN curl -L https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.deb -o /tmp/gh.deb \
   && dpkg -i /tmp/gh.deb
 
+RUN adduser --system app
+
 RUN mkdir /app
 WORKDIR /app
 ENV PATH="/app/.venv/bin:${PATH}"
@@ -23,4 +25,5 @@ COPY topsrcdir/ /app
 RUN uv sync --frozen \
   && uv pip install /app
 
+USER app
 ENTRYPOINT [ "/app/docker/entrypoint.sh" ]

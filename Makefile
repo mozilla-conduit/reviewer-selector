@@ -25,5 +25,5 @@ test:
 
 .PHONY: test-docker
 test-docker:
-	docker run --rm --entrypoint bash ${DOCKER_TAG} \
+	docker run --user root --rm --entrypoint bash ${DOCKER_TAG} \
 		-c 'uv sync --group dev && pytest tests/'
