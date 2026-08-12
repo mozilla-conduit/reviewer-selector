@@ -142,7 +142,6 @@ def test_github_repo_added(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
-    sample_rules_data: dict[str, Any],
 ):
     # Empty rules. The real ones should be coming from in-tree.
     rules_path = _write_rules(tmp_path / "rules.json", {})
@@ -168,9 +167,6 @@ def test_github_repo_added(
     )
 
 
-@mock.patch("reviewer_selector.GitHubPR.fetch_rules")
-@mock.patch("reviewer_selector.github.GitHubPatchSource.fetch_patch")
-@mock.patch("reviewer_selector.Rules.collect_reviewers")
 @mock.patch("reviewer_selector.github.GitHubApp")
 @mock.patch("reviewer_selector.taskcluster.TaskclusterConfig")
 @mock.patch("reviewer_selector.taskcluster.load_secrets")
@@ -234,14 +230,12 @@ def test_github_env(
     mock_tc_load_secrets: mock.Mock,
     _mock_tc_taskclusterconfig: mock.Mock,
     mock_github_app: mock.Mock,
-    _mock_collect_reviewers: mock.Mock,
-    mock_fetch_patch: mock.Mock,
-    mock_fetch_rules: mock.Mock,
     tmp_path: pathlib.Path,
     monkeypatch: pytest.MonkeyPatch,
     mocked_github_request: Mocker,
-    capsys: pytest.CaptureFixture,
     sample_diff: str,
+    sample_rules_data: str,
+    capsys: pytest.CaptureFixture,
     env_github_token: str,
     env_gh_token: str,
     env_app_id: str,
@@ -251,6 +245,7 @@ def test_github_env(
     tc_app_privkey: str,
     expected_app_credentials: tuple[str, str],
     needs_tc_secrets: bool,
+    caplog: pytest.LogCaptureFixture,
 ):
     """Test precedence between environment and TC secrets, including for incomplete data."""
     rules_path = _write_rules(tmp_path / "rules.json", {})
@@ -265,15 +260,16 @@ def test_github_env(
         "GITHUB_APP_PRIVKEY": tc_app_privkey,
     }
 
-    rules_resp = requests.Response()
-    rules_resp.status_code = 404
-    mock_fetch_rules.return_value = rules_resp
-
-    mock_fetch_patch.return_value = sample_diff
-
     with mocked_github_request as mock:
+        patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
+        mock.get(patch_url, text=sample_diff)
+
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/test-branch/herald_rules.json"
+        mock.get(rules_url, text=json.dumps(sample_rules_data))
+
         requested_reviewers_url = "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers"
         mock_requested_reviewers = mock.post(requested_reviewers_url, text="{}")
+
         _run_cli(
             [
                 rules_path,
@@ -284,17 +280,24 @@ def test_github_env(
             capsys,
         )
 
-    if all(expected_app_credentials):
-        mock_github_app.assert_called_with(
-            *expected_app_credentials, "mozilla-conduit", "reviewer-selector"
-        )
+    if (has_app_creds := all(expected_app_credentials)) or any(
+        [env_github_token, env_gh_token]
+    ):
+        if has_app_creds:
+            mock_github_app.assert_called_with(
+                *expected_app_credentials, "mozilla-conduit", "reviewer-selector"
+            )
         assert mock_requested_reviewers.call_count == 1, (
-            "Incorrect number of requests to the requested reviewers endpoint (app credentials)"
+            "Incorrect number of requests to the requested reviewers endpoint"
         )
-    elif any([env_github_token, env_gh_token]):
-        assert mock_requested_reviewers.call_count == 1, (
-            "Incorrect number of requests to the requested reviewers endpoint (gh tokens)"
+        requested_reviewers_request = mock_requested_reviewers.last_request.json()
+        assert requested_reviewers_request.get("reviewers", None) == [], (
+            "Incorrect payload in request the requested reviewers endpoint"
         )
+        for team in ["fluent-reviewers", "ent:fluent-reviewers"]:
+            assert team in requested_reviewers_request.get("team_reviewers", []), (
+                f"Missing {team} in request the requested reviewers endpoint"
+            )
     else:
         assert mock_github_app.call_count == 0, (
             "The GitHubApp was unexpectedly initialised"

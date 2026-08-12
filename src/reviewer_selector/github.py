@@ -56,8 +56,7 @@ class GitHubApp:
 
 
 class GitHubApiObject(metaclass=ABCMeta):
-    """Abstract class providing authentication utilities to make requests to arbitrary
-        GitHub API objects.
+    """Abstract class providing utilities for requests to arbitrary GitHub API objects.
 
     `owner` and `repository` need to be set by the inheriting class prior to using those
     methods.
@@ -121,7 +120,7 @@ class GitHubApiObject(metaclass=ABCMeta):
             resp.raise_for_status()
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code >= 400 and exc.response.status_code < 500:
-                logger.error(
+                logger.exception(
                     f"{exc.response.status_code} error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
                 )
             raise
