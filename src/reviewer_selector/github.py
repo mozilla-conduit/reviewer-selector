@@ -4,7 +4,7 @@ import logging
 import re
 from abc import ABCMeta
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import cached_property, wraps
 from typing import Any, final, override
 
@@ -57,8 +57,7 @@ class GitHubApp:
 
 
 class GitHubApiObject(metaclass=ABCMeta):
-    """Abstract class providing authentication utilities to make requests to arbitrary
-        GitHub API objects.
+    """Abstract class providing utilities for requests to arbitrary GitHub API objects.
 
     `owner` and `repository` need to be set by the inheriting class prior to using those
     methods.
@@ -122,7 +121,7 @@ class GitHubApiObject(metaclass=ABCMeta):
             resp.raise_for_status()
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code >= 400 and exc.response.status_code < 500:
-                logger.error(
+                logger.exception(
                     f"{exc.response.status_code} error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
                 )
             raise
@@ -155,9 +154,6 @@ class GitHubPatchSource(PatchSource):
 @dataclass
 class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
-
-    # Will be populated on first access to the reviewers property.
-    _reviewers: list[Reviewer] | None = field(default=None, init=False)
 
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
