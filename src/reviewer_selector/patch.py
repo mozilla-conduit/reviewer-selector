@@ -71,8 +71,9 @@ class Patch:
 class PatchSource(metaclass=ABCMeta):
     """An interface for something able to produce Patch data."""
 
+    @property
     @abstractmethod
-    def fetch_patch(self) -> str:
+    def patch(self) -> str:
         """Return a patch from this source."""
 
     @abstractmethod
@@ -91,7 +92,8 @@ class StdinPatchSource(PatchSource):
     _patch: str | None = None
 
     @override
-    def fetch_patch(self) -> str:
+    @property
+    def patch(self) -> str:
         if self._patch is None:
             self._patch = sys.stdin.read()
         return self._patch
@@ -102,8 +104,7 @@ class StdinPatchSource(PatchSource):
 
         If the patch hasn't been read yet, do it now.
         """
-        patch = self.fetch_patch()
-        for line in patch.splitlines():
+        for line in self.patch.splitlines():
             if line.startswith(self.SUBJECT):
                 return line.removeprefix(self.SUBJECT)
 

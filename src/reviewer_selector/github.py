@@ -139,8 +139,9 @@ class GitHubApiObject(metaclass=ABCMeta):
 class GitHubPatchSource(PatchSource):
     _pr: "GitHubPR"
 
+    @property
     @override
-    def fetch_patch(self) -> str:
+    def patch(self) -> str:
         resp = self._pr.fetch(self._pr.patch_url)
         resp.raise_for_status()
         return resp.text
