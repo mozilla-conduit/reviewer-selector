@@ -98,7 +98,7 @@ def test_stdin_patch_source(monkeypatch: pytest.MonkeyPatch, sample_patch: str):
     monkeypatch.setattr("sys.stdin", io.StringIO(sample_patch))
     patch_source = StdinPatchSource()
 
-    assert patch_source.fetch_patch() == sample_patch
+    assert patch_source.patch == sample_patch
     assert (
         patch_source.get_patch_subject()
         == "[PATCH] patch: support parsing r? from subject line r?#ent:lando-reviewers! (bug 2023719)"
@@ -109,7 +109,7 @@ def test_stdin_patch_source_diff(monkeypatch: pytest.MonkeyPatch, sample_diff: s
     monkeypatch.setattr("sys.stdin", io.StringIO(sample_diff))
     patch_source = StdinPatchSource()
 
-    assert patch_source.fetch_patch() == sample_diff
+    assert patch_source.patch == sample_diff
     assert patch_source.get_patch_subject() == "", (
         "A subject-less diff should be accepted without error"
     )

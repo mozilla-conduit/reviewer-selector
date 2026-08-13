@@ -1,3 +1,4 @@
+from unittest.mock import PropertyMock
 import io
 import logging
 import pathlib
@@ -194,11 +195,13 @@ def test_github(
 
 
 @mock.patch("reviewer_selector.GitHubPR.fetch_rules")
-@mock.patch("reviewer_selector.github.GitHubPatchSource.fetch_patch")
+@mock.patch(
+    "reviewer_selector.github.GitHubPatchSource.patch", new_callable=PropertyMock
+)
 @mock.patch("reviewer_selector.Rules.collect_reviewers")
 def test_github_repo_added(
     mock_collect_reviewers: mock.Mock,
-    mock_fetch_patch: mock.Mock,
+    mock_patch: mock.Mock,
     mock_fetch_rules: mock.Mock,
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
@@ -211,7 +214,7 @@ def test_github_repo_added(
     rules_resp.status_code = 404
     mock_fetch_rules.return_value = rules_resp
 
-    mock_fetch_patch.return_value = sample_diff
+    mock_patch.return_value = sample_diff
 
     _run_cli(
         [
