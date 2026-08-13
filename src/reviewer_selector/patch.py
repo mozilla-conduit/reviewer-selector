@@ -1,3 +1,4 @@
+from functools import cached_property
 import logging
 import re
 import sys
@@ -92,14 +93,10 @@ class StdinPatchSource(PatchSource):
 
     SUBJECT: str = "Subject: "
 
-    _patch: str | None = None
-
+    @cached_property
     @override
-    @property
     def patch(self) -> str:
-        if self._patch is None:
-            self._patch = sys.stdin.read()
-        return self._patch
+        return sys.stdin.read()
 
     @override
     def get_patch_subject(self) -> str:
