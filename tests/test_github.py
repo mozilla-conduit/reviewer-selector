@@ -406,6 +406,48 @@ def test_github_reviewable_add_reviewers_noretry(
         assert mock_post.call_count == 1
 
 
+@pytest.mark.parametrize("failure", (False, True))
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable_report_info(
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    caplog: pytest.LogCaptureFixture,
+    failure: bool,
+):
+    with configurable_mocked_github_request() as mock:
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        issue_comment_url = (
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/issues/18/comments"
+        )
+
+        if failure:
+            mock.mock_post_issue_comment = mock.post(
+                issue_comment_url,
+                status_code=422,
+            )
+        else:
+            mock.mock_post_issue_comment = mock.post(
+                issue_comment_url,
+                status_code=201,
+                text="{}",
+            )
+
+        gh.reviewable.report_info("info report")
+
+        if failure:
+            assert "Failed to report" in caplog.text
+            return
+
+        assert mock.mock_post_issue_comment.call_count == 1, (
+            "New comment wasn't created"
+        )
+
+
 @pytest.mark.parametrize(
     "type,existing,failure",
     tuple(itertools.product(("warning", "error"), (False, True), (False, True))),
@@ -419,7 +461,6 @@ def test_github_reviewable_reports(
     existing: bool,
     failure: bool,
 ):
-
     with configurable_mocked_github_request() as mock:
         gh = GitHubPR(
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
@@ -440,21 +481,20 @@ def test_github_reviewable_reports(
                 check_url,
                 json={"check_runs": [{"id": check_id}]},
             )
+            mock.mock_patch_check_run = mock.patch(
+                f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs/{check_id}",
+                json=FIXME,
+            )
 
         else:
             mock.mock_get_check_run = mock.get(
                 check_url,
                 json={"check_runs": []},
             )
-
-        mock.mock_patch_check_run = mock.patch(
-            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs/{check_id}",
-            json={"check_runs": [{"id": 4}]},
-        )
-        mock.mock_post_check_run = mock.post(
-            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs",
-            json={"check_runs": [{"id": 4}]},
-        )
+            mock.mock_post_check_run = mock.post(
+                f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs",
+                json=FIXME,
+            )
 
         if type == "warning":
             gh.reviewable.report_warning(f"{type} report")

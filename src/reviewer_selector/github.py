@@ -299,6 +299,7 @@ class GitHubReviewable(Reviewable):
         except Exception as exc:
             logger.warning(f"Failed to report {conclusion} `{message}` on PR: {exc}")
 
+
 @final
 class GitHubPR(GitHubApiObject):
     URL_RE = re.compile(
