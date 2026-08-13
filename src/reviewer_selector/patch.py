@@ -1,9 +1,10 @@
-from functools import cached_property
+import email
 import logging
 import re
 import sys
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
+from functools import cached_property
 from typing import Any, override
 
 import rs_parsepatch
@@ -91,8 +92,6 @@ class StdinPatchSource(PatchSource):
     The patch is only read once, on the first request to the object's methods.
     """
 
-    SUBJECT: str = "Subject: "
-
     @cached_property
     @override
     def patch(self) -> str:
@@ -104,8 +103,12 @@ class StdinPatchSource(PatchSource):
 
         If the patch hasn't been read yet, do it now.
         """
-        for line in self.patch.splitlines():
-            if line.startswith(self.SUBJECT):
-                return line.removeprefix(self.SUBJECT)
+        if s := self._patch_email["subject"]:
+            return s
 
         return ""
+
+    @cached_property
+    def _patch_email(self) -> email.message.Message:
+        patch_email = email.message_from_string(self.patch, policy=email.policy.default)
+        return patch_email
