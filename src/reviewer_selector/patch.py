@@ -1,8 +1,8 @@
-from abc import ABCMeta, abstractmethod
-from collections.abc import Iterable, Mapping, Sequence
 import logging
 import re
 import sys
+from abc import ABCMeta, abstractmethod
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, override
 
 import rs_parsepatch
@@ -54,9 +54,12 @@ class Patch:
             is_blocking = BLOCKING_MARKER in r
             name = r.removeprefix(GROUP_MARKER).removesuffix(BLOCKING_MARKER)
             reviewers.add(Reviewer(name=name, is_group=is_group, blocking=is_blocking))
-        logger.info(
-            f"Reviewers from commit message: {', '.join(subject_reviewers)} ..."
-        )
+
+        if not subject_reviewers:
+            logger.debug("No reviewers requested in commit message")
+            return reviewers
+
+        logger.info(f"Reviewers from commit message: {', '.join(subject_reviewers)}")
 
         return reviewers
 
