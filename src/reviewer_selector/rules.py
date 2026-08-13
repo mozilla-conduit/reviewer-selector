@@ -1,12 +1,11 @@
-from collections.abc import Iterable, Mapping
 import json
 import logging
 import re
+from collections.abc import Iterable, Mapping, Sized
 from typing import Any, Self
 
 from reviewer_selector.patch import Patch
 from reviewer_selector.review import Reviewer
-
 
 RulesData = Mapping[str, Any]
 Rule = Mapping[str, Any]
@@ -14,7 +13,7 @@ Rule = Mapping[str, Any]
 logger = logging.getLogger(__name__)
 
 
-class Rules:
+class Rules(Sized):
     """Representation of Phabricator Herald Rules."""
 
     _rules: RulesData

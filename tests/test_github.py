@@ -140,7 +140,7 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
 
 
 @pytest.mark.parametrize(
-    "initial_reviewers,new_reviewers,expected_post_call_count",
+    "initial_reviewers,new_reviewers,expected_post_call_count,expected_get_call_count",
     (
         (
             (),
@@ -150,6 +150,9 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
                 Reviewer("fluent-reviewers", True),
                 Reviewer("ent:fluent-reviewers", True),
             ),
+            # Only new reviewers.
+            1,
+            # One check before adding new reviewers.
             1,
         ),
         (
@@ -161,6 +164,9 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
                 Reviewer("jsmith", False),
                 Reviewer("ent:fluent-reviewers", True),
             ),
+            # Initial + new reviewers.
+            2,
+            # One check before adding new reviewers.
             1,
         ),
         (
@@ -171,7 +177,10 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
                 Reviewer("ent:fluent-reviewers", True),
             ),
             (),
-            0,
+            # Only initial reviewers.
+            1,
+            # One check before adding new reviewers.
+            1,
         ),
     ),
 )
@@ -182,13 +191,9 @@ def test_github_reviewable(
     initial_reviewers: list[Reviewer],
     new_reviewers: list[Reviewer],
     expected_post_call_count: int,
+    expected_get_call_count: int,
 ):
-    initial_users = [r.name for r in initial_reviewers if not r.is_group]
-    initial_teams = [r.name for r in initial_reviewers if r.is_group]
-
-    with configurable_mocked_github_request(
-        initial_reviewers=initial_users, initial_team_reviewers=initial_teams
-    ) as mock:
+    with configurable_mocked_github_request() as mock:
         gh = GitHubPR(
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
@@ -196,7 +201,16 @@ def test_github_reviewable(
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
         all_reviewers = set(initial_reviewers + new_reviewers)
 
+        gh.reviewable.add_reviewers(initial_reviewers)
+
         gh.reviewable.add_new_reviewers(all_reviewers)
+
+        assert mock.requested_reviewers_post.call_count == expected_post_call_count, (
+            "Unexpected number of POST requests to requested_reviewers"
+        )
+        assert mock.requested_reviewers_get.call_count == expected_get_call_count, (
+            "Unexpected number of GET requests to requested_reviewers"
+        )
 
         if expected_post_call_count > 0:
             assert (
@@ -214,6 +228,7 @@ def test_github_reviewable(
                 ]
             ), "Incorrect X-GitHub-Api-Version header in request"
 
+        if expected_post_call_count > 1:
             # Make sure new reviewers were requested.
             for user_name in [r.name for r in new_reviewers if not r.is_group]:
                 assert (
@@ -226,7 +241,7 @@ def test_github_reviewable(
                     in mock.requested_reviewers_post.last_request.json()[
                         "team_reviewers"
                     ]
-                ), "Missing reviewer group in request: {group_name}"
+                ), f"Missing reviewer group in request: {group_name}"
 
             # Make user existing reviewers weren't re-requested.
             for user_name in [r.name for r in initial_reviewers if not r.is_group]:
@@ -254,11 +269,14 @@ def test_github_reviewable(
                 f"Missing group reviewer: {group.name}"
             )
 
-        # Expectations: 1 only if new reviewers are added.
-        assert mock.requested_reviewers_post.call_count == expected_post_call_count, (
-            "Unexpected number of POST requests to requested_reviewers"
+        # When we run this a second time, no new network requests should happen.
+        mock.requested_reviewers_post.reset()
+        mock.requested_reviewers_get.reset()
+        gh.reviewable.add_new_reviewers(all_reviewers)
+
+        assert mock.requested_reviewers_post.call_count == 0, (
+            "Unexpected new POST requests to requested_reviewers on NOOP request"
         )
-        # Expectations: 1 initial request + 1 refreshed after adding reviewers
-        assert (
-            mock.requested_reviewers_get.call_count == expected_post_call_count + 1
-        ), "Unexpected number of GET requests to requested_reviewers"
+        assert mock.requested_reviewers_get.call_count == 0, (
+            "Unexpected number of GET requests to requested_reviewers on NOOP request"
+        )

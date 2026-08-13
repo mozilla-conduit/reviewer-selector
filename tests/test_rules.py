@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+
 from reviewer_selector.review import Reviewer
 from reviewer_selector.rules import Rules, RulesData
 
@@ -22,7 +23,7 @@ from reviewer_selector.rules import Rules, RulesData
         ),
     ),
 )
-def test_rules_length(rules: list[RulesData]):
+def test_rules_length(rules: RulesData):
     assert len(Rules(rules)) == len(rules), (
         "Length of Rules doesn't match underlying data"
     )
