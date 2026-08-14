@@ -1,5 +1,5 @@
 from .cli import cli
-from .github import GitHubApp, GitHubPR, GitHubPatchSource, GitHubReviewable
+from .github import GitHubApp, GitHubPatchSource, GitHubPR, GitHubReviewable
 from .patch import Patch, PatchSource, StdinPatchSource
 from .review import Reviewable, StdoutReviewable, UserResolver
 from .rules import Rules

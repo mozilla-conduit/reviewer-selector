@@ -1,9 +1,9 @@
+import logging
 import sys
 from abc import ABCMeta, abstractmethod
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass
-import logging
-from typing import Callable, override
+from typing import override
 
 UserMap = Mapping[str, Mapping[str, str]]
 

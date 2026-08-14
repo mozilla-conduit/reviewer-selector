@@ -1,22 +1,19 @@
 import argparse
 import logging
-from collections.abc import Iterable
 import os
+from collections.abc import Iterable
 
-
-from reviewer_selector.patch import PatchSource
-from reviewer_selector.taskcluster import Taskcluster
 from reviewer_selector.github import GitHubPR
-from reviewer_selector.patch import Patch, StdinPatchSource
+from reviewer_selector.patch import Patch, PatchSource, StdinPatchSource
 from reviewer_selector.review import (
+    MappingUserResolver,
     Reviewable,
     Reviewer,
     StdoutReviewable,
-    MappingUserResolver,
     UserResolver,
 )
 from reviewer_selector.rules import Rules
-
+from reviewer_selector.taskcluster import Taskcluster
 
 logger = logging.getLogger(__name__)
 
