@@ -47,21 +47,35 @@ class Reviewable(metaclass=ABCMeta):
     def reviewers(self) -> Iterable[Reviewer]:
         """Get all reviewers assigned to this Reviewable."""
 
-    def add_new_reviewers(self, reviewers: Iterable[Reviewer]):
-        """Add reviewers from the list, who are not already requested."""
+    def add_new_reviewers(self, reviewers: Iterable[Reviewer]) -> tuple[int, bool]:
+        """Add reviewers from the list, who are not already requested.
+
+        Returns: tuple[int, bool]
+
+            * The number of new reviewers successfully added.
+            * Whether all new reviewers were successfully added.
+        """
         current_reviewers = set(self.reviewers)
         new_reviewers = [r for r in reviewers if r not in current_reviewers]
 
         if not new_reviewers:
             logger.info("No new reviewers to add")
-            return
+            return (0, True)
 
         logger.info(f"Adding new reviewers: {new_reviewers} ...")
-        self.add_reviewers(new_reviewers)
+        added = self.add_reviewers(new_reviewers)
+
+        return (added, added == len(new_reviewers))
 
     @abstractmethod
-    def add_reviewers(self, reviewers: Iterable[Reviewer]):
-        """Set reviewers on the target."""
+    def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
+        """Set reviewers on the target.
+
+        Returns: int
+
+            The number of reviewers successfully added (<= len(reviewers)),
+            regardless of previous status.
+        """
 
 
 class InMemoryReviewable(Reviewable):
@@ -72,12 +86,15 @@ class InMemoryReviewable(Reviewable):
     @property
     @override
     def reviewers(self) -> Iterable[Reviewer]:
+        """Get all reviewers assigned to this Reviewable."""
         return self._reviewers or set()
 
     @override
-    def add_reviewers(self, reviewers: Iterable[Reviewer]):
+    def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
         """Set reviewers on the target."""
         self._reviewers = set(self.reviewers) | set(reviewers)
+
+        return len(list(reviewers))
 
 
 class StdoutReviewable(InMemoryReviewable):
@@ -91,7 +108,8 @@ class StdoutReviewable(InMemoryReviewable):
         self.blocking_suffix = blocking_suffix
 
     @override
-    def add_reviewers(self, reviewers: Iterable[Reviewer]):
+    def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
+        """Set reviewers on the target."""
         print(
             self.reviewer_separator.join(
                 sorted(
@@ -101,7 +119,7 @@ class StdoutReviewable(InMemoryReviewable):
             ),
             file=sys.stdout,
         )
-        super().add_reviewers(reviewers)
+        return super().add_reviewers(reviewers)
 
 
 class UserResolver(metaclass=ABCMeta):

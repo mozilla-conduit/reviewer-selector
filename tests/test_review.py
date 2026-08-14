@@ -91,10 +91,11 @@ def test_stdout_reviewable_add_reviewers(capsys: pytest.CaptureFixture):
 
     r = Reviewer("bob")
 
-    sr.add_reviewers([r])
+    added = sr.add_reviewers([r])
 
     outerr = capsys.readouterr()
 
+    assert added == 1
     assert r in sr.reviewers
     assert outerr.out.strip() == "bob"
 
@@ -106,8 +107,11 @@ def test_stdout_reviewable_add_new_reviewers():
     sr.add_reviewers([alice])
 
     sr.add_reviewers = mock.MagicMock()
+    sr.add_reviewers.return_value = 1
 
     bob = Reviewer("bob")
-    sr.add_new_reviewers([alice, bob])
+    added, all_added = sr.add_new_reviewers([alice, bob])
 
     sr.add_reviewers.assert_called_with([bob])
+    assert added == 1
+    assert all_added
