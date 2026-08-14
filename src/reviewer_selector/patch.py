@@ -1,8 +1,8 @@
-from abc import ABCMeta, abstractmethod
-from collections.abc import Iterable, Mapping, Sequence
 import logging
 import re
 import sys
+from abc import ABCMeta, abstractmethod
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, override
 
 import rs_parsepatch

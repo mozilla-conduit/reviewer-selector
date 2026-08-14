@@ -1,12 +1,12 @@
 import io
+import json
 import logging
 import pathlib
 import re
 import sys
-
-import json
 from typing import Any
 from unittest import mock
+
 import pytest
 import requests
 from requests_mock import Mocker
@@ -148,15 +148,6 @@ def test_subject_reviewer_blocking(
     assert not re.search(r"@ent:lando-reviewers[\w$]", outerr.out), (
         "Duplicated non-blocking reviewer found"
     )
-
-
-@pytest.fixture(autouse=True)
-def hide_github_tokens(
-    monkeypatch: pytest.MonkeyPatch,
-):
-    """Shield the tests from real GitHub env variables."""
-    monkeypatch.setenv("GITHUB_TOKEN", "")
-    monkeypatch.setenv("GH_TOKEN", "")
 
 
 def test_github(

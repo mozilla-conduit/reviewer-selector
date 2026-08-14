@@ -1,4 +1,3 @@
-from requests.models import HTTPError
 import asyncio
 import logging
 import re
@@ -9,6 +8,7 @@ from functools import cached_property, wraps
 from typing import Any, final, override
 
 import requests
+from requests.models import HTTPError
 from simple_github import AppAuth, AppInstallationAuth
 
 from reviewer_selector.patch import PatchSource
@@ -173,6 +173,12 @@ class GitHubReviewable(Reviewable):
             else:
                 requested_reviewers["reviewers"].append(r.name)
 
+        if (
+            not requested_reviewers["team_reviewers"]
+            and not requested_reviewers["reviewers"]
+        ):
+            return
+
         try:
             self._pr.authenticated_api_request(
                 "/requested_reviewers", "POST", requested_reviewers
@@ -197,8 +203,11 @@ class GitHubReviewable(Reviewable):
                 raise
 
         # Invalidate cached_property.
-        if hasattr(self, "reviewers"):
+        try:
             del self.reviewers
+        except AttributeError:
+            # There was no cache.
+            pass
 
     @cached_property
     @override  # From Reviewable.

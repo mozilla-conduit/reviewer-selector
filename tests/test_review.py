@@ -1,8 +1,9 @@
-import pytest
 from unittest import mock
 
+import pytest
+
 from reviewer_selector import StdoutReviewable
-from reviewer_selector.review import Reviewer, MappingUserResolver
+from reviewer_selector.review import MappingUserResolver, Reviewer
 
 
 def test_reviewer_hashable():
@@ -95,7 +96,7 @@ def test_stdout_reviewable_add_reviewers(capsys: pytest.CaptureFixture):
     outerr = capsys.readouterr()
 
     assert r in sr.reviewers
-    assert "bob" in outerr.out
+    assert outerr.out.strip() == "bob"
 
 
 def test_stdout_reviewable_add_new_reviewers():
