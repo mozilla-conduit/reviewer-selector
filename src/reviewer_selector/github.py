@@ -139,11 +139,16 @@ class GitHubApiObject(metaclass=ABCMeta):
 class GitHubPatchSource(PatchSource):
     _pr: "GitHubPR"
 
+    @property
     @override
-    def fetch_patch(self) -> str:
+    def patch(self) -> str:
         resp = self._pr.fetch(self._pr.patch_url)
         resp.raise_for_status()
         return resp.text
+
+    @override
+    def get_patch_subject(self) -> str:
+        return self._pr.metadata.get("title", "")
 
 
 @dataclass
@@ -294,10 +299,10 @@ class GitHubPR(GitHubApiObject):
 
     @property
     def target_branch_name(self) -> str:
-        return self._metadata["base"]["ref"]
+        return self.metadata["base"]["ref"]
 
     @cached_property
-    def _metadata(self) -> dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """Return PR metadata, fetching it if needed."""
         return self.api_request()
 

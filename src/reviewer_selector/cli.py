@@ -1,22 +1,19 @@
 import argparse
 import logging
-from collections.abc import Iterable
 import os
+from collections.abc import Iterable
 
-
-from reviewer_selector.patch import PatchSource
-from reviewer_selector.taskcluster import Taskcluster
 from reviewer_selector.github import GitHubPR
-from reviewer_selector.patch import Patch, StdinPatchSource
+from reviewer_selector.patch import Patch, PatchSource, StdinPatchSource
 from reviewer_selector.review import (
+    MappingUserResolver,
     Reviewable,
     Reviewer,
     StdoutReviewable,
-    MappingUserResolver,
     UserResolver,
 )
 from reviewer_selector.rules import Rules
-
+from reviewer_selector.taskcluster import Taskcluster
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +47,11 @@ def cli() -> None:
 
         reviewable = gh_reviewable or reviewable
 
-    patch = Patch(patch_source.fetch_patch())
+    patch = Patch(patch_source.patch, patch_source.get_patch_subject())
 
-    reviewers: Iterable[Reviewer] = rules.collect_reviewers(patch, repos)
+    reviewers = Reviewer.flatten_blocking(
+        set(patch.get_subject_reviewers()) | set(rules.collect_reviewers(patch, repos))
+    )
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 

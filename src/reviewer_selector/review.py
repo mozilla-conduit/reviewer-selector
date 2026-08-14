@@ -1,8 +1,9 @@
-from abc import ABCMeta, abstractmethod
-from collections.abc import Iterable, Mapping
-from dataclasses import asdict, dataclass
 import logging
-from typing import Callable, Self, override
+import sys
+from abc import ABCMeta, abstractmethod
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import asdict, dataclass
+from typing import override
 
 UserMap = Mapping[str, Mapping[str, str]]
 
@@ -13,14 +14,29 @@ logger = logging.getLogger(__name__)
 class Reviewer:
     name: str
     is_group: bool = False
+    blocking: bool = False
 
-    def mutate(self, **kwargs) -> Self:
+    def mutate(self, **kwargs) -> "Reviewer":
         """Return a mutated Reviewer based on the current instance."""
         values = asdict(self)
 
         values.update(**kwargs)
 
         return Reviewer(**values)
+
+    @staticmethod
+    def flatten_blocking(reviewers: Iterable["Reviewer"]) -> Iterable["Reviewer"]:
+        """Flatten a set of reviewers by only preserving blocking ones in case of
+        duplicates."""
+        reviewers = set(reviewers)
+        reviewers_list = list(reviewers)
+        for r in reversed(reviewers_list):
+            if r.blocking:
+                continue
+            if r.mutate(blocking=True) in reviewers:
+                reviewers_list.remove(r)
+
+        return set(reviewers_list)
 
 
 class Reviewable(metaclass=ABCMeta):
@@ -68,13 +84,23 @@ class StdoutReviewable(InMemoryReviewable):
     """A Reviewable implementation outputting reviewers to STDOUT."""
 
     reviewer_separator: str
+    blocking_suffix: str
 
-    def __init__(self, reviewer_separator: str = ","):
+    def __init__(self, reviewer_separator: str = ",", blocking_suffix: str = "!"):
         self.reviewer_separator = reviewer_separator
+        self.blocking_suffix = blocking_suffix
 
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]):
-        print(self.reviewer_separator.join(sorted(r.name for r in reviewers)))
+        print(
+            self.reviewer_separator.join(
+                sorted(
+                    r.name + (self.blocking_suffix if r.blocking else "")
+                    for r in reviewers
+                )
+            ),
+            file=sys.stdout,
+        )
         super().add_reviewers(reviewers)
 
 
@@ -139,5 +165,5 @@ class MappingUserResolver(UserResolver):
                 mapped = self._user_map[r.name]["username"]
                 logger.debug(f"Resolved {r.name} to {mapped}")
 
-            result.add(Reviewer(mapped, r.is_group))
+            result.add(Reviewer(mapped, r.is_group, r.blocking))
         return result

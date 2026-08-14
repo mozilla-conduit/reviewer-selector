@@ -1,16 +1,18 @@
 import io
+import json
 import logging
 import pathlib
 import sys
-
-import json
 from typing import Any
 from unittest import mock
+from unittest.mock import PropertyMock
+
 import pytest
 import requests
 from requests_mock import Mocker
 
 from reviewer_selector import cli
+from reviewer_selector.review import Reviewer
 
 MAIN_SCRIPT = "reviewer-selector"
 
@@ -35,7 +37,7 @@ def test_full_flow(
 
     outerr = _run_cli([rules_path], sample_diff, capsys)
 
-    assert "#fluent-reviewers" in outerr.out
+    assert outerr.out.strip() == "#ent:fluent-reviewers #fluent-reviewers"
 
 
 @pytest.mark.parametrize(
@@ -78,7 +80,7 @@ def test_repo_filter(
         capsys,
     )
 
-    assert "jsmith-gh" in outerr.out
+    assert outerr.out.strip() == "jsmith-gh"
 
 
 def test_group_prefix(
@@ -95,7 +97,54 @@ def test_group_prefix(
         capsys,
     )
 
-    assert "@fluent-reviewers" in outerr.out
+    assert outerr.out.strip() == "@ent:fluent-reviewers @fluent-reviewers"
+
+
+def test_subject_reviewer(
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_patch: str,
+    sample_rules_data: dict[str, Any],
+):
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    outerr = _run_cli(
+        [rules_path, "--group-prefix", "@"],
+        sample_patch,
+        capsys,
+    )
+
+    assert outerr.out.strip() == "@ent:lando-reviewers!"
+
+
+@mock.patch("reviewer_selector.patch.Patch.get_subject_reviewers")
+@mock.patch("reviewer_selector.rules.Rules.collect_reviewers")
+def test_subject_reviewer_blocking(
+    mock_rules_collect_reviewers: mock.Mock,
+    mock_patch_get_subject_reviewers: mock.Mock,
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_patch: str,
+    sample_rules_data: dict[str, Any],
+):
+    """Test that blocking and non-blocking requests for the same reviewer are flattened
+    to only a blocking one."""
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    mock_patch_get_subject_reviewers.return_value = {
+        Reviewer("ent:lando-reviewers", is_group=True, blocking=False)
+    }
+    mock_rules_collect_reviewers.return_value = {
+        Reviewer("ent:lando-reviewers", is_group=True, blocking=True)
+    }
+
+    outerr = _run_cli(
+        [rules_path, "--group-prefix", "@"],
+        sample_patch,
+        capsys,
+    )
+
+    assert outerr.out.strip() == "@ent:lando-reviewers!"
 
 
 def test_github(
@@ -125,19 +174,21 @@ def test_github(
             capsys,
         )
 
-    assert "fluent-reviewers" in outerr.out
-    assert "ent:fluent-reviewers" in outerr.out
+    assert outerr.out.strip() == "ent:fluent-reviewers fluent-reviewers"
+    # Redundant assertion, but make this contract explicit.
     assert "/ent:fluent-reviewers" not in outerr.out, (
         "Enterprise team name should have been normalised"
     )
 
 
 @mock.patch("reviewer_selector.GitHubPR.fetch_rules")
-@mock.patch("reviewer_selector.github.GitHubPatchSource.fetch_patch")
+@mock.patch(
+    "reviewer_selector.github.GitHubPatchSource.patch", new_callable=PropertyMock
+)
 @mock.patch("reviewer_selector.Rules.collect_reviewers")
 def test_github_repo_added(
     mock_collect_reviewers: mock.Mock,
-    mock_fetch_patch: mock.Mock,
+    mock_patch: mock.Mock,
     mock_fetch_rules: mock.Mock,
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
@@ -150,7 +201,7 @@ def test_github_repo_added(
     rules_resp.status_code = 404
     mock_fetch_rules.return_value = rules_resp
 
-    mock_fetch_patch.return_value = sample_diff
+    mock_patch.return_value = sample_diff
 
     _run_cli(
         [

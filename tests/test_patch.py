@@ -1,4 +1,12 @@
+from textwrap import dedent
+import io
+import re
+
+import pytest
+
+from reviewer_selector import StdinPatchSource
 from reviewer_selector.patch import Patch
+from reviewer_selector.review import Reviewer
 
 
 def test_patch_extracts_file_paths(sample_diff: str):
@@ -18,3 +26,109 @@ def test_patch_empty_diff():
     patch = Patch("")
     files = patch.get_changed_files()
     assert files == []
+
+
+@pytest.mark.parametrize(
+    "subject,expected",
+    (
+        ("a commit message", []),
+        ("a commit message r=bob", ["bob"]),
+        ("a commit message r?bob", ["bob"]),
+        ("a commit message r=#bob", ["#bob"]),
+        ("a commit message r?#bob!", ["#bob!"]),
+        ("a commit message r=bob,#alice!", ["bob", "#alice!"]),
+        (
+            "a commit message r?#ent:infra-testing-reviewers,alice!,bob",
+            ["#ent:infra-testing-reviewers", "alice!", "bob"],
+        ),
+        (
+            "a commit message r=#ent:infra-testing-reviewers,alice!,bob",
+            ["#ent:infra-testing-reviewers", "alice!", "bob"],
+        ),
+    ),
+)
+def test_parse_subject_reviewers(subject: str, expected: list[str]):
+    assert Patch.parse_subject_reviewers(subject) == expected
+
+
+@pytest.mark.parametrize(
+    "subject,expected",
+    (
+        ("a commit message", set()),
+        ("a commit message r=bob", {Reviewer("bob")}),
+        ("a commit message r?bob", {Reviewer("bob")}),
+        ("a commit message r=#bob", {Reviewer("bob", is_group=True)}),
+        (
+            "a commit message r?#bob!",
+            {Reviewer("bob", is_group=True, blocking=True)},
+        ),
+        (
+            "a commit message r=bob,#alice!",
+            {Reviewer("bob"), Reviewer("alice", is_group=True, blocking=True)},
+        ),
+        (
+            "a commit message r?#ent:infra-testing-reviewers,alice!,bob",
+            {
+                Reviewer("ent:infra-testing-reviewers", is_group=True),
+                Reviewer("alice", blocking=True),
+                Reviewer("bob"),
+            },
+        ),
+        (
+            "a commit message r=#ent:infra-testing-reviewers,alice!,bob",
+            {
+                Reviewer("ent:infra-testing-reviewers", is_group=True),
+                Reviewer("alice", blocking=True),
+                Reviewer("bob"),
+            },
+        ),
+        (
+            "reviewer=alice r=#ent:infra-testing-reviewers,bob",
+            {
+                Reviewer("ent:infra-testing-reviewers", is_group=True),
+                Reviewer("bob"),
+            },
+        ),
+    ),
+)
+def test_get_subject_reviewers(subject: str, expected: list[Reviewer]):
+    patch = Patch("", subject)
+    assert patch.get_subject_reviewers() == expected
+
+
+def test_stdin_patch_source(monkeypatch: pytest.MonkeyPatch, sample_patch: str):
+    monkeypatch.setattr("sys.stdin", io.StringIO(sample_patch))
+    patch_source = StdinPatchSource()
+
+    assert patch_source.patch == sample_patch
+    assert (
+        patch_source.get_patch_subject()
+        == "[PATCH] patch: support parsing r? from subject line r?#ent:lando-reviewers! (bug 2023719)"
+    )
+
+
+def test_stdin_patch_source_long_subject(
+    monkeypatch: pytest.MonkeyPatch, sample_patch: str
+):
+    long_subject = dedent("""\
+        [PATCH] very very very very very very very very very very very very
+         very very very very very very very very long patch: support parsing r? from
+         subject line r?#ent:lando-reviewers! (bug 2023719)
+    """)
+
+    sample_patch = re.sub("Subject: .*", f"Subject: {long_subject}", sample_patch)
+    monkeypatch.setattr("sys.stdin", io.StringIO(sample_patch))
+    patch_source = StdinPatchSource()
+
+    assert patch_source.patch == sample_patch
+    assert patch_source.get_patch_subject() == "".join(long_subject.splitlines())
+
+
+def test_stdin_patch_source_diff(monkeypatch: pytest.MonkeyPatch, sample_diff: str):
+    monkeypatch.setattr("sys.stdin", io.StringIO(sample_diff))
+    patch_source = StdinPatchSource()
+
+    assert patch_source.patch == sample_diff
+    assert patch_source.get_patch_subject() == "", (
+        "A subject-less diff should be accepted without error"
+    )

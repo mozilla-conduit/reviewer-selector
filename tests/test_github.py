@@ -50,7 +50,11 @@ def test_github_patch_source(mocked_github_request: Mocker):
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
 
-        assert gh.patch_source.fetch_patch() == patch_text, "Unexpected patch text"
+        assert (
+            gh.patch_source.get_patch_subject()
+            == "reviewer_selector: add GitHub Site support (bug 2030600)"
+        ), "Unexpected patch subject"
+        assert gh.patch_source.patch == patch_text, "Unexpected patch text"
 
 
 def test_github_rules_caching(mocked_github_request: Mocker, sample_rules_data: dict):
