@@ -147,15 +147,6 @@ def test_subject_reviewer_blocking(
     assert outerr.out.strip() == "@ent:lando-reviewers!"
 
 
-@pytest.fixture(autouse=True)
-def hide_github_tokens(
-    monkeypatch: pytest.MonkeyPatch,
-):
-    """Shield the tests from real GitHub env variables."""
-    monkeypatch.setenv("GITHUB_TOKEN", "")
-    monkeypatch.setenv("GH_TOKEN", "")
-
-
 def test_github(
     tmp_path: pathlib.Path,
     mocked_github_request: Mocker,
