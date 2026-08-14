@@ -26,8 +26,7 @@ class Reviewer:
 
     @staticmethod
     def flatten_blocking(reviewers: Iterable["Reviewer"]) -> Iterable["Reviewer"]:
-        """Flatten a set of reviewers by only preserving blocking ones in case of
-        duplicates."""
+        """Flatten a set of reviewers by only preserving blocking ones in case of duplicates."""
         reviewers = set(reviewers)
         reviewers_list = list(reviewers)
         for r in reversed(reviewers_list):
@@ -92,9 +91,10 @@ class InMemoryReviewable(Reviewable):
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
         """Set reviewers on the target."""
-        self._reviewers = set(self.reviewers) | set(reviewers)
+        reviewers = set(reviewers)
+        self._reviewers = set(self.reviewers) | reviewers
 
-        return len(list(reviewers))
+        return len(reviewers)
 
 
 class StdoutReviewable(InMemoryReviewable):
@@ -110,6 +110,7 @@ class StdoutReviewable(InMemoryReviewable):
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
         """Set reviewers on the target."""
+        reviewers = list(reviewers)
         print(
             self.reviewer_separator.join(
                 sorted(
