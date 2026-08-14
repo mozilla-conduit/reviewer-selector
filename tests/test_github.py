@@ -205,9 +205,13 @@ def test_github_reviewable(
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
         all_reviewers = set(initial_reviewers + new_reviewers)
 
-        gh.reviewable.add_reviewers(initial_reviewers)
+        init_added = gh.reviewable.add_reviewers(initial_reviewers)
+        assert init_added == len(initial_reviewers)
 
-        gh.reviewable.add_new_reviewers(all_reviewers)
+        new_added, all_new_added = gh.reviewable.add_new_reviewers(all_reviewers)
+        assert new_added == len(set(new_reviewers) - set(initial_reviewers))
+        # We don't fail adding in this test.
+        assert all_new_added
 
         assert mock.requested_reviewers_post.call_count == expected_post_call_count, (
             "Unexpected number of POST requests to requested_reviewers"
@@ -276,7 +280,9 @@ def test_github_reviewable(
         # When we run this a second time, no new network requests should happen.
         mock.requested_reviewers_post.reset()
         mock.requested_reviewers_get.reset()
-        gh.reviewable.add_new_reviewers(all_reviewers)
+        new_added, all_new_added = gh.reviewable.add_new_reviewers(all_reviewers)
+        assert new_added == 0
+        assert all_new_added
 
         assert mock.requested_reviewers_post.call_count == 0, (
             "Unexpected new POST requests to requested_reviewers on NOOP request"

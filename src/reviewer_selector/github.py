@@ -157,7 +157,7 @@ class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
     @override
-    def add_reviewers(self, reviewers: Iterable[Reviewer]):
+    def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
         """Add reviewers from the list, who are not already requested.
 
         If an error from the server occurs, we retry to add one reviewer at a time.
@@ -174,33 +174,31 @@ class GitHubReviewable(Reviewable):
             else:
                 requested_reviewers["reviewers"].append(r.name)
 
-        if (
-            not requested_reviewers["team_reviewers"]
-            and not requested_reviewers["reviewers"]
-        ):
-            return
+        added = len(requested_reviewers["team_reviewers"]) + len(
+            requested_reviewers["reviewers"]
+        )
+        if not added:
+            return 0
 
         try:
             self._pr.authenticated_api_request(
                 "/requested_reviewers", "POST", requested_reviewers
             )
         except requests.HTTPError as exc:
-            added = False
-            if (
-                exc.response.status_code >= 400
-                and exc.response.status_code < 500
-                and len(list(reviewers)) > 1
-            ):
+            added = 0
+            if exc.response.status_code >= 400 and exc.response.status_code < 500:
                 logger.warning("Adding one reviewer at a time ...")
 
                 for r in reviewers:
                     try:
-                        self.add_reviewers([r])
-                        added = True
+                        self._pr.authenticated_api_request(
+                            "/requested_reviewers", "POST", [r]
+                        )
+                        added += 1
                     except HTTPError as exc:
                         logger.warning(f"Failed to add reviewer {r.name}: {exc}")
 
-            if not added:
+            if added == 0:
                 raise
 
         # Invalidate cached_property.
@@ -209,6 +207,8 @@ class GitHubReviewable(Reviewable):
         except AttributeError:
             # There was no cache.
             pass
+
+        return added
 
     @cached_property
     @override  # From Reviewable.
