@@ -1,12 +1,11 @@
-from collections.abc import Iterable, Mapping
 import json
 import logging
 import re
+from collections.abc import Iterable, Mapping, Sized
 from typing import Any, Self
 
 from reviewer_selector.patch import Patch
 from reviewer_selector.review import Reviewer
-
 
 RulesData = Mapping[str, Any]
 Rule = Mapping[str, Any]
@@ -14,13 +13,20 @@ Rule = Mapping[str, Any]
 logger = logging.getLogger(__name__)
 
 
-class Rules:
+class Rules(Sized):
     """Representation of Phabricator Herald Rules."""
 
     _rules: RulesData
 
     def __init__(self, rules: RulesData):
         self._rules = rules
+
+    def __len__(self) -> int:
+        """Forward length queries to the underlying data.
+
+        This allows an empty Rule-set to be falsey."""
+
+        return len(self._rules)
 
     @classmethod
     def from_file(cls, rules_file: str) -> Self:

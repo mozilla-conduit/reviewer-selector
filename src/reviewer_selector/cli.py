@@ -56,7 +56,7 @@ def cli() -> None:
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
-    reviewable.add_reviewers(resolved)
+    reviewable.add_new_reviewers(resolved)
 
 
 def create_github_objects(
