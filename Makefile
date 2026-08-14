@@ -20,7 +20,7 @@ requirements:
 .PHONY: test
 test: ARGS_TESTS?=
 test:
-	uv pip install --group dev
+	uv sync --group dev
 	uv run pytest ${ARGS_TESTS} tests/
 
 .PHONY: test-docker
