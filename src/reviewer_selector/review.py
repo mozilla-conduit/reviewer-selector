@@ -1,4 +1,5 @@
 import logging
+import sys
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass
@@ -97,7 +98,8 @@ class StdoutReviewable(InMemoryReviewable):
                     r.name + (self.blocking_suffix if r.blocking else "")
                     for r in reviewers
                 )
-            )
+            ),
+            file=sys.stdout,
         )
         super().add_reviewers(reviewers)
 

@@ -47,7 +47,7 @@ def cli() -> None:
 
         reviewable = gh_reviewable or reviewable
 
-    patch = Patch(patch_source.fetch_patch(), patch_source.get_patch_subject())
+    patch = Patch(patch_source.patch, patch_source.get_patch_subject())
 
     reviewers = Reviewer.flatten_blocking(
         set(patch.get_subject_reviewers()) | set(rules.collect_reviewers(patch, repos))
