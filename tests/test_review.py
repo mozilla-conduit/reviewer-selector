@@ -95,7 +95,7 @@ def test_stdout_reviewable_add_reviewers(capsys: pytest.CaptureFixture):
     outerr = capsys.readouterr()
 
     assert r in sr.reviewers
-    assert "bob" in outerr.out
+    assert outerr.out.strip() == "bob"
 
 
 def test_stdout_reviewable_add_new_reviewers():

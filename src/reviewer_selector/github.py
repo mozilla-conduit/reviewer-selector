@@ -167,13 +167,22 @@ class GitHubReviewable(Reviewable):
             else:
                 requested_reviewers["reviewers"].append(r.name)
 
+        if (
+            not requested_reviewers["team_reviewers"]
+            and not requested_reviewers["reviewers"]
+        ):
+            return
+
         self._pr.authenticated_api_request(
             "/requested_reviewers", "POST", requested_reviewers
         )
 
         # Invalidate cached_property.
-        if hasattr(self, "reviewers"):
+        try:
             del self.reviewers
+        except AttributeError:
+            # There was no cache.
+            pass
 
     @cached_property
     @override  # From Reviewable.
