@@ -654,7 +654,7 @@ def sample_rules_data() -> dict[str, Any]:
                     {
                         "type": "differential-affected-files",
                         "operator": "matches-regexp",
-                        "value": r"^remote/",
+                        "value": r"^/?remote/",
                     },
                     {
                         "type": "repository",
@@ -676,7 +676,7 @@ def sample_rules_data() -> dict[str, Any]:
                     {
                         "type": "differential-affected-files",
                         "operator": "matches-regexp",
-                        "value": r"^testing/",
+                        "value": r"^/?testing/",
                     },
                 ],
                 "actions": [

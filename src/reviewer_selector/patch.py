@@ -40,7 +40,7 @@ class Patch:
 
     def get_changed_files(self):
         """Get the list of modified file patchs."""
-        filenames = [d["filename"] for d in self._parsed_diffs]
+        filenames = ["/" + d["filename"] for d in self._parsed_diffs]
 
         logger.info(f"Considering filenames: {', '.join(filenames)} ...")
 
