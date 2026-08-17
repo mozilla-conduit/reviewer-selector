@@ -8,6 +8,16 @@ updates:
   cooldown:
     default-days: 7
   directory: "/"
+  groups:
+    production-dependencies:
+      applies-to: version-updates
+      dependency-type: "production"
+      update-types:
+          - patch
+          - minor
+    development-dependencies:
+      applies-to: version-updates
+      dependency-type: "development"
   open-pull-requests-limit: 99
   schedule:
     interval: monthly
