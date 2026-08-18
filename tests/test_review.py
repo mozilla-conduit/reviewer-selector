@@ -34,7 +34,7 @@ def test_reviewer_hashable():
     ),
 )
 def test_reviewer_flatten_blocking(input: set[Reviewer], expected: set[Reviewer]):
-    assert Reviewer.flatten_blocking(iter(input)) == expected, (
+    assert Reviewer.flatten_blocking(input) == expected, (
         "Blocking reviewers were incorrectly flattened"
     )
 
@@ -48,7 +48,7 @@ def test_user_resolves_user_with_map(sample_rules_data: dict):
         Reviewer("fluent-reviewers", True),
     }
 
-    resolved = resolver.resolve_reviewers(iter(reviewers))
+    resolved = resolver.resolve_reviewers(reviewers)
 
     assert Reviewer("jsmith-gh", False) in resolved
     assert Reviewer("IS_A_GROUP:fluent-reviewers", True) in resolved
@@ -60,7 +60,7 @@ def test_user_prefixes_groups(sample_rules_data: dict):
         Reviewer("fluent-reviewers", True),
     }
 
-    resolved = resolver.resolve_reviewers(iter(reviewers))
+    resolved = resolver.resolve_reviewers(reviewers)
 
     assert Reviewer("#fluent-reviewers", True) in resolved
 
@@ -71,7 +71,7 @@ def test_user_custom_group_prefix(sample_rules_data: dict):
         Reviewer("fluent-reviewers", True),
     }
 
-    resolved = resolver.resolve_reviewers(iter(reviewers))
+    resolved = resolver.resolve_reviewers(reviewers)
 
     assert Reviewer("@fluent-reviewers", True) in resolved
 
@@ -80,7 +80,7 @@ def test_user_mixed_users_and_groups(sample_rules_data: dict):
     resolver = MappingUserResolver()
     reviewers = {Reviewer("jsmith", False), Reviewer("fluent-reviewers", True)}
 
-    resolved = resolver.resolve_reviewers(iter(reviewers))
+    resolved = resolver.resolve_reviewers(reviewers)
 
     assert Reviewer("jsmith", False) in resolved
     assert Reviewer("#fluent-reviewers", True) in resolved
@@ -91,7 +91,7 @@ def test_stdout_reviewable_add_reviewers(capsys: pytest.CaptureFixture):
 
     r = Reviewer("bob")
 
-    added = sr.add_reviewers(iter([r]))
+    added = sr.add_reviewers([r])
 
     outerr = capsys.readouterr()
 
@@ -104,13 +104,13 @@ def test_stdout_reviewable_add_new_reviewers():
     sr = StdoutReviewable()
 
     alice = Reviewer("alice")
-    sr.add_reviewers(iter([alice]))
+    sr.add_reviewers([alice])
 
     sr.add_reviewers = mock.MagicMock()
     sr.add_reviewers.return_value = 1
 
     bob = Reviewer("bob")
-    status = sr.add_new_reviewers(iter([alice, bob]))
+    status = sr.add_new_reviewers([alice, bob])
 
-    sr.add_reviewers.assert_called_with(iter([bob]))
+    sr.add_reviewers.assert_called_with([bob])
     assert status == AddReviewersStatus(1, True)
