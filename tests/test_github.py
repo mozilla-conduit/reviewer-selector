@@ -104,7 +104,7 @@ def test_github_user_resolver(
             Reviewer("/ent:normalise-this", True),
         }
 
-        resolved = gh.user_resolver.resolve_reviewers(iter(reviewers))
+        resolved = gh.user_resolver.resolve_reviewers(reviewers)
 
     if in_tree_status == 200:
         assert Reviewer("jsmith-gh", False) in resolved, "GitHub user should be mapped"
@@ -206,10 +206,10 @@ def test_github_reviewable(
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
         all_reviewers = set(initial_reviewers + new_reviewers)
 
-        init_added = gh.reviewable.add_reviewers(iter(initial_reviewers))
+        init_added = gh.reviewable.add_reviewers(initial_reviewers)
         assert init_added == len(initial_reviewers)
 
-        status = gh.reviewable.add_new_reviewers(iter(all_reviewers))
+        status = gh.reviewable.add_new_reviewers(all_reviewers)
 
         assert status == AddReviewersStatus(
             len(set(new_reviewers) - set(initial_reviewers)), True
@@ -282,8 +282,7 @@ def test_github_reviewable(
         mock.requested_reviewers_post.reset()
         mock.requested_reviewers_get.reset()
 
-
-        status = gh.reviewable.add_new_reviewers(iter(all_reviewers))
+        status = gh.reviewable.add_new_reviewers(all_reviewers)
 
         assert status == AddReviewersStatus(0, True)
         assert mock.requested_reviewers_post.call_count == 0, (
@@ -340,7 +339,7 @@ def test_github_reviewable_add_reviewers_retry(
 
         mock._adapter.add_matcher(matcher)
 
-        status = gh.reviewable.add_new_reviewers(iter(reviewers))
+        status = gh.reviewable.add_new_reviewers(reviewers)
 
         assert status == AddReviewersStatus(len(reviewers) - 1, False)
         assert "Adding one reviewer at a time ..." in caplog.text
