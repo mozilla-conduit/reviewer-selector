@@ -119,17 +119,18 @@ Herald rules can be extracted from Phabricator using the [Herald
 Crawler](https://github.com/mozilla-conduit/herald_crawler).
 
 
-    $  herald-scraper --url https://phabricator.services.mozilla.com \
-      --conduit-token $PHAB_TOKEN --stmo-api-key $STMO_API_KEY \
+    $ uv run herald-scraper --url https://phabricator.services.mozilla.com \
+      --conduit-token $PHAB_TOKEN \
       --pmo-cookie $PMO_COOKIE \
-      --input herald_rules.json --output herald_rules.new.json \
+      --stmo-api-key $STMO_API_KEY \
+      --input herald_rules.json --output herald_rules.new.json
     $ mv herald_rules.new.json herald_rules.json
 
 Get/create your `$PHAB_TOKEN` from
 https://phabricator.services.mozilla.com/settings/user/<YOUR-USERNAME>/page/apitokens/.
-Get the `$STMO_API_KEY` from https://sql.telemetry.mozilla.org/users/me.
 Get your `$PMO_COOKIE` from the `pmo-access` cookie after logging in to
 https://people.mozilla.org/
+Get the `$STMO_API_KEY` from https://sql.telemetry.mozilla.org/users/me.
 
 Those rules should be placed at the root of the source tree, and committed to
 git so they are built as part of the image. `make build` takes care of using
