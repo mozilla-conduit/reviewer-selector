@@ -161,10 +161,10 @@ class GitHubReviewable(Reviewable):
         """Set reviewers on the target.
 
         If an error from the server occurs, we retry to add one reviewer at a time.
-        If no reviewer were added after this retry, the exception is re-raised for
+        If no reviewers were added after this retry, the exception is re-raised for
         processing in the caller.
         """
-        requested_reviewers = self._build_request_reviewers_request(reviewers)
+        requested_reviewers = self._build_request_reviewers_payload(reviewers)
 
         added = len(requested_reviewers["team_reviewers"]) + len(
             requested_reviewers["reviewers"]
@@ -186,7 +186,7 @@ class GitHubReviewable(Reviewable):
                         self._pr.authenticated_api_request(
                             "/requested_reviewers",
                             "POST",
-                            self._build_request_reviewers_request([r]),
+                            self._build_request_reviewers_payload([r]),
                         )
                         added += 1
                     except HTTPError as exc2:

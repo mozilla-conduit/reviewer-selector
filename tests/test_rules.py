@@ -50,7 +50,7 @@ def test_rule_without_repo_condition_matches():
         "name": "test_rule_without_repo_condition_matches",
         "conditions": [{"type": "differential-affected-files", "value": ".*"}],
     }
-    assert Rules.rule_matches_repos(rule, ["mozilla-central"]) is True
+    assert Rules.rule_matches_repos(rule, iter(["mozilla-central"])) is True
 
 
 def test_rule_matching_repos():
@@ -65,7 +65,7 @@ def test_rule_matching_repos():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["mozilla-central"]) is True
+    assert Rules.rule_matches_repos(rule, iter(["mozilla-central"])) is True
 
 
 def test_rule_non_matching_repo():
@@ -80,7 +80,7 @@ def test_rule_non_matching_repo():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["mozilla-central"]) is False
+    assert Rules.rule_matches_repos(rule, iter(["mozilla-central"])) is False
 
 
 def test_rule_multiple_repos():
@@ -95,7 +95,7 @@ def test_rule_multiple_repos():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["autoland"]) is True
+    assert Rules.rule_matches_repos(rule, iter(["autoland"])) is True
 
 
 def test_rule_multiple_repos_in_flag():
@@ -110,7 +110,7 @@ def test_rule_multiple_repos_in_flag():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["autoland", "mozilla-central"]) is True
+    assert Rules.rule_matches_repos(rule, iter(["autoland", "mozilla-central"])) is True
 
 
 # --- Rules.rule_matches_files tests ---
@@ -128,7 +128,7 @@ def test_rule_matching_regex():
             }
         ],
     }
-    assert Rules.rule_matches_files(rule, ["src/main.py"]) is True
+    assert Rules.rule_matches_files(rule, iter(["src/main.py"])) is True
 
 
 def test_rule_non_matching_regex():
@@ -143,7 +143,7 @@ def test_rule_non_matching_regex():
             }
         ],
     }
-    assert Rules.rule_matches_files(rule, ["src/main.js"]) is False
+    assert Rules.rule_matches_files(rule, iter(["src/main.js"])) is False
 
 
 def test_rule_any_file_matches():
@@ -159,7 +159,7 @@ def test_rule_any_file_matches():
         ],
     }
     assert (
-        Rules.rule_matches_files(rule, ["README.md", "src/main.py", "config.json"])
+        Rules.rule_matches_files(rule, iter(["README.md", "src/main.py", "config.json"]))
         is True
     )
 
@@ -168,9 +168,9 @@ def test_rule_no_affected_files_condition():
     rule = {
         "id": "test_no_affected_files_condition",
         "name": "test_no_affected_files_condition",
-        "conditions": [{"type": "repository", "value": ["mozilla-central"]}],
+        "conditions": [{"type": "repository", "value": iter(["mozilla-central"])}],
     }
-    assert Rules.rule_matches_files(rule, ["anything.txt"]) is False
+    assert Rules.rule_matches_files(rule, iter(["anything.txt"])) is False
 
 
 # --- Rules.get_rule_reviewers tests ---
@@ -236,7 +236,7 @@ def test_rule_multiple_reviewers():
         ],
     }
     reviewers = Rules.get_rule_reviewers(rule)
-    assert len(reviewers) == 2
+    assert len(list(reviewers)) == 2
 
 
 def test_rule_ignores_non_reviewer_actions():
@@ -252,7 +252,7 @@ def test_rule_ignores_non_reviewer_actions():
         ],
     }
     reviewers = Rules.get_rule_reviewers(rule)
-    assert len(reviewers) == 1
+    assert len(list(reviewers)) == 1
 
 
 # --- Rules.collect_reviewers tests ---
@@ -261,9 +261,9 @@ def test_rule_ignores_non_reviewer_actions():
 def test_rule_collects_from_matching_rules(sample_rules_data: dict):
     rules = Rules(sample_rules_data)
     patch = mock.MagicMock()
-    patch.get_changed_files = lambda: ["locales/en/messages.ftl"]
+    patch.get_changed_files = lambda: iter(["locales/en/messages.ftl"])
 
-    reviewers = rules.collect_reviewers(patch, [])
+    reviewers = list(rules.collect_reviewers(patch, []))
 
     assert Reviewer("fluent-reviewers", is_group=True) in reviewers
     assert Reviewer("ent:fluent-reviewers", is_group=True) in reviewers
@@ -272,9 +272,9 @@ def test_rule_collects_from_matching_rules(sample_rules_data: dict):
 def test_rule_respects_repo_filter(sample_rules_data: dict):
     rules = Rules(sample_rules_data)
     patch = mock.MagicMock()
-    patch.get_changed_files = lambda: ["remote/protocol.js"]
+    patch.get_changed_files = lambda: iter(["remote/protocol.js"])
 
-    reviewers = rules.collect_reviewers(patch, ["mozilla-central"])
+    reviewers = list(rules.collect_reviewers(patch, iter(["mozilla-central"])))
 
     assert Reviewer("jsmith") in reviewers
 
@@ -282,9 +282,9 @@ def test_rule_respects_repo_filter(sample_rules_data: dict):
 def test_rule_excludes_non_matching_repo(sample_rules_data: dict):
     rules = Rules(sample_rules_data)
     patch = mock.MagicMock()
-    patch.get_changed_files = lambda: ["remote/protocol.js"]
+    patch.get_changed_files = lambda: list(["remote/protocol.js"])
 
-    reviewers = rules.collect_reviewers(patch, ["comm-central"])
+    reviewers = list(rules.collect_reviewers(patch, ["comm-central"]))
 
     assert Reviewer("jsmith") not in reviewers
 
@@ -293,11 +293,11 @@ def test_rule_deduplicates_reviewers(sample_rules_data: dict):
     # If same reviewer appears in multiple rules, should only appear once
     rules = Rules(sample_rules_data)
     patch = mock.MagicMock()
-    patch.get_changed_files = lambda: [
+    patch.get_changed_files = lambda: iter([
         "testing/test.ftl"
-    ]  # matches H1 (.ftl) and H3 (testing/)
+    ])  # matches H1 (.ftl) and H3 (testing/)
 
-    reviewers = rules.collect_reviewers(patch, [])
+    reviewers = list(rules.collect_reviewers(patch, []))
 
     # Count occurrences
     assert len([r for r in reviewers if r.name == "fluent-reviewers"]) <= 1

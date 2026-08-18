@@ -38,6 +38,12 @@ class Reviewer:
         return set(reviewers_list)
 
 
+@dataclass(frozen=True)
+class AddReviewersStatus:
+    new_reviewers_added: int
+    all_new_reviewer_added: bool
+
+
 class Reviewable(metaclass=ABCMeta):
     """An interface for something able to receive a list of reviewers."""
 
@@ -46,25 +52,19 @@ class Reviewable(metaclass=ABCMeta):
     def reviewers(self) -> Iterable[Reviewer]:
         """Get all reviewers assigned to this Reviewable."""
 
-    def add_new_reviewers(self, reviewers: Iterable[Reviewer]) -> tuple[int, bool]:
-        """Add reviewers from the list, who are not already requested.
-
-        Returns: tuple[int, bool]
-
-            * The number of new reviewers successfully added.
-            * Whether all new reviewers were successfully added.
-        """
+    def add_new_reviewers(self, reviewers: Iterable[Reviewer]) -> AddReviewersStatus:
+        """Add reviewers from the list, who are not already requested."""
         current_reviewers = set(self.reviewers)
         new_reviewers = [r for r in reviewers if r not in current_reviewers]
 
         if not new_reviewers:
             logger.info("No new reviewers to add")
-            return (0, True)
+            return AddReviewersStatus(0, True)
 
         logger.info(f"Adding new reviewers: {new_reviewers} ...")
         added = self.add_reviewers(new_reviewers)
 
-        return (added, added == len(new_reviewers))
+        return AddReviewersStatus(added, added == len(new_reviewers))
 
     @abstractmethod
     def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:

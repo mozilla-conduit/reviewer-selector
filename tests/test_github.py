@@ -8,7 +8,7 @@ from requests.exceptions import HTTPError
 from requests_mock.mocker import Mocker
 
 from reviewer_selector.github import GitHubPR
-from reviewer_selector.review import Reviewer
+from reviewer_selector.review import AddReviewersStatus, Reviewer
 from reviewer_selector.rules import Rules
 
 
@@ -104,7 +104,7 @@ def test_github_user_resolver(
             Reviewer("/ent:normalise-this", True),
         }
 
-        resolved = gh.user_resolver.resolve_reviewers(reviewers)
+        resolved = gh.user_resolver.resolve_reviewers(iter(reviewers))
 
     if in_tree_status == 200:
         assert Reviewer("jsmith-gh", False) in resolved, "GitHub user should be mapped"
@@ -206,14 +206,14 @@ def test_github_reviewable(
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
         all_reviewers = set(initial_reviewers + new_reviewers)
 
-        init_added = gh.reviewable.add_reviewers(initial_reviewers)
+        init_added = gh.reviewable.add_reviewers(iter(initial_reviewers))
         assert init_added == len(initial_reviewers)
 
-        new_added, all_new_added = gh.reviewable.add_new_reviewers(all_reviewers)
-        assert new_added == len(set(new_reviewers) - set(initial_reviewers))
-        # We don't fail adding in this test.
-        assert all_new_added
+        status = gh.reviewable.add_new_reviewers(iter(all_reviewers))
 
+        assert status == AddReviewersStatus(
+            len(set(new_reviewers) - set(initial_reviewers)), True
+        )
         assert mock.requested_reviewers_post.call_count == expected_post_call_count, (
             "Unexpected number of POST requests to requested_reviewers"
         )
@@ -281,10 +281,11 @@ def test_github_reviewable(
         # When we run this a second time, no new network requests should happen.
         mock.requested_reviewers_post.reset()
         mock.requested_reviewers_get.reset()
-        new_added, all_new_added = gh.reviewable.add_new_reviewers(all_reviewers)
-        assert new_added == 0
-        assert all_new_added
 
+
+        status = gh.reviewable.add_new_reviewers(iter(all_reviewers))
+
+        assert status == AddReviewersStatus(0, True)
         assert mock.requested_reviewers_post.call_count == 0, (
             "Unexpected new POST requests to requested_reviewers on NOOP request"
         )
@@ -339,11 +340,9 @@ def test_github_reviewable_add_reviewers_retry(
 
         mock._adapter.add_matcher(matcher)
 
-        added, all_added = gh.reviewable.add_new_reviewers(reviewers)
+        status = gh.reviewable.add_new_reviewers(iter(reviewers))
 
-        assert added == len(reviewers) - 1
-        assert not all_added
-
+        assert status == AddReviewersStatus(len(reviewers) - 1, False)
         assert "Adding one reviewer at a time ..." in caplog.text
         assert f"Failed to add reviewer {rejected_enterprise_team.name}" in caplog.text
 
@@ -367,3 +366,36 @@ def test_github_reviewable_add_reviewers_retry(
         assert rejected_enterprise_team not in gh.reviewable.reviewers, (
             "Test logic error: The rejected group reviewer was added"
         )
+
+
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable_add_reviewers_noretry(
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    caplog: pytest.LogCaptureFixture,
+):
+    rejected_enterprise_team = Reviewer("ent:fluent-reviewers", True)
+    expected_reviewers = [
+        Reviewer("test-reviewer", False),
+        Reviewer("jsmith", False),
+        Reviewer("fluent-reviewers", True),
+    ]
+    reviewers = expected_reviewers + [rejected_enterprise_team]
+
+    with configurable_mocked_github_request() as mock:
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        mock_post = mock.post(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
+            status_code=500,
+        )
+
+        with pytest.raises(HTTPError):
+            gh.reviewable.add_new_reviewers(reviewers)
+
+        assert "Adding one reviewer at a time ..." not in caplog.text
+        assert mock_post.call_count == 1
