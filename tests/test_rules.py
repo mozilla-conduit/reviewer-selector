@@ -115,35 +115,80 @@ def test_rule_multiple_repos_in_flag():
 
 # --- Rules.rule_matches_files tests ---
 
+rule_py = {
+    "id": "test_matching_regex",
+    "name": "test_matching_regex",
+    "conditions": [
+        {
+            "type": "differential-affected-files",
+            "operator": "matches-regexp",
+            "value": r"\.py$",
+        }
+    ],
+}
 
-def test_rule_matching_regex():
-    rule = {
-        "id": "test_matching_regex",
-        "name": "test_matching_regex",
-        "conditions": [
-            {
-                "type": "differential-affected-files",
-                "operator": "matches-regexp",
-                "value": r"\.py$",
-            }
-        ],
-    }
-    assert Rules.rule_matches_files(rule, iter(["src/main.py"])) is True
+rule_h498 = {
+    "id": "H498",
+    "name": "Needs review from #layout-reviewers (main)",
+    "author": "dkl_admin",
+    "status": "active",
+    "type": "differential-revision",
+    "conditions": [
+        {"type": "repository", "operator": "is-any-of", "value": ["firefox-autoland"]},
+        {
+            "type": "differential-revision-status",
+            "operator": "is-not-any-of",
+            "value": ["Closed", "Abandoned", "Draft", "Changes Planned"],
+        },
+        {
+            "type": "differential-affected-files",
+            "operator": "matches-regexp",
+            "value": "^/layout/(?!style/|svg/)",
+        },
+    ],
+    "actions": [
+        {
+            "type": "add-reviewers",
+            "reviewers": [
+                {"target": "layout-reviewers", "blocking": False, "is_group": True}
+            ],
+        }
+    ],
+}
 
 
-def test_rule_non_matching_regex():
-    rule = {
-        "id": "test_non_matching_regex",
-        "name": "test_non_matching_regex",
-        "conditions": [
-            {
-                "type": "differential-affected-files",
-                "operator": "matches-regexp",
-                "value": r"\.py$",
-            }
-        ],
-    }
-    assert Rules.rule_matches_files(rule, iter(["src/main.js"])) is False
+@pytest.mark.parametrize(
+    "rule,files",
+    (
+        (
+            rule_py,
+            ["/src/main.py"],
+        ),
+        (
+            rule_h498,
+            ["/layout/printing/nsPrintJob.cpp"],
+        ),
+    ),
+)
+def test_rule_matching_regex(rule: dict, files: list[str]):
+    assert Rules.rule_matches_files(rule, files), (
+        f"Rule {rule['id']} should have matched for {files}"
+    )
+
+
+@pytest.mark.parametrize(
+    "rule,files",
+    (
+        (
+            rule_py,
+            ["/src/main.js"],
+        ),
+    ),
+)
+def test_rule_non_matching_regex(rule: dict, files: list[str]):
+    assert not Rules.rule_matches_files(rule, files), (
+        f"Rule {rule['id']} should NOT have matched for {files}"
+    )
 
 
 def test_rule_any_file_matches():

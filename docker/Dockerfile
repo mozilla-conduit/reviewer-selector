@@ -28,8 +28,7 @@ ENV PATH="/app/.venv/bin:${PATH}"
 # %include .
 
 COPY topsrcdir/ /app
-RUN uv sync --frozen \
-  && uv pip install /app
+RUN uv sync --frozen
 
 USER app
 ENTRYPOINT [ "/app/docker/entrypoint.sh" ]

@@ -6,9 +6,7 @@ Select reviewers based on a diff and a set of rules.
 
 Requirements: [uv](https://docs.astral.sh/uv/#installation).
 
-    $ uv venv
     $ uv sync
-    $ uv pip install -e .
 
 
 # Running
