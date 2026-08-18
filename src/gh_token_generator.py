@@ -2,8 +2,7 @@
 
 import os
 
-
-from reviewer_selector import Taskcluster, GitHubApp
+from reviewer_selector import GitHubApp, Taskcluster
 
 
 def main() -> int:

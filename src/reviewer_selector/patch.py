@@ -38,7 +38,7 @@ class Patch:
     def _parse_patch(self):
         self._parsed_diffs = rs_parsepatch.get_diffs(self._patch)
 
-    def get_changed_files(self):
+    def get_changed_files(self) -> Iterable[str]:
         """Get the list of modified file patchs.
 
         All filenames will get a leading '/' prepended, to mark the root of the tree.

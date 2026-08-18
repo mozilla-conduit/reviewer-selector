@@ -39,3 +39,6 @@ gh-token-generator = "gh_token_generator:main"
 
 [tool.pytest]
 addopts = ["--cov", "--cov-report", "html"]
+
+[tool.ruff.lint]
+extend-select = ["I"]

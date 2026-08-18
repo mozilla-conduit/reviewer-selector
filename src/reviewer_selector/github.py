@@ -8,6 +8,7 @@ from functools import cached_property, wraps
 from typing import Any, final, override
 
 import requests
+from requests.exceptions import HTTPError
 from simple_github import AppAuth, AppInstallationAuth
 
 from reviewer_selector.patch import PatchSource
@@ -118,7 +119,7 @@ class GitHubApiObject(metaclass=ABCMeta):
         )
         try:
             resp.raise_for_status()
-        except requests.exceptions.HTTPError as exc:
+        except HTTPError as exc:
             if exc.response.status_code >= 400 and exc.response.status_code < 500:
                 logger.exception(
                     f"{exc.response.status_code} error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
@@ -156,7 +157,58 @@ class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
     @override
-    def add_reviewers(self, reviewers: Iterable[Reviewer]):
+    def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
+        """Set reviewers on the target.
+
+        If an error from the server occurs, we retry to add one reviewer at a time.
+        If no reviewers were added after this retry, the exception is re-raised for
+        processing in the caller.
+        """
+        reviewers = list(reviewers)
+        requested_reviewers = self._build_request_reviewers_payload(reviewers)
+
+        added = len(requested_reviewers["team_reviewers"]) + len(
+            requested_reviewers["reviewers"]
+        )
+        if not added:
+            return 0
+
+        try:
+            self._pr.authenticated_api_request(
+                "/requested_reviewers", "POST", requested_reviewers
+            )
+        except HTTPError as exc:
+            added = 0
+            if exc.response.status_code >= 400 and exc.response.status_code < 500:
+                logger.warning("Adding one reviewer at a time ...")
+
+                for r in reviewers:
+                    try:
+                        self._pr.authenticated_api_request(
+                            "/requested_reviewers",
+                            "POST",
+                            self._build_request_reviewers_payload([r]),
+                        )
+                        added += 1
+                    except HTTPError as exc2:
+                        logger.warning(f"Failed to add reviewer {r.name}: {exc2}")
+
+            if added == 0:
+                raise
+
+        # Invalidate cached_property.
+        try:
+            del self.reviewers
+        except AttributeError:
+            # There was no cache.
+            pass
+
+        return added
+
+    @staticmethod
+    def _build_request_reviewers_payload(
+        reviewers: list[Reviewer],
+    ) -> dict[str, Any]:
         requested_reviewers = {
             "reviewers": [],
             "team_reviewers": [],
@@ -167,22 +219,7 @@ class GitHubReviewable(Reviewable):
             else:
                 requested_reviewers["reviewers"].append(r.name)
 
-        if (
-            not requested_reviewers["team_reviewers"]
-            and not requested_reviewers["reviewers"]
-        ):
-            return
-
-        self._pr.authenticated_api_request(
-            "/requested_reviewers", "POST", requested_reviewers
-        )
-
-        # Invalidate cached_property.
-        try:
-            del self.reviewers
-        except AttributeError:
-            # There was no cache.
-            pass
+        return requested_reviewers
 
     @cached_property
     @override  # From Reviewable.

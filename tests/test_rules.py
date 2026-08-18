@@ -281,7 +281,7 @@ def test_rule_multiple_reviewers():
         ],
     }
     reviewers = Rules.get_rule_reviewers(rule)
-    assert len(reviewers) == 2
+    assert len(list(reviewers)) == 2
 
 
 def test_rule_ignores_non_reviewer_actions():
@@ -297,7 +297,7 @@ def test_rule_ignores_non_reviewer_actions():
         ],
     }
     reviewers = Rules.get_rule_reviewers(rule)
-    assert len(reviewers) == 1
+    assert len(list(reviewers)) == 1
 
 
 # --- Rules.collect_reviewers tests ---
@@ -306,9 +306,9 @@ def test_rule_ignores_non_reviewer_actions():
 def test_rule_collects_from_matching_rules(sample_rules_data: dict):
     rules = Rules(sample_rules_data)
     patch = mock.MagicMock()
-    patch.get_changed_files = lambda: ["locales/en/messages.ftl"]
+    patch.get_changed_files = lambda: ["/locales/en/messages.ftl"]
 
-    reviewers = rules.collect_reviewers(patch, [])
+    reviewers = list(rules.collect_reviewers(patch, []))
 
     assert Reviewer("fluent-reviewers", is_group=True) in reviewers
     assert Reviewer("ent:fluent-reviewers", is_group=True) in reviewers
@@ -317,9 +317,9 @@ def test_rule_collects_from_matching_rules(sample_rules_data: dict):
 def test_rule_respects_repo_filter(sample_rules_data: dict):
     rules = Rules(sample_rules_data)
     patch = mock.MagicMock()
-    patch.get_changed_files = lambda: ["remote/protocol.js"]
+    patch.get_changed_files = lambda: ["/remote/protocol.js"]
 
-    reviewers = rules.collect_reviewers(patch, ["mozilla-central"])
+    reviewers = list(rules.collect_reviewers(patch, ["mozilla-central"]))
 
     assert Reviewer("jsmith") in reviewers
 
@@ -327,9 +327,9 @@ def test_rule_respects_repo_filter(sample_rules_data: dict):
 def test_rule_excludes_non_matching_repo(sample_rules_data: dict):
     rules = Rules(sample_rules_data)
     patch = mock.MagicMock()
-    patch.get_changed_files = lambda: ["remote/protocol.js"]
+    patch.get_changed_files = lambda: ["/remote/protocol.js"]
 
-    reviewers = rules.collect_reviewers(patch, ["comm-central"])
+    reviewers = list(rules.collect_reviewers(patch, ["comm-central"]))
 
     assert Reviewer("jsmith") not in reviewers
 
@@ -339,10 +339,10 @@ def test_rule_deduplicates_reviewers(sample_rules_data: dict):
     rules = Rules(sample_rules_data)
     patch = mock.MagicMock()
     patch.get_changed_files = lambda: [
-        "testing/test.ftl"
+        "/testing/test.ftl"
     ]  # matches H1 (.ftl) and H3 (testing/)
 
-    reviewers = rules.collect_reviewers(patch, [])
+    reviewers = list(rules.collect_reviewers(patch, []))
 
     # Count occurrences
     assert len([r for r in reviewers if r.name == "fluent-reviewers"]) <= 1

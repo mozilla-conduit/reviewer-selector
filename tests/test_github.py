@@ -1,13 +1,14 @@
-from typing import Callable
+from collections.abc import Callable
 from unittest.mock import Mock, patch
 
 import pytest
 import requests
 import requests_mock
+from requests.exceptions import HTTPError
 from requests_mock.mocker import Mocker
 
 from reviewer_selector.github import GitHubPR
-from reviewer_selector.review import Reviewer
+from reviewer_selector.review import AddReviewersStatus, Reviewer
 from reviewer_selector.rules import Rules
 
 
@@ -137,7 +138,7 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
         gh = GitHubPR(
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
-        with pytest.raises(requests.exceptions.HTTPError):
+        with pytest.raises(HTTPError):
             gh.api_request()
 
         assert "Unprocessable Entity for test" in caplog.text
@@ -205,10 +206,14 @@ def test_github_reviewable(
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
         all_reviewers = set(initial_reviewers + new_reviewers)
 
-        gh.reviewable.add_reviewers(initial_reviewers)
+        init_added = gh.reviewable.add_reviewers(initial_reviewers)
+        assert init_added == len(initial_reviewers)
 
-        gh.reviewable.add_new_reviewers(all_reviewers)
+        status = gh.reviewable.add_new_reviewers(all_reviewers)
 
+        assert status == AddReviewersStatus(
+            len(set(new_reviewers) - set(initial_reviewers)), True
+        )
         assert mock.requested_reviewers_post.call_count == expected_post_call_count, (
             "Unexpected number of POST requests to requested_reviewers"
         )
@@ -276,11 +281,120 @@ def test_github_reviewable(
         # When we run this a second time, no new network requests should happen.
         mock.requested_reviewers_post.reset()
         mock.requested_reviewers_get.reset()
-        gh.reviewable.add_new_reviewers(all_reviewers)
 
+        status = gh.reviewable.add_new_reviewers(all_reviewers)
+
+        assert status == AddReviewersStatus(0, True)
         assert mock.requested_reviewers_post.call_count == 0, (
             "Unexpected new POST requests to requested_reviewers on NOOP request"
         )
         assert mock.requested_reviewers_get.call_count == 0, (
             "Unexpected number of GET requests to requested_reviewers on NOOP request"
         )
+
+
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable_add_reviewers_retry(
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    caplog: pytest.LogCaptureFixture,
+):
+    rejected_enterprise_team = Reviewer("ent:fluent-reviewers", True)
+    expected_reviewers = [
+        Reviewer("test-reviewer", False),
+        Reviewer("jsmith", False),
+        Reviewer("fluent-reviewers", True),
+    ]
+    reviewers = expected_reviewers + [rejected_enterprise_team]
+
+    with configurable_mocked_github_request() as mock:
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        def matcher(request: requests.Request):
+            if (
+                request.method != "POST"
+                or request.url
+                != "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers"
+            ):
+                return None
+
+            payload = request.json()
+            # Reject requests with the enterprise team.
+            if rejected_enterprise_team.name in payload.get("team_reviewers", []):
+                resp = requests.Response()
+                resp.request = request
+                resp.status_code = 422
+                # Insert a recognisable error response.
+                resp._content = (
+                    b"Rejected in test_github_reviewable_add_reviewers_retry"
+                )
+                return resp
+
+            # Delegate to pre-existing matchers.
+            return None
+
+        mock._adapter.add_matcher(matcher)
+
+        status = gh.reviewable.add_new_reviewers(reviewers)
+
+        assert status == AddReviewersStatus(len(reviewers) - 1, False)
+        assert "Adding one reviewer at a time ..." in caplog.text
+        assert f"Failed to add reviewer {rejected_enterprise_team.name}" in caplog.text
+
+        with pytest.raises(HTTPError):
+            # Requesting only a rejected reviewers should raise an exception.
+            gh.reviewable.add_new_reviewers([rejected_enterprise_team])
+
+        # The original mock doesn't see the requests summarily rejected by the matcher we added.
+        assert mock.requested_reviewers_post.call_count == len(expected_reviewers)
+
+        # Make sure all reviewers are now present.
+        for user in [r for r in expected_reviewers if not r.is_group]:
+            assert user in gh.reviewable.reviewers, (
+                f"Missing user reviewer: {user.name}"
+            )
+        for group in [r for r in expected_reviewers if r.is_group]:
+            assert group in gh.reviewable.reviewers, (
+                f"Missing group reviewer: {group.name}"
+            )
+
+        assert rejected_enterprise_team not in gh.reviewable.reviewers, (
+            "Test logic error: The rejected group reviewer was added"
+        )
+
+
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable_add_reviewers_noretry(
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    caplog: pytest.LogCaptureFixture,
+):
+    rejected_enterprise_team = Reviewer("ent:fluent-reviewers", True)
+    expected_reviewers = [
+        Reviewer("test-reviewer", False),
+        Reviewer("jsmith", False),
+        Reviewer("fluent-reviewers", True),
+    ]
+    reviewers = expected_reviewers + [rejected_enterprise_team]
+
+    with configurable_mocked_github_request() as mock:
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        mock_post = mock.post(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
+            status_code=500,
+        )
+
+        with pytest.raises(HTTPError):
+            gh.reviewable.add_new_reviewers(reviewers)
+
+        assert "Adding one reviewer at a time ..." not in caplog.text
+        assert mock_post.call_count == 1

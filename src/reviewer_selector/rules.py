@@ -41,9 +41,10 @@ class Rules(Sized):
     ) -> Iterable[Reviewer]:
         """Return set of Reviewers from matching rules."""
 
-        changed_files = patch.get_changed_files()
+        changed_files = list(patch.get_changed_files())
         reviewers: set[Reviewer] = set()
 
+        repos = set(repos)
         if not repos:
             logger.info("No repositories specified, ignoring repository filters.")
 
@@ -61,18 +62,19 @@ class Rules(Sized):
     @classmethod
     def rule_matches_repos(cls, rule: Rule, repos: Iterable[str]) -> bool:
         """Check if rule passes repository filter."""
-        repos_list = list(repos)
-        if not repos_list:
+        repos_set = list(repos)
+        if not repos_set:
             return True
         for cond in rule.get("conditions", []):
             if cond.get("type") == "repository":
                 rule_repos = cond.get("value", [])
-                return any(r in rule_repos for r in repos_list)
+                return any(r in rule_repos for r in repos_set)
         return True
 
     @classmethod
     def rule_matches_files(cls, rule: Rule, changed_files: Iterable[str]) -> bool:
         """Check if any changed file matches rule's regex."""
+        changed_files = list(changed_files)
         for cond in rule.get("conditions", []):
             if cond.get("type") == "differential-affected-files":
                 pattern = cond.get("value", "")
