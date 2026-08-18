@@ -164,6 +164,7 @@ class GitHubReviewable(Reviewable):
         If no reviewers were added after this retry, the exception is re-raised for
         processing in the caller.
         """
+        reviewers = list(reviewers)
         requested_reviewers = self._build_request_reviewers_payload(reviewers)
 
         added = len(requested_reviewers["team_reviewers"]) + len(
@@ -205,8 +206,8 @@ class GitHubReviewable(Reviewable):
         return added
 
     @staticmethod
-    def _build_request_reviewers_request(
-        reviewers: Iterable[Reviewer],
+    def _build_request_reviewers_payload(
+        reviewers: list[Reviewer],
     ) -> dict[str, Any]:
         requested_reviewers = {
             "reviewers": [],
