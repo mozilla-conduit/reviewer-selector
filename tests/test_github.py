@@ -421,9 +421,7 @@ def test_github_reviewable_report_info(
         mock_gh_generate_token.return_value = "THE_TOKEN"
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
 
-        issue_comment_url = (
-            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/issues/18/comments"
-        )
+        issue_comment_url = "https://api.github.com/repos/mozilla-conduit/reviewer-selector/issues/18/comments"
 
         if failure:
             mock.mock_post_issue_comment = mock.post(
@@ -481,20 +479,25 @@ def test_github_reviewable_reports(
                 check_url,
                 json={"check_runs": [{"id": check_id}]},
             )
-            mock.mock_patch_check_run = mock.patch(
-                f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs/{check_id}",
-                json=FIXME,
-            )
 
         else:
             mock.mock_get_check_run = mock.get(
                 check_url,
                 json={"check_runs": []},
             )
-            mock.mock_post_check_run = mock.post(
-                f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs",
-                json=FIXME,
-            )
+
+        mock.mock_patch_check_run = mock.patch(
+            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs/{check_id}",
+            json={
+                "id": check_id,
+            },
+        )
+        mock.mock_post_check_run = mock.post(
+            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs",
+            json={
+                "id": check_id,
+            },
+        )
 
         if type == "warning":
             gh.reviewable.report_warning(f"{type} report")

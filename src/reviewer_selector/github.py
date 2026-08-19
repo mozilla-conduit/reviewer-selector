@@ -232,6 +232,11 @@ class GitHubReviewable(Reviewable):
             # There was no cache.
             pass
 
+        reviewers_string = ", ".join(f"@{r.name}" for r in reviewers)
+        self.report_info(
+            f"Added {added} of {len(reviewers)} requested reviewers: {reviewers_string}"
+        )
+
         return added
 
     @staticmethod
