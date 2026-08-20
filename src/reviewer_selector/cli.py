@@ -5,6 +5,8 @@ from collections.abc import Iterable
 from functools import lru_cache
 from typing import Any
 
+import sentry_sdk
+
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.patch import Patch, PatchSource, StdinPatchSource
 from reviewer_selector.review import (
@@ -30,6 +32,12 @@ def cli() -> None:
         logging.basicConfig(level=logging.DEBUG)
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
+
+    if sentry_dsn := get_sentry_dsn(args):
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            send_default_pii=True,
+        )
 
     rules = Rules.from_file(args.rules_file)
 
@@ -88,6 +96,13 @@ def make_tc_task_link() -> str:
     return ""
 
 
+def get_sentry_dsn(args) -> str | None:
+    if dsn := os.environ.get("SENTRY_DSN"):
+        return dsn
+    if tc_secret := get_tc_secret(get_tc_secret_id(args)):
+        return tc_secret.get("SENTRY_DSN")
+
+
 def create_github_objects(
     args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
 ) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
@@ -137,7 +152,7 @@ def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:
         return {"app_id": app_id, "app_privkey": app_privkey}
 
     # If any is missing, try to update from credentials store.
-    if tc_secret := get_tc_secret(args):
+    if tc_secret := get_tc_secret(get_tc_secret_id(args)):
         app_id = app_id or tc_secret.get("GITHUB_APP_ID", "")
         app_privkey = app_privkey or tc_secret.get("GITHUB_APP_PRIVKEY", "")
         # We allow passing the GITHUB_TOKEN via secrets, but it's not recommended.
@@ -149,12 +164,17 @@ def resolve_github_credentials(args: argparse.Namespace) -> dict[str, str]:
     return {}
 
 
+def get_tc_secret_id(args: argparse.Namespace) -> str | None:
+    return args.taskcluster_secret_id or os.environ.get("TC_SECRET_ID")
+
+
 @lru_cache
-def get_tc_secret(args) -> dict[str, Any] | None:
-    if tc_secret_id := (args.taskcluster_secret_id or os.environ.get("TC_SECRET_ID")):
-        logger.debug(f"Fetching credentials from TC_SECRET_ID {tc_secret_id} ...")
-        tc = Taskcluster()
-        return tc.fetch_secret(tc_secret_id)
+def get_tc_secret(tc_secret_id: str | None) -> dict[str, Any] | None:
+    if not tc_secret_id:
+        return
+    logger.debug(f"Fetching credentials from TC_SECRET_ID {tc_secret_id} ...")
+    tc = Taskcluster()
+    return tc.fetch_secret(tc_secret_id)
 
 
 def parse_args() -> argparse.Namespace:
