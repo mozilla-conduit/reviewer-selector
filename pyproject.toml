@@ -12,6 +12,7 @@ classifiers = [
 dependencies= [
   "requests",
   "rs_parsepatch",
+  "sentry-sdk>=2.70.0",
   "simple-github>=3.2.2",
   "taskcluster",
 ]
