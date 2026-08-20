@@ -5,6 +5,8 @@ from collections.abc import Iterable
 from functools import lru_cache
 from typing import Any
 
+import sentry_sdk
+
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.patch import Patch, PatchSource, StdinPatchSource
 from reviewer_selector.review import (
@@ -29,6 +31,12 @@ def cli() -> None:
         logging.basicConfig(level=logging.DEBUG)
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
+
+    if sentry_dsn := get_sentry_dsn(args):
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            send_default_pii=True,
+        )
 
     rules = Rules.from_file(args.rules_file)
 
@@ -58,6 +66,13 @@ def cli() -> None:
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
     reviewable.add_new_reviewers(resolved)
+
+
+def get_sentry_dsn(args) -> str | None:
+    if dsn := os.environ.get("SENTRY_DSN"):
+        return dsn
+    if tc_secret := get_tc_secret(args):
+        return tc_secret.get("SENTRY_DSN")
 
 
 def create_github_objects(
