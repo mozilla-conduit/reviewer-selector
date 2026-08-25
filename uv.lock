@@ -1197,18 +1197,14 @@ wheels = [
 
 [[package]]
 name = "simple-github"
-version = "3.2.0"
-source = { registry = "https://pypi.org/simple" }
+version = "3.2.1"
+source = { git = "https://github.com/shtrom/simple-github?rev=issue202%2Frest-client-headers#9f64417ca1f20aed1861cc58083652a07cf96ef4" }
 dependencies = [
     { name = "aiohttp", extra = ["speedups"] },
     { name = "aiohttp-retry" },
     { name = "gql", extra = ["aiohttp", "requests"] },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/66/95/49960e021255a63e177130b978e3cabc93996cbd661f665b0831362c9acd/simple_github-3.2.0.tar.gz", hash = "sha256:adb1cbcafb5eb7d55379a910ea8a1a8cb00c185a98301477432aae2c879956ae", size = 174353, upload-time = "2026-08-04T20:55:32.884Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/ba/a10ef95226290cb96056a96dd6cbc3e89367779b817b84989a0d151fd956/simple_github-3.2.0-py3-none-any.whl", hash = "sha256:e19eb6a1246be1ec6d9e27523e5c994b35be4be0149955313e1c6fa59803da73", size = 14322, upload-time = "2026-08-04T20:55:31.741Z" },
 ]
 
 [[package]]
