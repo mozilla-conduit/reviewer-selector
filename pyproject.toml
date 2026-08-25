@@ -34,8 +34,9 @@ dev = [
 ]
 
 [project.scripts]
-reviewer-selector = "reviewer_selector:cli"
 gh-token-generator = "gh_token_generator:main"
+reviewer-selector = "reviewer_selector:cli"
+team-creator = "team_creator:main"
 
 [tool.pytest]
 addopts = ["--cov", "--cov-report", "html"]
