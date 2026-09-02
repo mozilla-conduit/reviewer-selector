@@ -13,7 +13,7 @@ from reviewer_selector.review import (
     UserResolver,
 )
 from reviewer_selector.rules import Rules
-from reviewer_selector.taskcluster import Taskcluster
+from reviewer_selector.taskcluster import Taskcluster, tc_task_url
 
 logger = logging.getLogger(__name__)
 
@@ -62,12 +62,19 @@ def cli() -> None:
     try:
         reviewable.add_new_reviewers(resolved)
     except Exception:  # noqa: BLE001
-        if not reviewable.reviewers:
-            reviewable.report_error(
-                "Could not assign any reviewer. Please use Phabricator instead."
-            )
-        else:
-            reviewable.report_warning("Failed to add new reviewers.")
+        reviewable.report_warning(f"Failed to add new reviewers.{tc_info}")
+
+    if not reviewable.reviewers:
+        reviewable.report_warning(
+            f"Could not assign any reviewer. Please use Phabricator instead.{tc_info}"
+        )
+
+
+def make_tc_task_link() -> str:
+    if task_url := tc_task_url():
+        return f"[See task in Taskcluster]({task_url})"
+
+    return ""
 
 
 def create_github_objects(
