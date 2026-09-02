@@ -24,14 +24,6 @@ to specify a specific repository (to be used when evaluating conditions in some
 rules.
 
 
-# WARNING: The rules format is a work in progress
-
-The current rules files, as shown in [the
-sample](./samples/herald_rules.sample.json) is not final and not normative. It
-is used as a bootstrapping stop-gap, and should not be expected to remain
-stable at this stage.
-
-
 # TaskCluster and GitHub authentication
 
 To generate a GitHub application token based on a TaskCluster secret, use the
@@ -110,7 +102,14 @@ Requirements: [docker](https://docs.docker.com/get-started/get-docker/).
 
     $ make build
 
-### Bundling herald_rules.
+### Bundling herald_rules
+
+> [!WARNING] The rules format is a work in progress
+>
+> The current rules files, as shown in [the
+> sample](./samples/herald_rules.sample.json) is not final and not normative.
+> It is used as a bootstrapping stop-gap, and should not be expected to remain
+> stable at this stage.
 
 The default behaviour is to search the target repository/branch for a `herald_rules.json` file.
 If missing, a fallback from the container is used.
@@ -121,8 +120,8 @@ Crawler](https://github.com/mozilla-conduit/herald_crawler).
 
     $ uv run herald-scraper --url https://phabricator.services.mozilla.com \
       --conduit-token $PHAB_TOKEN \
-      --pmo-cookie $PMO_COOKIE \
       --stmo-api-key $STMO_API_KEY \
+      [--pmo-cookie $PMO_COOKIE] \
       --input herald_rules.json --output herald_rules.new.json
     $ mv herald_rules.new.json herald_rules.json
 
