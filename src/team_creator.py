@@ -13,17 +13,26 @@ from simple_github import Client, TokenClient
 
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(level=logging.DEBUG)
-
 
 def main():
     args_parser = ArgumentParser()
-    args_parser.add_argument("--organisation", default="mozilla-firefox")
     args_parser.add_argument("--base-team", default="all-reviewers")
+    args_parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+    )
     args_parser.add_argument("--github-token")
+    args_parser.add_argument("--organisation", default="bug2001552")
     args_parser.add_argument("rules")
 
     arguments = args_parser.parse_args()
+
+    # Honour the highest verbosity level requested.
+    if arguments.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     organisation = arguments.organisation
     base_team = arguments.base_team
@@ -85,7 +94,7 @@ def create_teams(
     # find base team
     ensure_team_exists(client, organisation, base_team)
     members = get_team_members(client, organisation, base_team)
-    logger.debug(f"Current members of {base_team}: {members}")
+    logger.info(f"All members of {base_team}: {members}")
 
     for team in teams:
         # create team
@@ -93,7 +102,7 @@ def create_teams(
 
         # get team members
         members = get_team_members(client, organisation, team)
-        logger.debug(f"Current members of {team}: {members}")
+        logger.info(f"Current members of {team}: {members}")
 
         # add new users
         if users_to_add := set(teams[team]) - members:
@@ -122,8 +131,9 @@ def ensure_team_exists(
         if parent_team:
             create_payload["parent_team_slug"] = parent_team
 
-        logger.info(f"Creating team {team_name} ...")
+        logger.debug(f"Creating team {team_name} ...")
         resp = client.post(f"/orgs/{organisation}/teams", data=create_payload)
+        logger.info(f"Created team {team_name}")
 
     resp.raise_for_status()
 
@@ -145,7 +155,7 @@ def add_team_members(
         except HTTPError as exc:
             logger.warning(f"Cannot add {user} to {team_name}: {exc.response.text}")
 
-    logger.debug(f"Added users to {team_name}: {added_users}")
+    logger.info(f"Added users to {team_name}: {added_users}")
 
 
 def remove_team_members(
@@ -156,15 +166,15 @@ def remove_team_members(
     removed_members = []
     for user in members:
         try:
-            resp: requests.Response = client.delete(remove_url + user)
-            resp.raise_for_status()
+            # simple_github.Client.delete returns None
+            client.delete(remove_url + user)
             removed_members.append(user)
         except HTTPError as exc:
             logger.warning(
                 f"Cannot remove {user} from {team_name}: {exc.response.text}"
             )
 
-    logger.debug(f"Removed members from {team_name}: {removed_members}")
+    logger.info(f"Removed members from {team_name}: {removed_members}")
 
 
 def get_team_members(client: Client, organisation: str, team_name: str) -> set[str]:
