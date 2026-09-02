@@ -1,3 +1,4 @@
+import itertools
 from collections.abc import Callable
 from unittest.mock import Mock, patch
 
@@ -10,6 +11,7 @@ from requests_mock.mocker import Mocker
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.review import AddReviewersStatus, Reviewer
 from reviewer_selector.rules import Rules
+from src.reviewer_selector.github import GITHUB_CHECK_NAME
 
 
 def test_github_url_handling():
@@ -352,6 +354,10 @@ def test_github_reviewable_add_reviewers_retry(
         # The original mock doesn't see the requests summarily rejected by the matcher we added.
         assert mock.requested_reviewers_post.call_count == len(expected_reviewers)
 
+        assert mock.issue_comment_post.call_count == 1, (
+            "Unexpected number of comments posted"
+        )
+
         # Make sure all reviewers are now present.
         for user in [r for r in expected_reviewers if not r.is_group]:
             assert user in gh.reviewable.reviewers, (
@@ -398,3 +404,130 @@ def test_github_reviewable_add_reviewers_noretry(
 
         assert "Adding one reviewer at a time ..." not in caplog.text
         assert mock_post.call_count == 1
+
+
+@pytest.mark.parametrize("failure", (False, True))
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable_report_info(
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    caplog: pytest.LogCaptureFixture,
+    failure: bool,
+):
+    with configurable_mocked_github_request() as mock:
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        issue_comment_url = "https://api.github.com/repos/mozilla-conduit/reviewer-selector/issues/18/comments"
+
+        if failure:
+            mock.mock_post_issue_comment = mock.post(
+                issue_comment_url,
+                status_code=422,
+            )
+        else:
+            mock.mock_post_issue_comment = mock.post(
+                issue_comment_url,
+                status_code=201,
+                text="{}",
+            )
+
+        gh.reviewable.report_info("info report")
+
+        if failure:
+            assert "Failed to report" in caplog.text
+            return
+
+        assert mock.mock_post_issue_comment.call_count == 1, (
+            "New comment wasn't created"
+        )
+
+
+@pytest.mark.parametrize(
+    "type,existing,failure",
+    tuple(itertools.product(("warning", "error"), (False, True), (False, True))),
+)
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable_reports(
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    caplog: pytest.LogCaptureFixture,
+    type: str,
+    existing: bool,
+    failure: bool,
+):
+    with configurable_mocked_github_request() as mock:
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        check_id = 4
+        check_url = f"https://api.github.com/repos/mozilla-conduit/reviewer-selector/commits/5c9487af01e52713fc6cb60b4177ce407ed4fe7f/check-runs?check_name={GITHUB_CHECK_NAME}&filter=latest"
+        if failure:
+            mock.mock_get_check_run = mock.get(
+                check_url,
+                status_code=422,
+            )
+
+        elif existing:
+            mock.mock_get_check_run = mock.get(
+                check_url,
+                json={"check_runs": [{"id": check_id}]},
+            )
+
+        else:
+            mock.mock_get_check_run = mock.get(
+                check_url,
+                json={"check_runs": []},
+            )
+
+        mock.mock_patch_check_run = mock.patch(
+            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs/{check_id}",
+            json={
+                "id": check_id,
+            },
+        )
+        mock.mock_post_check_run = mock.post(
+            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs",
+            json={
+                "id": check_id,
+            },
+        )
+
+        if type == "warning":
+            gh.reviewable.report_warning(f"{type} report")
+        elif type == "error":
+            gh.reviewable.report_error(f"{type} report")
+        else:
+            raise ValueError(f"{type=} is not supported")
+
+        if failure:
+            assert "Failed to report" in caplog.text
+            return
+
+        assert "Failed to report" not in caplog.text
+
+        assert mock.mock_get_check_run.call_count == 1, "Check existence wasn't checked"
+
+        expected_conclusion = "failure" if type == "error" else "neutral"
+        if existing:
+            assert mock.mock_post_check_run.call_count == 0, (
+                "New check was created when one already existed"
+            )
+            assert mock.mock_patch_check_run.call_count == 1, (
+                "Existing check wasn't updated"
+            )
+            check_request = mock.mock_patch_check_run.last_request.json()
+            assert check_request[0]["conclusion"] == expected_conclusion
+        else:
+            assert mock.mock_post_check_run.call_count == 1, "New check wasn't created"
+            assert mock.mock_patch_check_run.call_count == 0, (
+                "Attempted to update a non-existent check"
+            )
+            check_request = mock.mock_post_check_run.last_request.json()
+            assert check_request[0]["conclusion"] == expected_conclusion

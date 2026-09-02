@@ -22,6 +22,8 @@ from reviewer_selector.rules import Rules
 
 logger = logging.getLogger(__name__)
 
+GITHUB_CHECK_NAME = "reviewer-selector"
+
 
 @dataclass
 class GitHubApp:
@@ -156,6 +158,25 @@ class GitHubPatchSource(PatchSource):
 class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
+    @cached_property
+    @override  # From Reviewable.
+    def reviewers(self) -> Iterable[Reviewer]:
+        """Return PR requested_reviewers, fetching it if needed."""
+        # As of 2026-07-09, the basic GitHub PR metadata does contain
+        # `requested_reviewers` and `requested_teams` properties, but the latter is
+        # always empty. This is not the case ftor the /requested_reviewers endpoint
+        # we use here.
+        requested_reviewers_json = self._pr.authenticated_api_request(
+            "/requested_reviewers"
+        )
+        reviewers = []
+        for r in requested_reviewers_json.get("users", []):
+            reviewers.append(Reviewer(r["login"], False))
+        for t in requested_reviewers_json.get("teams", []):
+            reviewers.append(Reviewer(t["slug"], True))
+
+        return reviewers
+
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
         """Set reviewers on the target.
@@ -163,6 +184,14 @@ class GitHubReviewable(Reviewable):
         If an error from the server occurs, we retry to add one reviewer at a time.
         If no reviewers were added after this retry, the exception is re-raised for
         processing in the caller.
+
+        Parameters:
+
+        reviewers: Iterable[Reviewer]
+
+        nested: bool (default False)
+
+            Whether we are in a nested call which shouldn't repord info on the PR.
         """
         reviewers = list(reviewers)
         requested_reviewers = self._build_request_reviewers_payload(reviewers)
@@ -203,6 +232,11 @@ class GitHubReviewable(Reviewable):
             # There was no cache.
             pass
 
+        reviewers_string = ", ".join(f"@{r.name}" for r in reviewers)
+        self.report_info(
+            f"Added {added} of {len(reviewers)} requested reviewers: {reviewers_string}"
+        )
+
         return added
 
     @staticmethod
@@ -221,24 +255,54 @@ class GitHubReviewable(Reviewable):
 
         return requested_reviewers
 
-    @cached_property
-    @override  # From Reviewable.
-    def reviewers(self) -> Iterable[Reviewer]:
-        """Return PR requested_reviewers, fetching it if needed."""
-        # As of 2026-07-09, the basic GitHub PR metadata does contain
-        # `requested_reviewers` and `requested_teams` properties, but the latter is
-        # always empty. This is not the case for the /requested_reviewers endpoint
-        # we use here.
-        requested_reviewers_json = self._pr.authenticated_api_request(
-            "/requested_reviewers"
-        )
-        reviewers = []
-        for r in requested_reviewers_json.get("users", []):
-            reviewers.append(Reviewer(r["login"], False))
-        for t in requested_reviewers_json.get("teams", []):
-            reviewers.append(Reviewer(t["slug"], True))
+    @override
+    def report_error(self, message: str, **kwargs):
+        super().report_error(message)
+        self._report_check("failure", message)
 
-        return reviewers
+    @override
+    def report_info(self, message: str, **kwargs):
+        super().report_info(message)
+        try:
+            self._pr.authenticated_api_request(
+                "-issues/comments",
+                "POST",
+                {"body": message},
+            )
+        except Exception as exc:
+            logger.warning(f"Failed to report info `{message}` on PR: {exc}")
+
+    def _find_existing_check(self, check_name: str) -> int | None:
+        checks = self._pr.authenticated_api_request(
+            f"-commits/{self._pr.head_sha}/check-runs?check_name={check_name}&filter=latest"
+        )
+        if checks and (check_runs := checks.get("check_runs")):
+            return check_runs[0].get("id")
+
+    @override
+    def report_warning(self, message: str, **kwargs):
+        super().report_warning(message)
+        self._report_check("neutral", message)
+
+    def _report_check(self, conclusion: str, message: str):
+        try:
+            check_data = (
+                {
+                    "name": GITHUB_CHECK_NAME,
+                    "status": "completed",
+                    "title": "Reviewer selection",
+                    "summary": message,
+                    "conclusion": conclusion,
+                },
+            )
+            if check_id := self._find_existing_check(GITHUB_CHECK_NAME):
+                self._pr.authenticated_api_request(
+                    f"-check-runs/{check_id}", "PATCH", check_data
+                )
+            else:
+                self._pr.authenticated_api_request("-check-runs", "POST", check_data)
+        except Exception as exc:
+            logger.warning(f"Failed to report {conclusion} `{message}` on PR: {exc}")
 
 
 @final
@@ -338,13 +402,33 @@ class GitHubPR(GitHubApiObject):
     def target_branch_name(self) -> str:
         return self.metadata["base"]["ref"]
 
+    @property
+    def head_sha(self) -> str:
+        return self.metadata["head"]["sha"]
+
     @cached_property
     def metadata(self) -> dict[str, Any]:
-        """Return PR metadata, fetching it if needed."""
+        """Return PR metadata."""
         return self.api_request()
 
     @override
     def api_request(
         self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
     ) -> dict[str, Any]:
-        return super().api_request(f"/pulls/{self.pr_number}{path}", method, json)
+        qualified_path = f"/pulls/{self.pr_number}{path}"
+
+        # Some PR interactions (comments, checks, ...) are done via non pull-scoped
+        # endpoints.
+        checks_runs_path = "-check-runs"
+        if path.startswith(checks_runs_path):
+            qualified_path = f"/check-runs{path.removeprefix(checks_runs_path)}"
+
+        commits_path = "-commits"
+        if path.startswith(commits_path):
+            qualified_path = f"/commits{path.removeprefix(commits_path)}"
+
+        issues_path = "-issues"
+        if path.startswith(issues_path):
+            qualified_path = f"/issues/{self.pr_number}{path.removeprefix(issues_path)}"
+
+        return super().api_request(qualified_path, method, json)
