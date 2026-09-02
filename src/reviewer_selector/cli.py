@@ -58,12 +58,17 @@ def cli() -> None:
     try:
         reviewable.add_new_reviewers(resolved)
     except Exception:  # noqa: BLE001
+        tc_info = ""
+        if (tc_root := os.getenv("TASKCLUSTER_ROOT_URL")) and \
+            (tc_task_id := os.getenv("TASK_ID")):
+            task_url = f"{tc_root}/tasks/{tc_task_id}"
+            tc_info = f"\n\n[See task in Taskcluster]({task_url})."
         if not reviewable.reviewers:
             reviewable.report_error(
-                "Could not assign any reviewer. Please use Phabricator instead."
+                f"Could not assign any reviewer. Please use Phabricator instead.{tc_info}"
             )
         else:
-            reviewable.report_warning("Failed to add new reviewers.")
+            reviewable.report_warning(f"Failed to add new reviewers.{tc_info}")
 
 
 def create_github_objects(
