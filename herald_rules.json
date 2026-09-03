@@ -2372,7 +2372,7 @@
           "type": "add-reviewers",
           "reviewers": [
             {
-              "target": "data-stewards",
+              "target": "sensitive-data-review",
               "blocking": true,
               "is_group": true
             }
@@ -5216,6 +5216,16 @@
         "scunnane"
       ]
     },
+    "sensitive-data-review": {
+      "id": "sensitive-data-review",
+      "display_name": "sensitive-data-review",
+      "members": [
+        "akomar",
+        "decoder",
+        "marnie",
+        "nsoyinka"
+      ]
+    },
     "sessionstore-reviewers": {
       "id": "sessionstore-reviewers",
       "display_name": "sessionstore-reviewers",
@@ -5387,6 +5397,8 @@
       "members": [
         "aleca",
         "babolivier",
+        "coreycb",
+        "darktrojan",
         "freaktechnik",
         "tobyp"
       ]
@@ -5639,6 +5651,10 @@
       "username": "ahochheiden",
       "user_id": 10782766
     },
+    "akomar": {
+      "username": "akkomar",
+      "user_id": 1476307
+    },
     "akulyk": {
       "username": "anna-kulyk",
       "user_id": 8186300
@@ -5675,6 +5691,10 @@
       "username": "asutherland",
       "user_id": 212206
     },
+    "avandolder": {
+      "username": "avandolder",
+      "user_id": 11326022
+    },
     "avirvara": {
       "username": "Alexandra-Virvara",
       "user_id": 127850062
@@ -5690,6 +5710,10 @@
     "azinovyev": {
       "username": "AndreyZIno",
       "user_id": 74675733
+    },
+    "babolivier": {
+      "username": "babolivier",
+      "user_id": 5547783
     },
     "baku": {
       "username": "bakulf",
@@ -5811,6 +5835,10 @@
       "username": "dadaa",
       "user_id": 1164542
     },
+    "daleharvey": {
+      "username": "daleharvey",
+      "user_id": 37787
+    },
     "dandarnell": {
       "username": "dandarnell",
       "user_id": 60531668
@@ -5818,6 +5846,10 @@
     "dao": {
       "username": "daogottwald",
       "user_id": 50694882
+    },
+    "darktrojan": {
+      "username": "darktrojan",
+      "user_id": 1540303
     },
     "davehunt": {
       "username": "davehunt",
@@ -5834,6 +5866,10 @@
     "ddurst": {
       "username": "ddurst",
       "user_id": 395920
+    },
+    "decoder": {
+      "username": "choller",
+      "user_id": 1140686
     },
     "devota": {
       "username": "devotaaabel",
@@ -6159,6 +6195,10 @@
       "username": "kaie",
       "user_id": 1382288
     },
+    "kandres": {
+      "username": "codemist",
+      "user_id": 13066134
+    },
     "karlt": {
       "username": "karlt",
       "user_id": 5798877
@@ -6234,6 +6274,10 @@
     "markh": {
       "username": "mhammond",
       "user_id": 83924
+    },
+    "marnie": {
+      "username": "marniepw",
+      "user_id": 33703387
     },
     "masayuki": {
       "username": "masayuki-nakano",
@@ -6403,6 +6447,10 @@
       "username": "nikk15",
       "user_id": 42850541
     },
+    "nsoyinka": {
+      "username": "nsoyinka",
+      "user_id": 165313587
+    },
     "nstroud": {
       "username": "natastro",
       "user_id": 17433156
@@ -6542,6 +6590,10 @@
     "sparky": {
       "username": "gmierz",
       "user_id": 10966989
+    },
+    "spohl": {
+      "username": "spohlMozilla",
+      "user_id": 227882973
     },
     "sstreich": {
       "username": "strseb",
@@ -6692,13 +6744,483 @@
       "user_id": 11163823
     }
   },
-  "unresolved_users": [],
+  "unresolved_users": [
+    {
+      "phabricator_username": "AlexandruIonescu",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:perftest-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "Itiel",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:desktop-theme-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "NeilDeakin",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:credential-management-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "Oriol",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:firefox-style-system-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "ablenkin",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:thunderbird-design-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "alastun",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:android-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "aleca",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:thunderbird-build-system-reviewers",
+        "group:thunderbird-enterprise-reviewers",
+        "group:thunderbird-l10n-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "amadan",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:releng-reviewers",
+        "group:taskgraph-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "ansinha",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:android-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "apindiprolu",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:android-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "aurora",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:browser-installer-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "cbect",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:android-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "cmkm",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:profiles-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "czhou",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:ai-frontend-reviewers",
+        "group:ai-frontend-reviewers-rotation"
+      ]
+    },
+    {
+      "phabricator_username": "dkl_admin",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "H158",
+        "H196",
+        "H197",
+        "H198",
+        "H216",
+        "H220",
+        "H238",
+        "H239",
+        "H246",
+        "H247",
+        "H249",
+        "H252",
+        "H254",
+        "H257",
+        "H274",
+        "H279",
+        "H281",
+        "H290",
+        "H323",
+        "H328",
+        "H332",
+        "H350",
+        "H358",
+        "H359",
+        "H368",
+        "H369",
+        "H372",
+        "H375",
+        "H378",
+        "H382",
+        "H384",
+        "H385",
+        "H386",
+        "H387",
+        "H390",
+        "H391",
+        "H392",
+        "H393",
+        "H401",
+        "H402",
+        "H403",
+        "H404",
+        "H405",
+        "H406",
+        "H409",
+        "H411",
+        "H413",
+        "H420",
+        "H422",
+        "H423",
+        "H425",
+        "H426",
+        "H427",
+        "H429",
+        "H432",
+        "H435",
+        "H438",
+        "H439",
+        "H441",
+        "H449",
+        "H453",
+        "H458",
+        "H464",
+        "H465",
+        "H466",
+        "H468",
+        "H474",
+        "H475",
+        "H478",
+        "H485",
+        "H488",
+        "H493",
+        "H495",
+        "H496",
+        "H498",
+        "H499",
+        "H503",
+        "H507",
+        "H508",
+        "H509",
+        "H510",
+        "H511",
+        "H522",
+        "H523",
+        "H530",
+        "H533",
+        "H536",
+        "H537",
+        "H541",
+        "H542",
+        "H544"
+      ]
+    },
+    {
+      "phabricator_username": "dnguyen",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:credential-management-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "dwalker",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:sessionstore-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "echa",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:ai-frontend-reviewers",
+        "group:ai-frontend-reviewers-rotation"
+      ]
+    },
+    {
+      "phabricator_username": "gcardieri",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:ai-frontend-reviewers",
+        "group:ai-frontend-reviewers-rotation"
+      ]
+    },
+    {
+      "phabricator_username": "gl",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:android-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "gpalladini",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:thunderbird-design-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "handyman",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:geoprovider-reviewers",
+        "group:ipc-reviewers",
+        "group:sandbox-reviewers",
+        "group:win-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "jbrown",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:home-newtab-reviewers-rotation"
+      ]
+    },
+    {
+      "phabricator_username": "jgilbert",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:webgpu-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "jlewis",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:ai-frontend-reviewers",
+        "group:ai-frontend-reviewers-rotation"
+      ]
+    },
+    {
+      "phabricator_username": "jmiksic",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:thunderbird-design-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "kalenlu",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:credential-management-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "kcochrane",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:desktop-theme-reviewers",
+        "group:desktop-theme-reviewers-rotation",
+        "group:fxview-reviewers",
+        "group:sidebar-reviewers-rotation",
+        "group:tabbrowser-reviewers",
+        "group:tabbrowser-reviewers-rotation"
+      ]
+    },
+    {
+      "phabricator_username": "laurel",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:thunderbird-design-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "longsonr",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:firefox-svg-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "mhynson",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:ip-protection-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "micahilbery",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:thunderbird-design-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "miketaylr",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:webcompat-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "mpohle",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:browser-installer-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "nlapre",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:accessibility-frontend-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "peterv",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:core-sessionstore-reviewers",
+        "group:dom-core-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "rkraesig",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:win-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "rtaylor",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:thunderbird-design-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "sefeng",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:dom-core-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "sheehan_admin",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "H540"
+      ]
+    },
+    {
+      "phabricator_username": "sol",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:thunderbird-design-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "stransky",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:gtk-reviewers",
+        "group:media-playback-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "tarek",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:ai-frontend-reviewers",
+        "group:ai-models-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "tbersentes",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:profiles-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "tjorjani",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:android-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "tmanku",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "group:credential-management-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "tobyp",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:thunderbird-build-system-reviewers",
+        "group:thunderbird-data-reviewers",
+        "group:thunderbird-enterprise-reviewers",
+        "group:thunderbird-l10n-reviewers",
+        "group:thunderbird-security-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "unknown",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "H18"
+      ]
+    },
+    {
+      "phabricator_username": "vdreghici",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:android-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "yazan",
+      "reason": "no_github_linked",
+      "referenced_in": [
+        "group:omc-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "zeid_admin",
+      "reason": "pmo_profile_not_found",
+      "referenced_in": [
+        "H376"
+      ]
+    }
+  ],
   "metadata": {
-    "extracted_at": "2026-09-01T06:55:45.044814Z",
+    "extracted_at": "2026-09-03T06:04:22.331651Z",
     "total_rules": 95,
-    "total_groups": 92,
-    "total_users_resolved": 290,
-    "total_users_unresolved": 0,
+    "total_groups": 93,
+    "total_users_resolved": 300,
+    "total_users_unresolved": 51,
     "phabricator_instance": "phabricator.services.mozilla.com",
     "scrape_status": {
       "rules_complete": true,
