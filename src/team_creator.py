@@ -139,7 +139,7 @@ def ensure_team_exists(
 
         create_payload = {
             "name": team_name,
-            "description": "Super-team of all staff allowed to review changes",
+            "description": "Automatically created by reviewer-selector's team-creator",
             "permission": "pull",
             "notification_setting": "notifications_enabled",
             "privacy": "closed",

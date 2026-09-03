@@ -599,7 +599,9 @@ def configurable_mocked_github_request() -> Callable[
 
             return {}
 
-        def get_reviewers_callback(request, context):
+        def get_reviewers_callback(
+            _request: requests.Request, _context: requests_mock.response._Context
+        ):
             """Callback returning our in-memory set of reviewers."""
             return requested_reviewers_data
 
