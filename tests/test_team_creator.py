@@ -226,14 +226,16 @@ def test_add_team_members(
     assert len(github_double.request_history) == 2, (
         "Unexpected number of requests to GitHub"
     )
-    for i, m in enumerate(members):
-        assert (
-            github_double.adapter.request_history[i].url
-            == f"https://api.github.com/orgs/test-org/teams/{team_name}/memberships/{m}"
-        ), "Unexpected request URL"
-        assert github_double.adapter.request_history[i].method == "PUT", (
-            "Unexpected request method"
-        )
+    assert {
+        request.url for request in github_double.adapter.request_history
+    } == {
+        f"https://api.github.com/orgs/test-org/teams/{team_name}/memberships/{member}"
+        for member in members
+    }
+    assert all(
+        request.method == "PUT"
+        for request in github_double.adapter.request_history
+    )
 
 
 def test_ensure_team_exists(
