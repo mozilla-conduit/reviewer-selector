@@ -28,7 +28,7 @@ def main():
         default=False,
     )
     args_parser.add_argument("--github-token")
-    args_parser.add_argument("--organisation", default="bug2001552")
+    args_parser.add_argument("--organisation", default="mozilla-firefox")
     args_parser.add_argument("rules")
 
     arguments = args_parser.parse_args()
