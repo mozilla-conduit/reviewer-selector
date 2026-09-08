@@ -102,7 +102,14 @@ def create_teams(
 
     for team in teams:
         # create team
-        ensure_team_exists(client, organisation, team, dry_run, parent_team=base_team)
+        ensure_team_exists(
+            client,
+            organisation,
+            team,
+            dry_run,
+            parent_team=base_team,
+            display_name=groups.get(team, {}.get("display_name")),
+        )
 
         # get team members
         members = get_team_members(client, organisation, team, dry_run)
@@ -123,6 +130,7 @@ def ensure_team_exists(
     team_name: str,
     dry_run: bool,
     *,
+    display_name: str = "",
     parent_team: str = "",
 ) -> dict[str, Any]:
     logger.debug(f"Ensuring {team_name} exists ...")
@@ -134,9 +142,13 @@ def ensure_team_exists(
             logger.info(f"[DRY-RUN] Would create team {team_name}")
             return {}
 
+        description = ("Automatically created by reviewer-selector's team-creator",)
+        if display_name:
+            description = f"{display_name} ({description})"
+
         create_payload = {
             "name": team_name,
-            "description": "Automatically created by reviewer-selector's team-creator",
+            "description": description,
             "permission": "pull",
             "notification_setting": "notifications_enabled",
             "privacy": "closed",
