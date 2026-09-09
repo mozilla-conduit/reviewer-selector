@@ -55,7 +55,7 @@ def main():
     try:
         create_teams(client, rules, organisation, base_team, arguments.dry_run)
     except HTTPError as exc:
-        print(f"{exc} for {exc.request.body}: {exc.response.text}")
+        logger.error(f"Exception when creating teams: {exc} for {exc.request.body}: {exc.response.text}")
         sys.exit(3)
 
 
