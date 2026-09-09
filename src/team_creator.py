@@ -203,7 +203,7 @@ def remove_team_members(
 
     if dry_run:
         logger.info(
-            f"[DRY RUN] Would remove members from {team_name}: {removed_members}"
+            f"[DRY RUN] Would remove members from {team_name}: {members}"
         )
         return
 
