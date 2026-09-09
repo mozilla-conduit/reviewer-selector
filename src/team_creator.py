@@ -108,7 +108,7 @@ def create_teams(
             team,
             dry_run,
             parent_team=base_team,
-            display_name=groups.get(team, {}.get("display_name")),
+            display_name=groups.get(team, {}).get("display_name"),
         )
 
         # get team members
