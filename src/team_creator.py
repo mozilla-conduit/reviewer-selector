@@ -232,7 +232,7 @@ def get_team_members(
 
     try:
         resp.raise_for_status()
-    except:  # noqa: E722
+    except HTTPError:
         if not dry_run:
             raise
         logger.info(f"[DRY-RUN] Error getting {team_name} membership, assuming empty")
