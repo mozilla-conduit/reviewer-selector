@@ -61,7 +61,7 @@ def main():
         logger.error(
             f"Exception when creating teams: {exc} for {exc.request.body}: {exc.response.text}"
         )
-        sys.exit(3)
+        sys.exit(2)
 
 
 RulesGitHubUsers = dict[str, dict[str, str]]
