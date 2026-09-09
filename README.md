@@ -64,7 +64,7 @@ then
 
 The Herald Rules define review groups, which loosely map to GitHub teams. The
 `team-creator` command is available to create teams, and sync membership to the
-supplied herald_rules file . Team are not automatically deleted.
+supplied herald_rules file. Teams are not automatically deleted.
 
     $ uv run team-creator --github-token "$(gh auth token)" --debug \
       --organisation mozilla-firefox --base-team all-reviewers \
