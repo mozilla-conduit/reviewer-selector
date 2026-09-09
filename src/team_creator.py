@@ -212,7 +212,7 @@ def remove_team_members(
 
     for user in members:
         try:
-            # simple_github.Client.delete returns None
+            # As of 3.2.2, simple_github.Client.delete returns None ...
             client.delete(remove_url + user)
             removed_members.append(user)
         except HTTPError as exc:
