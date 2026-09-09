@@ -142,7 +142,7 @@ def ensure_team_exists(
             logger.info(f"[DRY-RUN] Would create team {team_name}")
             return {}
 
-        description = ("Automatically created by reviewer-selector's team-creator",)
+        description = "Automatically created by reviewer-selector's team-creator"
         if display_name:
             description = f"{display_name} ({description})"
 
