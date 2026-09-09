@@ -216,6 +216,9 @@ def remove_team_members(
             client.delete(remove_url + user)
             removed_members.append(user)
         except HTTPError as exc:
+            # ... so this is dead code, as we don't raise_for_status.
+            # We keep it here for now, with the intention of making simple_github more
+            # consistent.
             logger.warning(
                 f"Cannot remove {user} from {team_name}: {exc.response.text}"
             )
