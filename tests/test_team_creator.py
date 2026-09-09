@@ -315,11 +315,16 @@ def test_ensure_team_exists(
             team_name,
             False,
             parent_team=parent_team_name,
+            display_name=team_name,
         )
 
         # Call it a second time.
         ensure_team_exists(
-            mocked_github_client, github_double.org_name, team_name, False
+            mocked_github_client,
+            github_double.org_name,
+            team_name,
+            False,
+            display_name=team_name,
         )
 
     assert len(github_double.request_history) == 3, (
@@ -395,7 +400,11 @@ def test_dry_run(
     with github_double:
         # Test failure modes.
         ensure_team_exists(
-            mocked_github_client, github_double.org_name, team_name, True
+            mocked_github_client,
+            github_double.org_name,
+            team_name,
+            True,
+            display_name="team_name",
         )
         get_team_members(mocked_github_client, github_double.org_name, team_name, True)
 
@@ -404,7 +413,11 @@ def test_dry_run(
         github_double.add_members(team_name, {"alice"})
 
         team = ensure_team_exists(
-            mocked_github_client, github_double.org_name, team_name, True
+            mocked_github_client,
+            github_double.org_name,
+            team_name,
+            True,
+            display_name="team_name",
         )
         assert team == {}, "Missing data should be shimmed in dry run"
 
@@ -441,7 +454,11 @@ def test_dry_run(
             f"{mock.base_url}/orgs/{mock.org_name}/teams/{team_name}", status_code=418
         )
     ret = ensure_team_exists(
-        mocked_github_client, github_double.org_name, team_name, True
+        mocked_github_client,
+        github_double.org_name,
+        team_name,
+        True,
+        display_name=team_name,
     )
     assert ret == {}
 
