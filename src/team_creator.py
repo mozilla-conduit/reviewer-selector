@@ -5,11 +5,14 @@ import logging
 import os
 import sys
 from argparse import ArgumentParser
+from collections.abc import Generator
 from typing import Any
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 import requests
 from requests.exceptions import HTTPError
 from simple_github import Client, TokenClient
+from simple_github.client import GITHUB_API_ENDPOINT
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +58,9 @@ def main():
     try:
         create_teams(client, rules, organisation, base_team, arguments.dry_run)
     except HTTPError as exc:
-        logger.error(f"Exception when creating teams: {exc} for {exc.request.body}: {exc.response.text}")
+        logger.error(
+            f"Exception when creating teams: {exc} for {exc.request.body}: {exc.response.text}"
+        )
         sys.exit(3)
 
 
@@ -202,9 +207,7 @@ def remove_team_members(
     removed_members = []
 
     if dry_run:
-        logger.info(
-            f"[DRY RUN] Would remove members from {team_name}: {members}"
-        )
+        logger.info(f"[DRY RUN] Would remove members from {team_name}: {members}")
         return
 
     for user in members:
@@ -226,19 +229,40 @@ def get_team_members(
     logger.debug(f"Getting {team_name} membership ...")
     team_url = _make_team_url(organisation, team_name)
 
-    resp: requests.Response = client.get(
-        f"{team_url}/members",
-    )
-
     try:
-        resp.raise_for_status()
+        members = {
+            member["login"]
+            for page in paginated_get(client, f"{team_url}/members")
+            for member in page
+        }
     except HTTPError:
         if not dry_run:
             raise
         logger.info(f"[DRY-RUN] Error getting {team_name} membership, assuming empty")
         return set()
 
-    return {user["login"] for user in resp.json()}
+    return members
+
+
+def paginated_get(client: Client, url: str) -> Generator[list[Any], None, None]:
+    parsed_url = urlsplit(url)
+    if not parsed_url.query or "per_page" not in (qs := parse_qs(parsed_url.query)):
+        if not parsed_url.query:
+            qs = {}
+        qs["per_page"] = "100"
+        url = parsed_url._replace(query=urlencode(qs)).geturl()
+
+    while True:
+        resp: requests.Response = client.get(url)
+        resp.raise_for_status()
+
+        yield resp.json()
+
+        url = (
+            resp.links.get("next", {}).get("url", "").removeprefix(GITHUB_API_ENDPOINT)
+        )
+        if not url:
+            return
 
 
 def _make_team_url(organisation: str, team_name: str) -> str:

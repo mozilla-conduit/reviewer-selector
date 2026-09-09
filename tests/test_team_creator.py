@@ -10,6 +10,7 @@ import pytest
 import requests
 import requests_mock
 import simple_github
+from requests.compat import urlsplit
 from requests_mock.mocker import Mocker
 
 from team_creator import (
@@ -18,6 +19,7 @@ from team_creator import (
     ensure_team_exists,
     get_team_members,
     main,
+    paginated_get,
     remove_team_members,
 )
 
@@ -40,25 +42,22 @@ class GithubDouble(Mocker):
         self.members_per_team = {}
 
         def catchall_matcher(request: requests.Request) -> requests.Response:
-            resp = requests.Response()
 
             if (
                 request.url.startswith(f"{self.base_url}/teams")
                 and request.method == "POST"
             ):
                 payload = request.json()
-                assert payload, "GithubDouble: missing or non-JSON POST /teams payload."
+                assert payload, (
+                    "[GithubDouble] missing or non-JSON POST /teams payload."
+                )
                 self.create_team(payload["name"])
-                resp.status_code = 201
-                resp._content = b"{}"
+                resp = self._make_response(request, 201)
+                return resp
 
-            else:
-                resp.status_code = 404
-                # Insert a recognisable error response.
-                resp._content = (
-                    f'{{ "error": "GitHubDouble: REST request {request.method} {request.url} not supported." }}'
-                ).encode()
-            return resp
+            return self._make_response(
+                request, 404, error_reason=f"{request.method} not supported"
+            )
 
         self.adapter.add_matcher(catchall_matcher)
 
@@ -75,15 +74,16 @@ class GithubDouble(Mocker):
             try:
                 return fn(*args, **kwargs)
             except GitHubDoubleException as exc:
-                resp = requests.Response()
-                resp.status_code = 400
-                # Insert a recognisable error response.
-                resp._content = (f'{{ "error": "GitHubDouble: {exc}." }}').encode()
+                # Request should be the first argument on callbacks.
+                request = args[0]
+
+                resp = GithubDouble._make_response(
+                    request, 400, error_reason=f"[GitHubDouble] {exc}."
+                )
 
                 http_error = requests.exceptions.HTTPError()
                 http_error.response = resp
-                # Request should be the first argument on callbacks.
-                http_error.request = args[0]
+                http_error.request = request
 
                 raise http_error from exc
 
@@ -95,38 +95,33 @@ class GithubDouble(Mocker):
         def team_matcher(request: requests.Request) -> requests.Response | None:
             """Matcher for the REST subpaths for the new team."""
             if request.url.startswith(f"{self.base_url}/teams/{team_name}"):
-                resp = requests.Response()
-
-                split_url = request.url.split("/")
+                rest_path = urlsplit(request.url)
+                split_url = rest_path.path.split("/")
                 # /orgs/{organisation}/teams/{team_name}
                 if split_url[-1] == team_name and request.method == "GET":
-                    resp.status_code = 200
                     if team_name not in self.members_per_team:
-                        resp.status_code = 404
+                        return self._make_response(request, 404)
 
-                    resp._content = b"{}"
+                    return self._make_response(request)
 
                 # /orgs/{organisation}/teams/{team_name}/memberships/{user}
-                elif split_url[-2] == "memberships" and request.method == "PUT":
+                if split_url[-2] == "memberships" and request.method == "PUT":
                     member = split_url[-1]
                     self.add_members(team_name, [member])
-                    resp.status_code = 200
-                    resp._content = b"{}"
+                    return self._make_response(request)
 
                 # /orgs/{organisation}/teams/{team_name}/memberships/{user}
-                elif split_url[-2] == "memberships" and request.method == "DELETE":
+                if split_url[-2] == "memberships" and request.method == "DELETE":
                     member = split_url[-1]
                     self.delete_member(team_name, member)
-                    resp.status_code = 204
+                    return self._make_response(request, 204)
 
                 # /orgs/{organisation}/teams/{team_name}/members
-                elif split_url[-1] == "members" and request.method == "GET":
-                    resp.status_code = 200
-                    resp._content = json.dumps(
+                if split_url[-1] == "members" and request.method == "GET":
+                    content = json.dumps(
                         [{"login": u} for u in self.get_team_members(team_name)]
                     ).encode()
-
-                return resp
+                    return self._make_response(request, 200, content=content)
 
         if team_name not in self.members_per_team:
             self.members_per_team[team_name] = set()
@@ -164,6 +159,27 @@ class GithubDouble(Mocker):
         # request_mocks.mocker.Mocker has _adapter.
         return self._adapter
 
+    @staticmethod
+    def _make_response(
+        request: requests.Request,
+        status_code=200,
+        *,
+        content: bytes = b"{}",
+        error_reason: str = "",
+    ) -> requests.Response:
+        resp = requests.Response()
+        resp.request = request
+        resp.url = request.url
+        resp.status_code = status_code
+        resp._content = content
+
+        if error_reason:
+            resp.reason = f"[GitHubDouble] {error_reason}"
+            if content == b"{}":
+                resp._content = (f'{{ "error": {resp.reason} }}').encode()
+
+        return resp
+
 
 @pytest.fixture
 def github_double() -> GithubDouble:
@@ -175,6 +191,64 @@ def github_double() -> GithubDouble:
 @pytest.fixture
 def mocked_github_client() -> simple_github.Client:
     return simple_github.TokenClient("token")
+
+
+def test_paginated_get(
+    github_double: GithubDouble, mocked_github_client: simple_github.Client
+):
+
+    base_url = f"{github_double.base_url}/test_paginated_url"
+    users = ["alice", "bob"]
+
+    def callback(_request: requests.Request, context: requests_mock.response._Context):
+        if not users:
+            context.status_code = 422
+            return "No more pages"
+
+        user = users.pop(0)
+
+        if users:
+            # We only have two users. Add a link to the second page, with some ignorable
+            # cruft.
+            context.headers["link"] = (
+                f'<{base_url}?page=whatever>; rel="prev", <{base_url}?page=2>; rel="next", <{base_url}?page=whocares>; rel="last", <{base_url}?page=1>; rel="first"'
+            )
+
+        return [user]
+
+    with github_double as mock:
+        # add link header
+        mock.get(base_url, json=callback)
+        response = [
+            elt
+            for pg in paginated_get(
+                mocked_github_client, f"/orgs/{mock.org_name}/test_paginated_url"
+            )
+            for elt in pg
+        ]
+
+        with pytest.raises(requests.exceptions.HTTPError) as exc_info:
+            next(
+                paginated_get(
+                    mocked_github_client, f"/orgs/{mock.org_name}/test_paginated_url"
+                )
+            )
+
+        assert exc_info.value.response.status_code == 422
+
+    assert response == ["alice", "bob"]
+    assert len(github_double.adapter.request_history) == 3, (
+        "Unexpected number of requests to paginated endpoint"
+    )
+    assert [r.url for r in github_double.adapter.request_history] == [
+        "https://api.github.com/orgs/test-org/test_paginated_url?per_page=100",
+        # We only add the per_page on first call. Subsequent requests are driven by the
+        # next link header.
+        "https://api.github.com/orgs/test-org/test_paginated_url?page=2",
+        # The failing request, same as the first one, but now that we depleted the user
+        # list, this raises the 422
+        "https://api.github.com/orgs/test-org/test_paginated_url?per_page=100",
+    ]
 
 
 def test_get_team_members(
@@ -195,9 +269,8 @@ def test_get_team_members(
     assert len(github_double.request_history) == 1, (
         "Unexpected number of requests to GitHub"
     )
-    assert (
-        github_double.adapter.request_history[0].url
-        == f"https://api.github.com/orgs/test-org/teams/{team_name}/members"
+    assert github_double.adapter.request_history[0].url.startswith(
+        f"https://api.github.com/orgs/test-org/teams/{team_name}/members"
     ), "Unexpected request URL"
     assert github_double.adapter.request_history[0].method == "GET", (
         "Unexpected request method"
