@@ -77,15 +77,9 @@ class GithubDouble(Mocker):
                 # Request should be the first argument on callbacks.
                 request = args[0]
 
-                resp = GithubDouble._make_response(
-                    request, 400, error_reason=f"[GitHubDouble] {exc}."
+                return GithubDouble._make_response(
+                    request, 400, error_reason=f"[GitHubDouble] Exception {exc}"
                 )
-
-                http_error = requests.exceptions.HTTPError()
-                http_error.response = resp
-                http_error.request = request
-
-                raise http_error from exc
 
         return wrapper
 
