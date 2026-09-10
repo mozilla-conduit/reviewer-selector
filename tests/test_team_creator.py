@@ -442,7 +442,7 @@ def test_dry_run(
         )
 
     assert len(members) == 1, "Expected correct member list in dry run"
-    # 2 (team + members) GETs
+    # 2x2 (team + members) GET requests
     assert len(github_double.request_history) == 4, (
         "Unexpected number of requests to GitHub (only GETs allowed)"
     )
