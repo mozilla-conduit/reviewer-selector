@@ -453,12 +453,19 @@ def test_dry_run(
         mock.get(
             f"{mock.base_url}/orgs/{mock.org_name}/teams/{team_name}", status_code=418
         )
-    ret = ensure_team_exists(
-        mocked_github_client,
-        github_double.org_name,
-        team_name,
-        True,
-        display_name=team_name,
+        ret = ensure_team_exists(
+            mocked_github_client,
+            github_double.org_name,
+            team_name,
+            True,
+            display_name=team_name,
+        )
+
+    # Due to https://github.com/jamielennox/requests-mock/issues/277, we cannot reset
+    # the mock to only check the new request.
+    expected_requests = 4 + 1
+    assert len(github_double.request_history) == expected_requests, (
+        "Unexpected number of requests to GitHub (only GETs allowed)"
     )
     assert ret == {}
 
