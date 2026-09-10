@@ -105,7 +105,7 @@ def create_teams(
     members = get_team_members(client, organisation, base_team, dry_run)
     logger.info(f"All members of {base_team}: {members}")
 
-    for team in teams:
+    for team, target_members in teams.items():
         # create team
         ensure_team_exists(
             client,
