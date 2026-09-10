@@ -96,7 +96,7 @@ def create_teams(
             if not github_name:
                 logger.warning(f"Empty or missing GitHub username for {phab_name}")
                 continue
-            members.append(github_name)
+            members.add(github_name)
 
         teams[group_name] = members
 
