@@ -121,7 +121,7 @@ def create_teams(
         logger.info(f"Current members of {team}: {members}")
 
         # add new users
-        if users_to_add := set(teams[team]) - members:
+        if users_to_add := target_members - current_members:
             add_team_members(client, organisation, team, users_to_add, dry_run)
 
         # remove missing users
