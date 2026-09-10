@@ -87,7 +87,7 @@ def create_teams(
     groups: RulesGroups = herald_rules.get("groups", {})
     teams: GitHubTeams = {}
     for group_name, group_data in groups.items():
-        members = []
+        members = set()
         for phab_name in group_data.get("members", []):
             if phab_name not in github_users:
                 logger.warning(f"Unresolved GitHub username for {phab_name}")
