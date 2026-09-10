@@ -117,7 +117,7 @@ def create_teams(
         )
 
         # get team members
-        members = get_team_members(client, organisation, team, dry_run)
+        current_members = get_team_members(client, organisation, team, dry_run)
         logger.info(f"Current members of {team}: {members}")
 
         # add new users
