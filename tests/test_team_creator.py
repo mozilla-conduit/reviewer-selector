@@ -128,7 +128,7 @@ class GithubDouble(Mocker):
     def add_members(self, team_name: str, members: Iterable[str]):
         if team_name not in self.members_per_team:
             raise GitHubDoubleException(
-                f"Team {team_name} to add memmber in doesn't exist"
+                f"Team {team_name} to add member in doesn't exist"
             )
         self.members_per_team[team_name] |= set(members)
 
