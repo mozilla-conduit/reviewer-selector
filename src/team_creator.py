@@ -68,7 +68,7 @@ RulesGitHubUsers = dict[str, dict[str, str]]
 RulesGroups = dict[str, dict[str, Any]]
 
 PhabGitHubMap = dict[str, str]
-GitHubTeams = dict[str, list[str]]
+GitHubTeams = dict[str, set[str]]
 
 
 def create_teams(
