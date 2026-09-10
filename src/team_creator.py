@@ -125,7 +125,7 @@ def create_teams(
             add_team_members(client, organisation, team, users_to_add, dry_run)
 
         # remove missing users
-        if members_to_remove := members - set(teams[team]):
+        if members_to_remove := current_members - target_members:
             remove_team_members(client, organisation, team, members_to_remove, dry_run)
 
 
