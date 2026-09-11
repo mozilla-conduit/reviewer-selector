@@ -86,6 +86,7 @@ def create_teams(
     logger.info("Creating GitHub Teams member lists ...")
     groups: RulesGroups = herald_rules.get("groups", {})
     teams: GitHubTeams = {}
+    all_users = set()
     for group_name, group_data in groups.items():
         members = set()
         for phab_name in group_data.get("members", []):
@@ -97,13 +98,14 @@ def create_teams(
                 logger.warning(f"Empty or missing GitHub username for {phab_name}")
                 continue
             members.add(github_name)
+            all_users.add(github_name)
 
         teams[group_name] = members
 
     # find base team
     ensure_team_exists(client, organisation, base_team, dry_run)
     members = get_team_members(client, organisation, base_team, dry_run)
-    logger.info(f"All members of {base_team}: {members}")
+    update_team_members(client, organisation, base_team, all_users, dry_run)
 
     for team, target_members in teams.items():
         # create team
@@ -115,18 +117,7 @@ def create_teams(
             parent_team=base_team,
             display_name=groups.get(team, {}).get("display_name"),
         )
-
-        # get team members
-        current_members = get_team_members(client, organisation, team, dry_run)
-        logger.info(f"Current members of {team}: {members}")
-
-        # add new users
-        if users_to_add := target_members - current_members:
-            add_team_members(client, organisation, team, users_to_add, dry_run)
-
-        # remove missing users
-        if members_to_remove := current_members - target_members:
-            remove_team_members(client, organisation, team, members_to_remove, dry_run)
+        update_team_members(client, organisation, team, target_members, dry_run)
 
 
 def ensure_team_exists(
@@ -174,6 +165,26 @@ def ensure_team_exists(
         return {}
 
     return resp.json()
+
+
+def update_team_members(
+    client: Client,
+    organisation: str,
+    team: str,
+    target_members: set[str],
+    dry_run: bool,
+):
+    # get team members
+    current_members = get_team_members(client, organisation, team, dry_run)
+    logger.info(f"Current members of {team}: {current_members}")
+
+    # add new users
+    if users_to_add := target_members - current_members:
+        add_team_members(client, organisation, team, users_to_add, dry_run)
+
+    # remove missing users
+    if members_to_remove := current_members - target_members:
+        remove_team_members(client, organisation, team, members_to_remove, dry_run)
 
 
 def add_team_members(
