@@ -104,7 +104,6 @@ def create_teams(
 
     # find base team
     ensure_team_exists(client, organisation, base_team, dry_run)
-    members = get_team_members(client, organisation, base_team, dry_run)
     update_team_members(client, organisation, base_team, all_users, dry_run)
 
     for team, target_members in teams.items():
