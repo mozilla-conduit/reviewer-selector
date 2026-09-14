@@ -85,48 +85,6 @@
       ]
     },
     {
-      "id": "H198",
-      "name": "Blocked by webdriver-reviewers-rotation",
-      "author": "dkl_admin",
-      "status": "active",
-      "type": "differential-revision",
-      "conditions": [
-        {
-          "type": "differential-affected-files",
-          "operator": "matches-regexp",
-          "value": "^/?testing/webdriver"
-        },
-        {
-          "type": "repository",
-          "operator": "is-any-of",
-          "value": [
-            "mozilla-central",
-            "firefox-autoland"
-          ]
-        },
-        {
-          "type": "differential-revision-status",
-          "operator": "is-not-any-of",
-          "value": [
-            "Closed",
-            "Abandoned"
-          ]
-        }
-      ],
-      "actions": [
-        {
-          "type": "add-reviewers",
-          "reviewers": [
-            {
-              "target": "webdriver-reviewers-rotation",
-              "blocking": true,
-              "is_group": true
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "H216",
       "name": "Blocked by Perftest Reviewers",
       "author": "dkl_admin",
@@ -489,48 +447,6 @@
       ]
     },
     {
-      "id": "H281",
-      "name": "Blocked by Webdriver Reviewers #2",
-      "author": "dkl_admin",
-      "status": "active",
-      "type": "differential-revision",
-      "conditions": [
-        {
-          "type": "repository",
-          "operator": "is-any-of",
-          "value": [
-            "mozilla-central",
-            "firefox-autoland"
-          ]
-        },
-        {
-          "type": "differential-affected-files",
-          "operator": "matches-regexp",
-          "value": "^\\/?testing\\/web-platform\\/(mozilla\\/)?(tests|meta)\\/(tools\\/)?webdriver"
-        },
-        {
-          "type": "differential-revision-status",
-          "operator": "is-not-any-of",
-          "value": [
-            "Closed",
-            "Abandoned"
-          ]
-        }
-      ],
-      "actions": [
-        {
-          "type": "add-reviewers",
-          "reviewers": [
-            {
-              "target": "webdriver-reviewers-rotation",
-              "blocking": true,
-              "is_group": true
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "H290",
       "name": "Blocked by Application Update Reviewers",
       "author": "dkl_admin",
@@ -644,18 +560,13 @@
         {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": "^/?dom/media/([^/]$|(driftcontrol|webcodecs|webaudio|webspeech|encoder|autoplay|docs|doctor|dom|eme|fake-cdm|flac|gmp|hls|ipc|mediacapabilities|mediacontrol|mediaelement|mediasession|mediasink|mediasource|mp3|mp4|ogg|platforms|test|tools|wave|webm|webvtt)/)"
+          "value": "^/?dom/media/([^/]$|(driftcontrol|webcodecs|webaudio|webspeech/synth|encoder|autoplay|docs|doctor|dom|eme|fake-cdm|flac|gmp|hls|ipc|mediacapabilities|mediacontrol|mediaelement|mediasession|mediasink|mediasource|mp3|mp4|ogg|platforms|test|tools|wave|webm|webvtt)/)"
         },
         {
           "type": "differential-reviewers",
           "operator": "include-none-of",
           "value": [
-            "alwu",
-            "bryce",
-            "chunmin",
-            "jolin",
-            "padenot",
-            "stransky"
+            "media-playback-reviewers"
           ]
         }
       ],
@@ -1427,7 +1338,7 @@
     },
     {
       "id": "H392",
-      "name": "Blocked by sessionstore-reviewers",
+      "name": "Blocked by sessionstore-reviewers-rotation",
       "author": "dkl_admin",
       "status": "active",
       "type": "differential-revision",
@@ -1463,6 +1374,16 @@
             {
               "target": "sessionstore-reviewers-rotation",
               "blocking": true,
+              "is_group": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "sessionstore-reviewers",
+              "blocking": false,
               "is_group": true
             }
           ]
@@ -2300,6 +2221,16 @@
               "is_group": true
             }
           ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "sidebar-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
         }
       ]
     },
@@ -2896,7 +2827,7 @@
     },
     {
       "id": "H488",
-      "name": "Blocked by  reusable-components-reviewers and accessibility-frontend-reviewers",
+      "name": "Blocked by  reusable-components-reviewers-rotation",
       "author": "dkl_admin",
       "status": "active",
       "type": "differential-revision",
@@ -2936,6 +2867,16 @@
             {
               "target": "reusable-components-reviewers-rotation",
               "blocking": true,
+              "is_group": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "reusable-components-reviewers",
+              "blocking": false,
               "is_group": true
             }
           ]
@@ -3646,7 +3587,7 @@
     },
     {
       "id": "H252",
-      "name": "Blocked by Preferences Reviewers #1",
+      "name": "Blocked by settings-reviewers-rotation #1",
       "author": "dkl_admin",
       "status": "active",
       "type": "differential-revision",
@@ -3684,12 +3625,22 @@
               "blocking": true
             }
           ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "settings-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
         }
       ]
     },
     {
       "id": "H254",
-      "name": "Blocked by Preferences Reviewers #2",
+      "name": "Blocked by settings-reviewers-rotation #2",
       "author": "dkl_admin",
       "status": "active",
       "type": "differential-revision",
@@ -3727,12 +3678,22 @@
               "blocking": true
             }
           ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "settings-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
         }
       ]
     },
     {
       "id": "H257",
-      "name": "Blocked by Preferences Reviewers #3",
+      "name": "Blocked by settings-reviewers-rotation #3",
       "author": "dkl_admin",
       "status": "active",
       "type": "differential-revision",
@@ -3768,6 +3729,16 @@
             {
               "target": "Restricted Project",
               "blocking": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "settings-reviewers",
+              "blocking": false,
+              "is_group": true
             }
           ]
         }
@@ -4255,7 +4226,7 @@
     },
     {
       "id": "H541",
-      "name": "Needs review from webdriver-reviewers",
+      "name": "Needs review from webdriver-reviewers and blocked by rotation group",
       "author": "dkl_admin",
       "status": "active",
       "type": "differential-revision",
@@ -4280,7 +4251,7 @@
         {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": "^/?testing/webdriver"
+          "value": "^/?testing/web-platform/(mozilla/)?(tests|meta)/(tools/)?webdriver"
         }
       ],
       "actions": [
@@ -4290,6 +4261,16 @@
             {
               "target": "webdriver-reviewers",
               "blocking": false,
+              "is_group": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "webdriver-reviewers-rotation",
+              "blocking": true,
               "is_group": true
             }
           ]
@@ -4373,6 +4354,135 @@
           "reviewers": [
             {
               "target": "geoprovider-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H546",
+      "name": "Crash Reporting Review Group",
+      "author": "sheehan_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "unknown",
+          "operator": "unknown",
+          "value": "Affected files matches regexp #^/(?:toolkit/(?:crashreporter|components/crashes)/|tools/crashreporter/|ipc/glue/CrashReporter|mobile/android/(?:geckoview/src/main/java/org/mozilla/(?:geckoview/Crash|gecko/crashhelper/)|android-components/components/lib/crash/))#"
+        },
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "crashreporting-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H547",
+      "name": "Blocked by device-api-reviewers group",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/?(dom/(gamepad|webserial|midi(/tests)?)/.*|dom/webidl/Gamepad.*|dom/tests/mochitest/gamepad/.*|testing/web-platform/tests/(gamepad|webmidi)/.*)"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "device-api-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H549",
+      "name": "Blocked by media webspeech reviewers",
+      "author": "shtrom_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^/?(dom/media/webspeech/recognition/|third_party/parakeet.cpp/)"
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Abandoned",
+            "Closed",
+            "Draft",
+            "Changes Planned"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "media-webspeech-reviewers",
               "blocking": true,
               "is_group": true
             }
@@ -4643,6 +4753,15 @@
         "peterv"
       ]
     },
+    "crashreporting-reviewers": {
+      "id": "crashreporting-reviewers",
+      "display_name": "crashreporting-reviewers",
+      "members": [
+        "afranchuk",
+        "gsvelto",
+        "schopin"
+      ]
+    },
     "credential-management-reviewers": {
       "id": "credential-management-reviewers",
       "display_name": "credential-management-reviewers",
@@ -4705,6 +4824,7 @@
       "members": [
         "Itiel",
         "Juliana",
+        "akulyk",
         "dao",
         "emilio",
         "hjones",
@@ -4719,6 +4839,7 @@
       "id": "desktop-theme-reviewers-rotation",
       "display_name": "desktop-theme-reviewers-rotation",
       "members": [
+        "akulyk",
         "dao",
         "emilio",
         "hjones",
@@ -4726,6 +4847,16 @@
         "mstriemer",
         "sfoster",
         "tgiles"
+      ]
+    },
+    "device-api-reviewers": {
+      "id": "device-api-reviewers",
+      "display_name": "device-api-reviewers",
+      "members": [
+        "cmartin",
+        "gstoll",
+        "gsvelto",
+        "nika"
       ]
     },
     "devtools-backward-compat-reviewers": {
@@ -5041,6 +5172,16 @@
         "stransky"
       ]
     },
+    "media-webspeech-reviewers": {
+      "id": "media-webspeech-reviewers",
+      "display_name": "media-webspeech-reviewers",
+      "members": [
+        "alwu",
+        "azebrowski",
+        "padenot",
+        "pehrsons"
+      ]
+    },
     "migration-reviewers": {
       "id": "migration-reviewers",
       "display_name": "migration-reviewers",
@@ -5180,6 +5321,18 @@
         "jcristau"
       ]
     },
+    "reusable-components-reviewers": {
+      "id": "reusable-components-reviewers",
+      "display_name": "reusable-components-reviewers",
+      "members": [
+        "akulyk",
+        "hjones",
+        "jules",
+        "mkennedy",
+        "mstriemer",
+        "tgiles"
+      ]
+    },
     "reusable-components-reviewers-rotation": {
       "id": "reusable-components-reviewers-rotation",
       "display_name": "reusable-components-reviewers-rotation",
@@ -5230,8 +5383,6 @@
       "id": "sessionstore-reviewers",
       "display_name": "sessionstore-reviewers",
       "members": [
-        "dwalker",
-        "farre",
         "jswinarton",
         "nsharpley",
         "sclements",
@@ -5248,6 +5399,19 @@
         "sclements",
         "sfoster",
         "sthompson"
+      ]
+    },
+    "settings-reviewers": {
+      "id": "settings-reviewers",
+      "display_name": "settings-reviewers",
+      "members": [
+        "Gijs",
+        "akulyk",
+        "hjones",
+        "mconley",
+        "mkennedy",
+        "mstriemer",
+        "tgiles"
       ]
     },
     "settings-reviewers-rotation": {
@@ -5280,6 +5444,17 @@
         "jhirsch",
         "nbarrett",
         "niklas"
+      ]
+    },
+    "sidebar-reviewers": {
+      "id": "sidebar-reviewers",
+      "display_name": "sidebar-reviewers",
+      "members": [
+        "jsudiaman",
+        "kcochrane",
+        "nsharpley",
+        "sclements",
+        "sfoster"
       ]
     },
     "sidebar-reviewers-rotation": {
@@ -6746,9 +6921,9 @@
   },
   "unresolved_users": [],
   "metadata": {
-    "extracted_at": "2026-09-07T04:23:29.069532Z",
-    "total_rules": 95,
-    "total_groups": 93,
+    "extracted_at": "2026-09-14T05:09:43.252571Z",
+    "total_rules": 96,
+    "total_groups": 99,
     "total_users_resolved": 300,
     "total_users_unresolved": 0,
     "phabricator_instance": "phabricator.services.mozilla.com",
