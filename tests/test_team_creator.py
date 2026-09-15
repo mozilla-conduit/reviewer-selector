@@ -392,6 +392,7 @@ def test_remove_team_members(
         "Unexpected request method"
     )
 
+
 def test_update_team_members(
     github_double: GithubDouble, mocked_github_client: simple_github.Client
 ):
@@ -402,7 +403,11 @@ def test_update_team_members(
 
     with github_double:
         update_team_members(
-            mocked_github_client, github_double.org_name, team_name, {"alice", "carol"}, False
+            mocked_github_client,
+            github_double.org_name,
+            team_name,
+            {"alice", "carol"},
+            False,
         )
 
     members = github_double.get_team_members(team_name)
@@ -434,6 +439,7 @@ def test_update_team_members(
     assert github_double.adapter.request_history[2].method == "DELETE", (
         "Unexpected request method"
     )
+
 
 def test_dry_run(
     github_double: GithubDouble, mocked_github_client: simple_github.Client
@@ -645,8 +651,15 @@ def _run_team_creator(
 def assert_all_rules_teams_up_to_date(
     github_double: GithubDouble, rules: dict[str, Any]
 ):
+    # Add the all-reviewers groups to ensure it contains everyone.
+    rules["groups"]["all-reviewers"] = {
+        # Fortunately, the GitHub usernames in our test data are very consistently formed.
+        "members": [f"{u}-gh" for g in rules["groups"].values() for u in g["members"]]
+    }
+
     for team_name, team in rules["groups"].items():
-        assert github_double.get_team_members(team_name) == {
+        members = github_double.get_team_members(team_name)
+        assert members == {
             (rules["github_users"].get(m, {}).get("username") or m)
             for m in team["members"]
         }, f"Unexpected members in team {team_name}"
