@@ -21,6 +21,7 @@ from team_creator import (
     main,
     paginated_get,
     remove_team_members,
+    update_team_members,
 )
 
 
