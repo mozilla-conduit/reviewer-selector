@@ -21,6 +21,7 @@ from team_creator import (
     main,
     paginated_get,
     remove_team_members,
+    update_team_members,
 )
 
 
@@ -392,6 +393,54 @@ def test_remove_team_members(
     )
 
 
+def test_update_team_members(
+    github_double: GithubDouble, mocked_github_client: simple_github.Client
+):
+    team_name = "test-team"
+
+    github_double.create_team(team_name)
+    github_double.add_members(team_name, ("alice", "bob"))
+
+    with github_double:
+        update_team_members(
+            mocked_github_client,
+            github_double.org_name,
+            team_name,
+            {"alice", "carol"},
+            False,
+        )
+
+    members = github_double.get_team_members(team_name)
+
+    assert members == {"alice", "carol"}
+
+    # Get list, add one, remove one
+    assert len(github_double.request_history) == 3, (
+        "Unexpected number of requests to GitHub"
+    )
+    assert (
+        github_double.adapter.request_history[0].url
+        == "https://api.github.com/orgs/test-org/teams/test-team/members?per_page=100"
+    ), "Unexpected request URL"
+    assert github_double.adapter.request_history[0].method == "GET", (
+        "Unexpected request method"
+    )
+    assert (
+        github_double.adapter.request_history[1].url
+        == f"https://api.github.com/orgs/test-org/teams/{team_name}/memberships/carol"
+    ), "Unexpected request URL"
+    assert github_double.adapter.request_history[1].method == "PUT", (
+        "Unexpected request method"
+    )
+    assert (
+        github_double.adapter.request_history[2].url
+        == f"https://api.github.com/orgs/test-org/teams/{team_name}/memberships/bob"
+    ), "Unexpected request URL"
+    assert github_double.adapter.request_history[2].method == "DELETE", (
+        "Unexpected request method"
+    )
+
+
 def test_dry_run(
     github_double: GithubDouble, mocked_github_client: simple_github.Client
 ):
@@ -602,8 +651,15 @@ def _run_team_creator(
 def assert_all_rules_teams_up_to_date(
     github_double: GithubDouble, rules: dict[str, Any]
 ):
+    # Add the all-reviewers groups to ensure it contains everyone.
+    rules["groups"]["all-reviewers"] = {
+        # Fortunately, the GitHub usernames in our test data are very consistently formed.
+        "members": [f"{u}-gh" for g in rules["groups"].values() for u in g["members"]]
+    }
+
     for team_name, team in rules["groups"].items():
-        assert github_double.get_team_members(team_name) == {
+        members = github_double.get_team_members(team_name)
+        assert members == {
             (rules["github_users"].get(m, {}).get("username") or m)
             for m in team["members"]
         }, f"Unexpected members in team {team_name}"
