@@ -173,7 +173,7 @@ def update_team_members(
     target_members: set[str],
     dry_run: bool,
 ):
-    """ Add and remove team members as needed to match target_members. """
+    """Add and remove team members as needed to match target_members."""
     current_members = get_team_members(client, organisation, team, dry_run)
     logger.info(f"Current members of {team}: {current_members}")
 
