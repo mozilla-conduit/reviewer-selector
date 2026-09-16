@@ -653,8 +653,7 @@ def assert_all_rules_teams_up_to_date(
 ):
     # Add the all-reviewers groups to ensure it contains everyone.
     rules["groups"]["all-reviewers"] = {
-        # Fortunately, the GitHub usernames in our test data are very consistently formed.
-        "members": [f"{u}-gh" for g in rules["groups"].values() for u in g["members"]]
+        "members": [u["username"] for u in rules["github_users"].values()]
     }
 
     for team_name, team in rules["groups"].items():

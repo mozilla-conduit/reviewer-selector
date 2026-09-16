@@ -86,7 +86,6 @@ def create_teams(
     logger.info("Creating GitHub Teams member lists ...")
     groups: RulesGroups = herald_rules.get("groups", {})
     teams: GitHubTeams = {}
-    all_users = set()
     for group_name, group_data in groups.items():
         members = set()
         for phab_name in group_data.get("members", []):
@@ -98,12 +97,12 @@ def create_teams(
                 logger.warning(f"Empty or missing GitHub username for {phab_name}")
                 continue
             members.add(github_name)
-            all_users.add(github_name)
 
         teams[group_name] = members
 
     # find base team
     ensure_team_exists(client, organisation, base_team, dry_run)
+    all_users = {u["username"] for u in github_users.values() if u.get("username")}
     update_team_members(client, organisation, base_team, all_users, dry_run)
 
     for team, target_members in teams.items():
