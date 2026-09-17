@@ -38,8 +38,11 @@ gh-token-generator = "gh_token_generator:main"
 reviewer-selector = "reviewer_selector:cli"
 team-creator = "team_creator:main"
 
+[tool.coverage.html]
+show_contexts = true
+
 [tool.pytest]
-addopts = ["--cov", "--cov-report", "html"]
+addopts = ["--cov", "--cov-context=test", "--cov-report", "html"]
 
 [tool.ruff.lint]
 extend-select = ["I"]
