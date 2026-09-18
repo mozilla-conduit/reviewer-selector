@@ -19,8 +19,11 @@ from reviewer_selector.review import (
     UserResolver,
 )
 from reviewer_selector.rules import Rules
+from reviewer_selector.taskcluster import tc_task_url
 
 logger = logging.getLogger(__name__)
+
+GITHUB_CHECK_NAME = "reviewer-selector"
 
 
 @dataclass
@@ -156,6 +159,21 @@ class GitHubPatchSource(PatchSource):
 class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
 
+    @cached_property
+    @override  # From Reviewable.
+    def reviewers(self) -> Iterable[Reviewer]:
+        """Return PR requested_reviewers, fetching it if needed."""
+        requested_reviewers_json = self._pr.authenticated_api_request(
+            "/requested_reviewers"
+        )
+        reviewers = []
+        for r in requested_reviewers_json.get("users", []):
+            reviewers.append(Reviewer(r["login"], False))
+        for t in requested_reviewers_json.get("teams", []):
+            reviewers.append(Reviewer(t["slug"], True))
+
+        return reviewers
+
     @override
     def add_reviewers(self, reviewers: Iterable[Reviewer]) -> int:
         """Set reviewers on the target.
@@ -167,18 +185,21 @@ class GitHubReviewable(Reviewable):
         reviewers = list(reviewers)
         requested_reviewers = self._build_request_reviewers_payload(reviewers)
 
-        added = len(requested_reviewers["team_reviewers"]) + len(
+        if len(requested_reviewers["team_reviewers"]) + len(
             requested_reviewers["reviewers"]
-        )
-        if not added:
+        ) == 0:
             return 0
 
+        added = []
+        failed = []
         try:
             self._pr.authenticated_api_request(
                 "/requested_reviewers", "POST", requested_reviewers
             )
+            added = reviewers
         except HTTPError as exc:
-            added = 0
+            added = []
+            failed = []
             if exc.response.status_code >= 400 and exc.response.status_code < 500:
                 logger.warning("Adding one reviewer at a time ...")
 
@@ -189,11 +210,12 @@ class GitHubReviewable(Reviewable):
                             "POST",
                             self._build_request_reviewers_payload([r]),
                         )
-                        added += 1
+                        added.append(r)
                     except HTTPError as exc2:
                         logger.warning(f"Failed to add reviewer {r.name}: {exc2}")
+                        failed.append(r)
 
-            if added == 0:
+            if not added:
                 raise
 
         # Invalidate cached_property.
@@ -203,7 +225,15 @@ class GitHubReviewable(Reviewable):
             # There was no cache.
             pass
 
-        return added
+        if failed:
+            # We don't prefix usernames with @, as they could be unmapped Phabricator
+            # names that may not be the same person in GitHub.
+            failed_reviewers_string = ", ".join(f"{r.name}" for r in failed)
+            self.report_info(
+                f"Failed to request reviews from the following reviewers: {failed_reviewers_string}"
+            )
+
+        return len(added)
 
     @staticmethod
     def _build_request_reviewers_payload(
@@ -221,24 +251,63 @@ class GitHubReviewable(Reviewable):
 
         return requested_reviewers
 
-    @cached_property
-    @override  # From Reviewable.
-    def reviewers(self) -> Iterable[Reviewer]:
-        """Return PR requested_reviewers, fetching it if needed."""
-        # As of 2026-07-09, the basic GitHub PR metadata does contain
-        # `requested_reviewers` and `requested_teams` properties, but the latter is
-        # always empty. This is not the case for the /requested_reviewers endpoint
-        # we use here.
-        requested_reviewers_json = self._pr.authenticated_api_request(
-            "/requested_reviewers"
-        )
-        reviewers = []
-        for r in requested_reviewers_json.get("users", []):
-            reviewers.append(Reviewer(r["login"], False))
-        for t in requested_reviewers_json.get("teams", []):
-            reviewers.append(Reviewer(t["slug"], True))
+    @override
+    def report_error(self, message: str, **kwargs):
+        super().report_error(message)
+        self._report_check("failure", message)
 
-        return reviewers
+    @override
+    def report_info(self, message: str, **kwargs):
+        """Add a comment to the PR."""
+        super().report_info(message)
+        try:
+            self._pr.authenticated_api_request(
+                "-issues/comments",
+                "POST",
+                {"body": message},
+            )
+        except Exception:
+            logger.exception(f"Failed to report info `{message}` on PR")
+
+    @override
+    def report_warning(self, message: str, **kwargs):
+        """Record a warning check to the PR."""
+        super().report_warning(message)
+        self._report_check("action_required", message)
+
+    def _report_check(self, conclusion: str, message: str):
+        """Record a failing check to the PR."""
+        try:
+            check_data = {
+                "name": GITHUB_CHECK_NAME,
+                "head_sha": self._pr.head_sha,
+                "status": "completed",
+                "output": {
+                    "title": "Reviewer selection",
+                    "summary": message,
+                },
+                "conclusion": conclusion,
+            }
+            if task_url := tc_task_url():
+                check_data["details_url"] = task_url
+
+            if check_id := self._find_existing_check(GITHUB_CHECK_NAME):
+                self._pr.authenticated_api_request(
+                    f"-check-runs/{check_id}", "PATCH", json=check_data
+                )
+            else:
+                self._pr.authenticated_api_request(
+                    "-check-runs", "POST", json=check_data
+                )
+        except Exception:
+            logger.exception(f"Failed to report {conclusion} `{message}` on PR")
+
+    def _find_existing_check(self, check_name: str) -> int | None:
+        checks = self._pr.authenticated_api_request(
+            f"-commits/{self._pr.head_sha}/check-runs?check_name={check_name}&filter=latest"
+        )
+        if checks and (check_runs := checks.get("check_runs")):
+            return check_runs[0].get("id")
 
 
 @final
@@ -338,13 +407,33 @@ class GitHubPR(GitHubApiObject):
     def target_branch_name(self) -> str:
         return self.metadata["base"]["ref"]
 
+    @property
+    def head_sha(self) -> str:
+        return self.metadata["head"]["sha"]
+
     @cached_property
     def metadata(self) -> dict[str, Any]:
-        """Return PR metadata, fetching it if needed."""
+        """Return PR metadata."""
         return self.api_request()
 
     @override
     def api_request(
         self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
     ) -> dict[str, Any]:
-        return super().api_request(f"/pulls/{self.pr_number}{path}", method, json)
+        qualified_path = f"/pulls/{self.pr_number}{path}"
+
+        # Some PR interactions (comments, checks, ...) are done via non pull-scoped
+        # endpoints.
+        checks_runs_path = "-check-runs"
+        if path.startswith(checks_runs_path):
+            qualified_path = f"/check-runs{path.removeprefix(checks_runs_path)}"
+
+        commits_path = "-commits"
+        if path.startswith(commits_path):
+            qualified_path = f"/commits{path.removeprefix(commits_path)}"
+
+        issues_path = "-issues"
+        if path.startswith(issues_path):
+            qualified_path = f"/issues/{self.pr_number}{path.removeprefix(issues_path)}"
+
+        return super().api_request(qualified_path, method, json)

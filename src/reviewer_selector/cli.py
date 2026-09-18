@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.patch import Patch, PatchSource, StdinPatchSource
 from reviewer_selector.review import (
+    AddReviewersStatus,
     MappingUserResolver,
     Reviewable,
     Reviewer,
@@ -13,7 +14,7 @@ from reviewer_selector.review import (
     UserResolver,
 )
 from reviewer_selector.rules import Rules
-from reviewer_selector.taskcluster import Taskcluster
+from reviewer_selector.taskcluster import Taskcluster, tc_task_url
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,27 @@ def cli() -> None:
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
 
-    reviewable.add_new_reviewers(resolved)
+    try:
+        status = reviewable.add_new_reviewers(resolved)
+    except Exception:  # noqa: BLE001
+        logger.exception("Error adding new reviewers")
+        status = AddReviewersStatus(0, False)
+
+    tc_info = make_tc_task_link()
+    if tc_info:
+        tc_info = f"\n\n{tc_info}"
+
+    if not status.all_new_reviewer_added:
+        reviewable.report_warning(f"Not all reviewers were added.{tc_info}")
+    if not reviewable.reviewers:
+        reviewable.report_error(f"No reviewer currently assigned.{tc_info}")
+
+
+def make_tc_task_link() -> str:
+    if task_url := tc_task_url():
+        return f"[See task in Taskcluster]({task_url})"
+
+    return ""
 
 
 def create_github_objects(
