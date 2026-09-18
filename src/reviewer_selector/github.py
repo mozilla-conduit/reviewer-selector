@@ -19,6 +19,7 @@ from reviewer_selector.review import (
     UserResolver,
 )
 from reviewer_selector.rules import Rules
+from reviewer_selector.taskcluster import tc_task_url
 
 logger = logging.getLogger(__name__)
 
