@@ -62,11 +62,11 @@ def cli() -> None:
     try:
         reviewable.add_new_reviewers(resolved)
     except Exception:  # noqa: BLE001
-        reviewable.report_warning(f"Failed to add new reviewers.{tc_info}")
+        reviewable.report_warning(f"Failed to add new reviewers from list: {resolved}.{tc_info}")
 
     if not reviewable.reviewers:
-        reviewable.report_warning(
-            f"Could not assign any reviewer. Please use Phabricator instead.{tc_info}"
+        reviewable.report_error(
+            f"No reviewer currently assigned.{tc_info}"
         )
 
 

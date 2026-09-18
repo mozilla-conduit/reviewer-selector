@@ -11,7 +11,6 @@ from requests_mock.mocker import Mocker
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.review import AddReviewersStatus, Reviewer
 from reviewer_selector.rules import Rules
-from src.reviewer_selector.github import GITHUB_CHECK_NAME
 
 
 def test_github_url_handling():
@@ -411,6 +410,7 @@ def test_github_reviewable_add_reviewers_noretry(
 def test_github_reviewable_report_info(
     mock_gh_generate_token: Mock,
     configurable_mocked_github_request: Callable,
+    register_mock_issue_comment_handler: Callable,
     caplog: pytest.LogCaptureFixture,
     failure: bool,
 ):
@@ -421,25 +421,18 @@ def test_github_reviewable_report_info(
         mock_gh_generate_token.return_value = "THE_TOKEN"
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
 
-        issue_comment_url = "https://api.github.com/repos/mozilla-conduit/reviewer-selector/issues/18/comments"
-
         if failure:
-            mock.mock_post_issue_comment = mock.post(
-                issue_comment_url,
-                status_code=422,
-            )
+            register_mock_issue_comment_handler(mock, 422)
         else:
-            mock.mock_post_issue_comment = mock.post(
-                issue_comment_url,
-                status_code=201,
-                text="{}",
-            )
+            register_mock_issue_comment_handler(mock, 201)
 
         gh.reviewable.report_info("info report")
 
         if failure:
             assert "Failed to report" in caplog.text
             return
+
+        assert "Failed to report" not in caplog.text
 
         assert mock.mock_post_issue_comment.call_count == 1, (
             "New comment wasn't created"
@@ -454,11 +447,14 @@ def test_github_reviewable_report_info(
 def test_github_reviewable_reports(
     mock_gh_generate_token: Mock,
     configurable_mocked_github_request: Callable,
+    register_mock_check_handlers: Callable,
     caplog: pytest.LogCaptureFixture,
     type: str,
     existing: bool,
     failure: bool,
 ):
+    check_id = 4
+
     with configurable_mocked_github_request() as mock:
         gh = GitHubPR(
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
@@ -466,38 +462,21 @@ def test_github_reviewable_reports(
         mock_gh_generate_token.return_value = "THE_TOKEN"
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
 
-        check_id = 4
-        check_url = f"https://api.github.com/repos/mozilla-conduit/reviewer-selector/commits/5c9487af01e52713fc6cb60b4177ce407ed4fe7f/check-runs?check_name={GITHUB_CHECK_NAME}&filter=latest"
+        get_status_code = 418
+        get_json = {"teapot": True}
         if failure:
-            mock.mock_get_check_run = mock.get(
-                check_url,
-                status_code=422,
-            )
+            get_status_code = 422
+            get_json = {"error": "fixture configured to fail"}
 
         elif existing:
-            mock.mock_get_check_run = mock.get(
-                check_url,
-                json={"check_runs": [{"id": check_id}]},
-            )
+            get_status_code = 200
+            get_json = {"check_runs": [{"id": check_id}]}
 
         else:
-            mock.mock_get_check_run = mock.get(
-                check_url,
-                json={"check_runs": []},
-            )
+            get_status_code = 200
+            get_json = {"check_runs": []}
 
-        mock.mock_patch_check_run = mock.patch(
-            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs/{check_id}",
-            json={
-                "id": check_id,
-            },
-        )
-        mock.mock_post_check_run = mock.post(
-            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs",
-            json={
-                "id": check_id,
-            },
-        )
+        register_mock_check_handlers(mock, check_id, get_status_code, get_json)
 
         if type == "warning":
             gh.reviewable.report_warning(f"{type} report")

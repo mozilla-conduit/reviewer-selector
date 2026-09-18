@@ -371,6 +371,7 @@ def test_github_reports(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
     configurable_mocked_github_request: Callable,
+    register_mock_issue_comment_handler: Callable,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
     sample_rules_data: dict[str, Any],
@@ -391,6 +392,7 @@ def test_github_reports(
     rules_path = _write_rules(tmp_path / "rules.json", {})
 
     with configurable_mocked_github_request() as mock:
+        register_mock_issue_comment_handler(mock)
         patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
         mock.get(patch_url, text=sample_diff)
 

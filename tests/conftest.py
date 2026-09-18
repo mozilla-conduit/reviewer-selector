@@ -5,6 +5,8 @@ import pytest
 import requests
 import requests_mock
 
+from reviewer_selector.github import GITHUB_CHECK_NAME
+
 #
 # DIFF FIXTURES
 #
@@ -625,6 +627,65 @@ def configurable_mocked_github_request(
         return mock
 
     return _configurable_mocked_github_request
+
+
+@pytest.fixture
+def register_mock_issue_comment_handler() -> Callable:
+    """Add handlers for posting comments to the GitHub PR.
+
+    Register the handler as `mock.mock_post_issue_comment`, for later inspection.
+
+    Best used on the configurable_mocked_github_request.
+    """
+
+    def register_handler(mock: requests_mock.Mocker, status_code: int = 201):
+        issue_comment_url = "https://api.github.com/repos/mozilla-conduit/reviewer-selector/issues/18/comments"
+        mock.mock_post_issue_comment = mock.post(
+            issue_comment_url,
+            status_code=status_code,
+            text="{}",
+        )
+
+    return register_handler
+
+
+@pytest.fixture
+def register_mock_check_handlers() -> Callable:
+    """Add handlers for managing checks on the GitHub PR.
+
+    Register the handlers as `mock.mock_[get|patch|post]_check_run` for later inspection.
+
+    Best used on the configurable_mocked_github_request.
+    """
+
+    def register_handlers(
+        mock: requests_mock.Mocker,
+        check_id: int,
+        get_status_code: int,
+        get_json: dict[str, Any],
+    ):
+        check_url = f"https://api.github.com/repos/mozilla-conduit/reviewer-selector/commits/5c9487af01e52713fc6cb60b4177ce407ed4fe7f/check-runs?check_name={GITHUB_CHECK_NAME}&filter=latest"
+
+        mock.mock_get_check_run = mock.get(
+            check_url,
+            status_code=get_status_code,
+            json=get_json,
+        )
+
+        mock.mock_patch_check_run = mock.patch(
+            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs/{check_id}",
+            json={
+                "id": check_id,
+            },
+        )
+        mock.mock_post_check_run = mock.post(
+            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs",
+            json={
+                "id": check_id,
+            },
+        )
+
+    return register_handlers
 
 
 #

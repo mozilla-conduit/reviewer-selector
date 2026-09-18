@@ -191,6 +191,7 @@ class GitHubReviewable(Reviewable):
         if not added:
             return 0
 
+
         try:
             self._pr.authenticated_api_request(
                 "/requested_reviewers", "POST", requested_reviewers
@@ -258,15 +259,8 @@ class GitHubReviewable(Reviewable):
                 "POST",
                 {"body": message},
             )
-        except Exception as exc:
-            logger.warning(f"Failed to report info `{message}` on PR: {exc}")
-
-    def _find_existing_check(self, check_name: str) -> int | None:
-        checks = self._pr.authenticated_api_request(
-            f"-commits/{self._pr.head_sha}/check-runs?check_name={check_name}&filter=latest"
-        )
-        if checks and (check_runs := checks.get("check_runs")):
-            return check_runs[0].get("id")
+        except Exception:
+            logger.exception(f"Failed to report info `{message}` on PR")
 
     @override
     def report_warning(self, message: str, **kwargs):
@@ -282,7 +276,6 @@ class GitHubReviewable(Reviewable):
                 "output": {
                     "title": "Reviewer selection",
                     "summary": message,
-                    "text": message,
                 },
                 "conclusion": conclusion,
             }
@@ -299,6 +292,13 @@ class GitHubReviewable(Reviewable):
                 )
         except Exception:
             logger.exception(f"Failed to report {conclusion} `{message}` on PR")
+
+    def _find_existing_check(self, check_name: str) -> int | None:
+        checks = self._pr.authenticated_api_request(
+            f"-commits/{self._pr.head_sha}/check-runs?check_name={check_name}&filter=latest"
+        )
+        if checks and (check_runs := checks.get("check_runs")):
+            return check_runs[0].get("id")
 
 
 @final
