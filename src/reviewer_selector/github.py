@@ -185,19 +185,21 @@ class GitHubReviewable(Reviewable):
         reviewers = list(reviewers)
         requested_reviewers = self._build_request_reviewers_payload(reviewers)
 
-        added = len(requested_reviewers["team_reviewers"]) + len(
+        if len(requested_reviewers["team_reviewers"]) + len(
             requested_reviewers["reviewers"]
-        )
-        if not added:
+        ) == 0:
             return 0
 
-
+        added = []
+        failed = []
         try:
             self._pr.authenticated_api_request(
                 "/requested_reviewers", "POST", requested_reviewers
             )
+            added = reviewers
         except HTTPError as exc:
-            added = 0
+            added = []
+            failed = []
             if exc.response.status_code >= 400 and exc.response.status_code < 500:
                 logger.warning("Adding one reviewer at a time ...")
 
@@ -208,11 +210,12 @@ class GitHubReviewable(Reviewable):
                             "POST",
                             self._build_request_reviewers_payload([r]),
                         )
-                        added += 1
+                        added.append(r)
                     except HTTPError as exc2:
                         logger.warning(f"Failed to add reviewer {r.name}: {exc2}")
+                        failed.append(r)
 
-            if added == 0:
+            if not added:
                 raise
 
         # Invalidate cached_property.
@@ -222,12 +225,15 @@ class GitHubReviewable(Reviewable):
             # There was no cache.
             pass
 
-        reviewers_string = ", ".join(f"@{r.name}" for r in reviewers)
-        self.report_info(
-            f"Added {added} of {len(reviewers)} requested reviewers: {reviewers_string}"
-        )
+        if failed:
+            # We don't prefix usernames with @, as they could be unmapped Phabricator
+            # names that may not be the same person in GitHub.
+            failed_reviewers_string = ", ".join(f"{r.name}" for r in failed)
+            self.report_info(
+                f"Failed to request reviews from the following reviewers: {failed_reviewers_string}"
+            )
 
-        return added
+        return len(added)
 
     @staticmethod
     def _build_request_reviewers_payload(
@@ -252,6 +258,7 @@ class GitHubReviewable(Reviewable):
 
     @override
     def report_info(self, message: str, **kwargs):
+        """Add a comment to the PR."""
         super().report_info(message)
         try:
             self._pr.authenticated_api_request(
@@ -264,10 +271,12 @@ class GitHubReviewable(Reviewable):
 
     @override
     def report_warning(self, message: str, **kwargs):
+        """Record a warning check to the PR."""
         super().report_warning(message)
         self._report_check("action_required", message)
 
     def _report_check(self, conclusion: str, message: str):
+        """Record a failing check to the PR."""
         try:
             check_data = {
                 "name": GITHUB_CHECK_NAME,

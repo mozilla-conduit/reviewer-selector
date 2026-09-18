@@ -298,6 +298,7 @@ def test_github_reviewable(
 def test_github_reviewable_add_reviewers_retry(
     mock_gh_generate_token: Mock,
     configurable_mocked_github_request: Callable,
+    register_mock_issue_comment_handler: Callable,
     caplog: pytest.LogCaptureFixture,
 ):
     rejected_enterprise_team = Reviewer("ent:fluent-reviewers", True)
@@ -339,6 +340,7 @@ def test_github_reviewable_add_reviewers_retry(
             return None
 
         mock._adapter.add_matcher(matcher)
+        register_mock_issue_comment_handler(mock)
 
         status = gh.reviewable.add_new_reviewers(reviewers)
 
@@ -353,8 +355,12 @@ def test_github_reviewable_add_reviewers_retry(
         # The original mock doesn't see the requests summarily rejected by the matcher we added.
         assert mock.requested_reviewers_post.call_count == len(expected_reviewers)
 
-        assert mock.issue_comment_post.call_count == 1, (
+        assert mock.mock_post_issue_comment.call_count == 1, (
             "Unexpected number of comments posted"
+        )
+        assert (
+            mock.mock_post_issue_comment.request_history[0].json()["body"]
+            == "Failed to request reviews from the following reviewers: ent:fluent-reviewers"
         )
 
         # Make sure all reviewers are now present.
@@ -444,7 +450,9 @@ def test_github_reviewable_report_info(
     tuple(itertools.product(("warning", "error"), (False, True), (False, True))),
 )
 @patch("reviewer_selector.github.GitHubApp.generate_token")
+@patch("reviewer_selector.github.tc_task_url")
 def test_github_reviewable_reports(
+    mock_tc_task_url: Mock,
     mock_gh_generate_token: Mock,
     configurable_mocked_github_request: Callable,
     register_mock_check_handlers: Callable,
@@ -454,6 +462,8 @@ def test_github_reviewable_reports(
     failure: bool,
 ):
     check_id = 4
+
+    mock_tc_task_url.return_value = "https://some.tc.url"
 
     with configurable_mocked_github_request() as mock:
         gh = GitHubPR(
@@ -510,3 +520,5 @@ def test_github_reviewable_reports(
             )
             check_request = mock.mock_post_check_run.last_request.json()
             assert check_request["conclusion"] == expected_conclusion
+
+            assert check_request["details_url"] == "https://some.tc.url"
