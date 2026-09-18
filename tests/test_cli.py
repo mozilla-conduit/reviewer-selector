@@ -364,14 +364,17 @@ def test_github_env(
 
 @patch("reviewer_selector.github.GitHubReviewable.add_new_reviewers")
 @patch("reviewer_selector.github.GitHubReviewable.reviewers", new_callable=PropertyMock)
+@patch("reviewer_selector.cli.tc_task_url")
 @pytest.mark.parametrize("type", ("warning", "error"))
 def test_github_reports(
+    mock_tc_task_url: Mock,
     mock_reviewers: Mock,
     mock_add_new_reviewers: Mock,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
     configurable_mocked_github_request: Callable,
     register_mock_issue_comment_handler: Callable,
+    register_mock_check_handlers: Callable,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
     sample_rules_data: dict[str, Any],
@@ -386,6 +389,7 @@ def test_github_reports(
     else:
         raise ValueError(f"{type=} is not supported")
 
+    mock_tc_task_url.return_value = "https://some.tc.url"
     mock_add_new_reviewers.side_effect = Exception(type)
 
     # Empty rules. The real ones should be coming from in-tree.
@@ -393,6 +397,8 @@ def test_github_reports(
 
     with configurable_mocked_github_request() as mock:
         register_mock_issue_comment_handler(mock)
+        register_mock_check_handlers(mock, 4, 200, {})
+
         patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
         mock.get(patch_url, text=sample_diff)
 
@@ -409,7 +415,33 @@ def test_github_reports(
             capsys,
         )
 
-    assert mock_add_new_reviewers.call_count == 1
+        assert mock_add_new_reviewers.call_count == 1
+
+        assert mock.mock_post_check_run.call_count == 2 if type == "error" else 1
+
+        tc_trailer = "\n\n[See task in Taskcluster](https://some.tc.url)" 
+
+        check_json = mock.mock_post_check_run.request_history[0].json()
+        assert (
+            check_json["output"]["summary"]
+            == f"Not all reviewers were added.{tc_trailer}"
+        )
+        assert (
+            check_json["conclusion"]
+            == "action_required"
+        )
+
+        if type == "error":
+            check_json = mock.mock_post_check_run.request_history[1].json()
+            assert (
+                check_json["output"]["summary"]
+                == f"No reviewer currently assigned.{tc_trailer}"
+            )
+            assert (
+                check_json["conclusion"]
+                == "failure"
+            )
+
 
 
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:

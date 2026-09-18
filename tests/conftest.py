@@ -618,10 +618,6 @@ def configurable_mocked_github_request(
             "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
             json=get_reviewers_callback,
         )
-        mock.issue_comment_post = mock.post(
-            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/issues/18/comments",
-            json={},
-        )
         mock.requested_reviewers_data = requested_reviewers_data
 
         return mock
