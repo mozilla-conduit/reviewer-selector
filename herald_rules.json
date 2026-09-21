@@ -10,7 +10,7 @@
         {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": "^\\/?remote\\/"
+          "value": "/?remote/"
         },
         {
           "type": "repository",
@@ -25,7 +25,9 @@
           "operator": "is-not-any-of",
           "value": [
             "Closed",
-            "Abandoned"
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
           ]
         }
       ],
@@ -36,6 +38,16 @@
             {
               "target": "webdriver-reviewers-rotation",
               "blocking": true,
+              "is_group": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "webdriver-reviewers",
+              "blocking": false,
               "is_group": true
             }
           ]
@@ -78,6 +90,16 @@
             {
               "target": "webdriver-reviewers-rotation",
               "blocking": true,
+              "is_group": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "webdriver-reviewers",
+              "blocking": false,
               "is_group": true
             }
           ]
@@ -403,7 +425,7 @@
           "type": "differential-author",
           "operator": "is-not-any-of",
           "value": [
-            "•nika",
+            "nika",
             "mccr8",
             "jld",
             "handyman"
@@ -842,6 +864,16 @@
           "reviewers": [
             {
               "target": "search-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "search-reviewers-rotation",
               "blocking": true,
               "is_group": true
             }
@@ -1570,6 +1602,16 @@
             {
               "target": "reusable-components-reviewers-rotation",
               "blocking": true,
+              "is_group": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "reusable-components-reviewers",
+              "blocking": false,
               "is_group": true
             }
           ]
@@ -2852,7 +2894,7 @@
         {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": ".s?css$"
+          "value": "\\.s?css$"
         },
         {
           "type": "differential-file-content",
@@ -4489,6 +4531,67 @@
           ]
         }
       ]
+    },
+    {
+      "id": "H198",
+      "name": "Needs review from geckodriver-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^/?testing/webdriver"
+        },
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "mozilla-central",
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "geckodriver-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H550",
+      "name": "Blocked by conduit reviewers",
+      "author": "shtrom_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "Restricted Project",
+              "blocking": true
+            }
+          ]
+        }
+      ]
     }
   ],
   "groups": {
@@ -4893,7 +4996,6 @@
         "masayuki",
         "mccr8",
         "peterv",
-        "sefeng",
         "sfarre",
         "smaug",
         "vhilla",
@@ -5361,6 +5463,17 @@
     "search-reviewers": {
       "id": "search-reviewers",
       "display_name": "search-reviewers",
+      "members": [
+        "Standard8",
+        "daleharvey",
+        "jteow",
+        "mcheang",
+        "scunnane"
+      ]
+    },
+    "search-reviewers-rotation": {
+      "id": "search-reviewers-rotation",
+      "display_name": "search-reviewers-rotation",
       "members": [
         "Standard8",
         "daleharvey",
@@ -6921,9 +7034,9 @@
   },
   "unresolved_users": [],
   "metadata": {
-    "extracted_at": "2026-09-14T05:09:43.252571Z",
-    "total_rules": 96,
-    "total_groups": 99,
+    "extracted_at": "2026-09-21T04:24:13.529269Z",
+    "total_rules": 98,
+    "total_groups": 100,
     "total_users_resolved": 300,
     "total_users_unresolved": 0,
     "phabricator_instance": "phabricator.services.mozilla.com",
