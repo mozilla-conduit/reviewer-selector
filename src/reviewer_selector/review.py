@@ -84,6 +84,10 @@ class Reviewable(metaclass=ABCMeta):
         """Report info."""
         logger.debug(f"Reporting info to Reviewable: {message}")
 
+    def report_success(self, message: str, **kwargs):
+        """Report success."""
+        logger.debug(f"Reporting success to Reviewable: {message}")
+
     def report_warning(self, message: str, **kwargs):
         """Report warnings."""
         logger.debug(f"Reporting warning to Reviewable: {message}")

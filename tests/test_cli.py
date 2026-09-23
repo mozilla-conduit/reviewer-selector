@@ -365,7 +365,7 @@ def test_github_env(
 @patch("reviewer_selector.github.GitHubReviewable.add_new_reviewers")
 @patch("reviewer_selector.github.GitHubReviewable.reviewers", new_callable=PropertyMock)
 @patch("reviewer_selector.cli.tc_task_url")
-@pytest.mark.parametrize("type", ("warning", "error"))
+@pytest.mark.parametrize("type", ("error", "warning", "success"))
 def test_github_reports(
     mock_tc_task_url: Mock,
     mock_reviewers: Mock,
@@ -382,15 +382,19 @@ def test_github_reports(
 ):
     monkeypatch.setenv("GH_TOKEN", "gh_token")
 
-    if type == "warning":
-        mock_reviewers.return_value = [Reviewer("alice")]
-    elif type == "error":
+    if type == "error":
+        mock_add_new_reviewers.side_effect = Exception(type)
         mock_reviewers.return_value = []
+    elif type == "warning":
+        mock_add_new_reviewers.side_effect = Exception(type)
+        # After an error, returning any non-empty set of reviewers is sufficient.
+        mock_reviewers.return_value = [Reviewer("alice")]
+    elif type == "success":
+        mock_reviewers.return_value = [Reviewer("alice")]
     else:
         raise ValueError(f"{type=} is not supported")
 
     mock_tc_task_url.return_value = "https://some.tc.url"
-    mock_add_new_reviewers.side_effect = Exception(type)
 
     # Empty rules. The real ones should be coming from in-tree.
     rules_path = _write_rules(tmp_path / "rules.json", {})
@@ -417,31 +421,31 @@ def test_github_reports(
 
         assert mock_add_new_reviewers.call_count == 1
 
-        assert mock.mock_post_check_run.call_count == 2 if type == "error" else 1
+        assert mock.mock_post_check_run.call_count == 1
 
-        tc_trailer = "\n\n[See task in Taskcluster](https://some.tc.url)" 
+        tc_trailer = "\n\n[See task in Taskcluster](https://some.tc.url)"
 
         check_json = mock.mock_post_check_run.request_history[0].json()
-        assert (
-            check_json["output"]["summary"]
-            == f"Not all reviewers were added.{tc_trailer}"
-        )
-        assert (
-            check_json["conclusion"]
-            == "action_required"
-        )
-
         if type == "error":
-            check_json = mock.mock_post_check_run.request_history[1].json()
+            assert check_json["conclusion"] == "failure"
             assert (
                 check_json["output"]["summary"]
                 == f"No reviewer currently assigned.{tc_trailer}"
             )
+
+        if type == "warning":
+            assert check_json["conclusion"] == "action_required"
             assert (
-                check_json["conclusion"]
-                == "failure"
+                check_json["output"]["summary"]
+                == f"Not all reviewers were added.{tc_trailer}"
             )
 
+        if type == "success":
+            assert check_json["conclusion"] == "success"
+            assert (
+                check_json["output"]["summary"]
+                == f"Reviewers successfully assigned.{tc_trailer}"
+            )
 
 
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:

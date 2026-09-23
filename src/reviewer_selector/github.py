@@ -272,6 +272,12 @@ class GitHubReviewable(Reviewable):
             logger.exception(f"Failed to report info `{message}` on PR")
 
     @override
+    def report_success(self, message: str, **kwargs):
+        """Record a successful check to the PR."""
+        super().report_success(message)
+        self._report_check("success", message)
+
+    @override
     def report_warning(self, message: str, **kwargs):
         """Record a warning check to the PR."""
         super().report_warning(message)

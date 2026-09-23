@@ -66,10 +66,12 @@ def cli() -> None:
     if tc_info:
         tc_info = f"\n\n{tc_info}"
 
-    if not status.all_new_reviewer_added:
-        reviewable.report_warning(f"Not all reviewers were added.{tc_info}")
     if not reviewable.reviewers:
         reviewable.report_error(f"No reviewer currently assigned.{tc_info}")
+    elif not status.all_new_reviewer_added:
+        reviewable.report_warning(f"Not all reviewers were added.{tc_info}")
+    else:
+        reviewable.report_success(f"Reviewers successfully assigned.{tc_info}")
 
 
 def make_tc_task_link() -> str:
