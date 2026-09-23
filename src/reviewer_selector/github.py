@@ -4,6 +4,7 @@ import re
 from abc import ABCMeta
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from enum import Enum
 from functools import cached_property, wraps
 from typing import Any, final, override
 
@@ -262,9 +263,10 @@ class GitHubReviewable(Reviewable):
         super().report_info(message)
         try:
             self._pr.authenticated_api_request(
-                "-issues/comments",
+                "/comments",
                 "POST",
                 {"body": message},
+                request_type=RequestType.ISSUES,
             )
         except Exception:
             logger.exception(f"Failed to report info `{message}` on PR")
@@ -293,21 +295,38 @@ class GitHubReviewable(Reviewable):
 
             if check_id := self._find_existing_check(GITHUB_CHECK_NAME):
                 self._pr.authenticated_api_request(
-                    f"-check-runs/{check_id}", "PATCH", json=check_data
+                    f"/{check_id}",
+                    "PATCH",
+                    json=check_data,
+                    request_type=RequestType.CHECK_RUNS,
                 )
             else:
                 self._pr.authenticated_api_request(
-                    "-check-runs", "POST", json=check_data
+                    "", "POST", json=check_data, request_type=RequestType.CHECK_RUNS
                 )
         except Exception:
             logger.exception(f"Failed to report {conclusion} `{message}` on PR")
 
     def _find_existing_check(self, check_name: str) -> int | None:
         checks = self._pr.authenticated_api_request(
-            f"-commits/{self._pr.head_sha}/check-runs?check_name={check_name}&filter=latest"
+            f"/{self._pr.head_sha}/check-runs?check_name={check_name}&filter=latest",
+            request_type=RequestType.COMMITS,
         )
         if checks and (check_runs := checks.get("check_runs")):
             return check_runs[0].get("id")
+
+
+class RequestType(Enum):
+    """Specify the type of request to make for the PR.
+
+    This is used by api_request, to decide which endpoint to use when building a
+    full URL.
+    """
+
+    CHECK_RUNS = 0
+    COMMITS = 1
+    ISSUES = 2
+    PULL_REQUEST = 3
 
 
 @final
@@ -418,22 +437,27 @@ class GitHubPR(GitHubApiObject):
 
     @override
     def api_request(
-        self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
+        self,
+        path: str = "",
+        method: str = "GET",
+        json: dict[Any, Any] | None = None,
+        *,
+        request_type: RequestType = RequestType.PULL_REQUEST,
     ) -> dict[str, Any]:
-        qualified_path = f"/pulls/{self.pr_number}{path}"
+        """Make a request about this PR to the GitHub REST API.
 
-        # Some PR interactions (comments, checks, ...) are done via non pull-scoped
-        # endpoints.
-        checks_runs_path = "-check-runs"
-        if path.startswith(checks_runs_path):
-            qualified_path = f"/check-runs{path.removeprefix(checks_runs_path)}"
+        Some PR interactions (comments, checks, ...) are done via non pull-scoped
+        endpoints. This can be specified with the `request_type` parameter.
 
-        commits_path = "-commits"
-        if path.startswith(commits_path):
-            qualified_path = f"/commits{path.removeprefix(commits_path)}"
-
-        issues_path = "-issues"
-        if path.startswith(issues_path):
-            qualified_path = f"/issues/{self.pr_number}{path.removeprefix(issues_path)}"
+        """
+        match request_type:
+            case RequestType.CHECK_RUNS:
+                qualified_path = f"/check-runs{path}"
+            case RequestType.COMMITS:
+                qualified_path = f"/commits{path}"
+            case RequestType.ISSUES:
+                qualified_path = f"/issues/{self.pr_number}{path}"
+            case RequestType.PULL_REQUEST:
+                qualified_path = f"/pulls/{self.pr_number}{path}"
 
         return super().api_request(qualified_path, method, json)
