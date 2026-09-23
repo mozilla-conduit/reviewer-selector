@@ -186,9 +186,11 @@ class GitHubReviewable(Reviewable):
         reviewers = list(reviewers)
         requested_reviewers = self._build_request_reviewers_payload(reviewers)
 
-        if len(requested_reviewers["team_reviewers"]) + len(
-            requested_reviewers["reviewers"]
-        ) == 0:
+        if (
+            len(requested_reviewers["team_reviewers"])
+            + len(requested_reviewers["reviewers"])
+            == 0
+        ):
             return 0
 
         added = []
@@ -199,8 +201,6 @@ class GitHubReviewable(Reviewable):
             )
             added = reviewers
         except HTTPError as exc:
-            added = []
-            failed = []
             if exc.response.status_code >= 400 and exc.response.status_code < 500:
                 logger.warning("Adding one reviewer at a time ...")
 
@@ -254,6 +254,7 @@ class GitHubReviewable(Reviewable):
 
     @override
     def report_error(self, message: str, **kwargs):
+        """Record an error check to the PR."""
         super().report_error(message)
         self._report_check("failure", message)
 
@@ -284,7 +285,11 @@ class GitHubReviewable(Reviewable):
         self._report_check("action_required", message)
 
     def _report_check(self, conclusion: str, message: str):
-        """Record a failing check to the PR."""
+        """Record a check to the PR.
+
+        This method is guaranteed not to raise exceptions, so as not to interrupt the
+        main flow of the application.
+        """
         try:
             check_data = {
                 "name": GITHUB_CHECK_NAME,

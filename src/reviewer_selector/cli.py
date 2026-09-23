@@ -58,7 +58,7 @@ def cli() -> None:
 
     try:
         status = reviewable.add_new_reviewers(resolved)
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("Error adding new reviewers")
         status = AddReviewersStatus(0, False)
 

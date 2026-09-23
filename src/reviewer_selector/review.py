@@ -77,7 +77,7 @@ class Reviewable(metaclass=ABCMeta):
         """
 
     def report_error(self, message: str, **kwargs):
-        """Report warnings."""
+        """Report errors."""
         logger.debug(f"Reporting error to Reviewable: {message}")
 
     def report_info(self, message: str, **kwargs):
