@@ -687,6 +687,33 @@ def register_mock_check_handlers() -> Callable:
     return register_handlers
 
 
+@pytest.fixture
+def register_mock_teams_members() -> Callable:
+    """Add handlers for checking team members on the GitHub PR.
+
+    Register the handlers as `mock.mock_get_teams_members_[empty|nonempty]` for later inspection.
+
+    Best used on the configurable_mocked_github_request.
+    """
+
+    def register_handlers(
+        mock: requests_mock.Mocker,
+        nonempty_team_name: str,
+        empty_team_name: str,
+    ):
+        # For team-emptiness checks.
+        mock.mock_get_teams_members_nonempty = mock.get(
+            f"https://api.github.com/orgs/mozilla-conduit/teams/{nonempty_team_name}/members",
+            json=[{"login": "reviewer-user"}],
+        )
+        mock.mock_get_teams_members_empty = mock.get(
+            f"https://api.github.com/orgs/mozilla-conduit/teams/{empty_team_name}/members",
+            json=[],
+        )
+
+    return register_handlers
+
+
 #
 # RULES FIXTURES
 #

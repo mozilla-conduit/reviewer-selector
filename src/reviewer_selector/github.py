@@ -273,12 +273,15 @@ class GitHubReviewable(Reviewable):
             # There was no cache.
             pass
 
+        if teams := requested_reviewers.get("team_reviewers", []):
+            self._report_empty_teams(teams)
+
         if failed:
             # We don't prefix usernames with @, as they could be unmapped Phabricator
             # names that may not be the same person in GitHub.
             failed_reviewers_string = ", ".join(f"{r.name}" for r in failed)
             self.report_info(
-                f"Failed to request reviews from the following reviewers: {failed_reviewers_string}"
+                f"> [!WARNING]\n\nFailed to request reviews from the following reviewers: {failed_reviewers_string}"
             )
 
         return len(added)
@@ -298,6 +301,22 @@ class GitHubReviewable(Reviewable):
                 requested_reviewers["reviewers"].append(r.name)
 
         return requested_reviewers
+
+    def _report_empty_teams(self, teams: list[str]):
+        empty_teams = []
+
+        for team in teams:
+            members = self._pr.api_request(
+                f"/teams/{team}/members", request_type=RequestType.TEAMS
+            )
+            if len(members) < 1:
+                empty_teams.append(team)
+
+        if empty_teams:
+            empty_teams_names = ", ".join(empty_teams)
+            self.report_info(
+                f"> [!WARNING]\n\nThe following requested teams have no members: {empty_teams_names}"
+            )
 
     @override
     def report_error(self, message: str, **kwargs):
@@ -385,6 +404,7 @@ class RequestType(Enum):
     COMMITS = 1
     ISSUES = 2
     PULL_REQUEST = 3
+    TEAMS = 4
 
 
 @final
@@ -510,12 +530,21 @@ class GitHubPR(GitHubApiObject):
         """
         match request_type:
             case RequestType.CHECK_RUNS:
+                request_scope = RequestScope.REPO
                 qualified_path = f"/check-runs{path}"
             case RequestType.COMMITS:
+                request_scope = RequestScope.REPO
                 qualified_path = f"/commits{path}"
             case RequestType.ISSUES:
+                request_scope = RequestScope.REPO
                 qualified_path = f"/issues/{self.pr_number}{path}"
             case RequestType.PULL_REQUEST:
+                request_scope = RequestScope.REPO
                 qualified_path = f"/pulls/{self.pr_number}{path}"
+            case RequestType.TEAMS:
+                request_scope = RequestScope.ORG
+                qualified_path = path
 
-        return super().api_request(qualified_path, method, json)
+        return super().api_request(
+            qualified_path, method, json, request_scope=request_scope
+        )

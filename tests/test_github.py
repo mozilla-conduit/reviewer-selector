@@ -194,19 +194,26 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
 def test_github_reviewable(
     mock_gh_generate_token: Mock,
     configurable_mocked_github_request: Callable,
+    register_mock_teams_members: Callable,
     initial_reviewers: list[Reviewer],
     new_reviewers: list[Reviewer],
     expected_post_call_count: int,
     expected_get_call_count: int,
 ):
     with configurable_mocked_github_request() as mock:
+        register_mock_teams_members(
+            mock,
+            nonempty_team_name="fluent-reviewers",
+            empty_team_name="ent:fluent-reviewers",
+        )
+
         gh = GitHubPR(
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
         mock_gh_generate_token.return_value = "THE_TOKEN"
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
-        all_reviewers = set(initial_reviewers + new_reviewers)
 
+        all_reviewers = set(initial_reviewers + new_reviewers)
         init_added = gh.reviewable.add_reviewers(initial_reviewers)
         assert init_added == len(initial_reviewers)
 
@@ -279,6 +286,10 @@ def test_github_reviewable(
                 f"Missing group reviewer: {group.name}"
             )
 
+        # Check that the team-emptiness checks ran
+        assert mock.mock_get_teams_members_nonempty.called
+        assert mock.mock_get_teams_members_empty.called
+
         # When we run this a second time, no new network requests should happen.
         mock.requested_reviewers_post.reset()
         mock.requested_reviewers_get.reset()
@@ -299,6 +310,7 @@ def test_github_reviewable_add_reviewers_retry(
     mock_gh_generate_token: Mock,
     configurable_mocked_github_request: Callable,
     register_mock_issue_comment_handler: Callable,
+    register_mock_teams_members: Callable,
     caplog: pytest.LogCaptureFixture,
 ):
     rejected_enterprise_team = Reviewer("ent:fluent-reviewers", True)
@@ -341,6 +353,11 @@ def test_github_reviewable_add_reviewers_retry(
 
         mock._adapter.add_matcher(matcher)
         register_mock_issue_comment_handler(mock)
+        register_mock_teams_members(
+            mock,
+            nonempty_team_name="fluent-reviewers",
+            empty_team_name="ent:fluent-reviewers",
+        )
 
         status = gh.reviewable.add_new_reviewers(reviewers)
 
@@ -355,12 +372,17 @@ def test_github_reviewable_add_reviewers_retry(
         # The original mock doesn't see the requests summarily rejected by the matcher we added.
         assert mock.requested_reviewers_post.call_count == len(expected_reviewers)
 
-        assert mock.mock_post_issue_comment.call_count == 1, (
+        # Missing review request, empty teams
+        assert mock.mock_post_issue_comment.call_count == 2, (
             "Unexpected number of comments posted"
         )
         assert (
             mock.mock_post_issue_comment.request_history[0].json()["body"]
-            == "Failed to request reviews from the following reviewers: ent:fluent-reviewers"
+            == "> [!WARNING]\n\nThe following requested teams have no members: ent:fluent-reviewers"
+        )
+        assert (
+            mock.mock_post_issue_comment.request_history[1].json()["body"]
+            == "> [!WARNING]\n\nFailed to request reviews from the following reviewers: ent:fluent-reviewers"
         )
 
         # Make sure all reviewers are now present.
