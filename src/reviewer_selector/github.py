@@ -60,6 +60,17 @@ class GitHubApp:
         return token
 
 
+class RequestScope(Enum):
+    """Specify the scope of request to make for the PR.
+
+    This is used by GitHubApiObject.api_request, to decide which base endpoint to use when building a
+    full URL.
+    """
+
+    REPO = 0
+    ORG = 1
+
+
 class GitHubApiObject(metaclass=ABCMeta):
     """Abstract class providing utilities for requests to arbitrary GitHub API objects.
 
@@ -110,11 +121,23 @@ class GitHubApiObject(metaclass=ABCMeta):
         return wrapped
 
     def api_request(
-        self, path: str = "", method: str = "GET", json: dict[Any, Any] | None = None
+        self,
+        path: str = "",
+        method: str = "GET",
+        json: dict[Any, Any] | None = None,
+        *,
+        request_scope: RequestScope = RequestScope.REPO,
     ) -> dict[str, Any]:
+
+        match request_scope:
+            case RequestScope.REPO:
+                url = f"{self._repo_api_url}{path}"
+            case RequestScope.ORG:
+                url = f"{self._org_api_url}{path}"
+
         resp = self._session.request(
             method,
-            f"{self._repo_api_url}{path}",
+            url,
             headers={
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2026-03-10",
@@ -134,6 +157,10 @@ class GitHubApiObject(metaclass=ABCMeta):
     @property
     def _repo_api_url(self) -> str:
         return f"https://api.github.com/repos/{self.owner}/{self.repository}"
+
+    @property
+    def _org_api_url(self) -> str:
+        return f"https://api.github.com/orgs/{self.owner}"
 
     @authenticated
     def authenticated_api_request(self, *args, **kwargs) -> dict[str, Any]:
@@ -350,7 +377,7 @@ class GitHubReviewable(Reviewable):
 class RequestType(Enum):
     """Specify the type of request to make for the PR.
 
-    This is used by api_request, to decide which endpoint to use when building a
+    This is used by GitHubPR.api_request, to decide which endpoint to use when building a
     full URL.
     """
 
