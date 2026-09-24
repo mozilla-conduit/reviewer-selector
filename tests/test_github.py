@@ -158,7 +158,6 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
             ),
             # Only new reviewers.
             1,
-            # One check before adding new reviewers.
             1,
         ),
         (
@@ -172,8 +171,7 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
             ),
             # Initial + new reviewers.
             2,
-            # One check before adding new reviewers.
-            1,
+            2,
         ),
         (
             (
@@ -185,8 +183,10 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
             (),
             # Only initial reviewers.
             1,
-            # One check before adding new reviewers.
-            1,
+            # Initial reviewers + check whether new are needed.
+            # Note: the @cached_property applies to mocked method too, and they are not
+            # called again.
+            2,
         ),
     ),
 )

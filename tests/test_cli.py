@@ -338,10 +338,11 @@ def test_github_env(
             mock_github_app.assert_called_with(
                 *expected_app_credentials, "mozilla-conduit", "reviewer-selector"
             )
-        assert mock_requested_reviewers.call_count == 1, (
+        # Initial check, check after adding, and final check at the end.
+        assert mock_requested_reviewers.call_count == 3, (
             "Incorrect number of requests to the requested reviewers endpoint"
         )
-        requested_reviewers_request = mock_requested_reviewers.last_request.json()
+        requested_reviewers_request = mock_requested_reviewers.request_history[0].json()
         assert requested_reviewers_request.get("reviewers", None) == [], (
             "Incorrect payload in request the requested reviewers endpoint"
         )
@@ -388,9 +389,14 @@ def test_github_reports(
     elif type == "warning":
         mock_add_new_reviewers.side_effect = Exception(type)
         # After an error, returning any non-empty set of reviewers is sufficient.
-        mock_reviewers.return_value = [Reviewer("alice")]
+        mock_reviewers.return_value = [Reviewer("fluent-reviewers", is_group=True)]
+        # mock_reviewers.return_value = [Reviewer("alice")]
     elif type == "success":
-        mock_reviewers.return_value = [Reviewer("alice")]
+        mock_reviewers.return_value = [
+            Reviewer("ent:fluent-reviewers", is_group=True),
+            Reviewer("fluent-reviewers", is_group=True),
+        ]
+        # mock_reviewers.return_value = [Reviewer("alice")]
     else:
         raise ValueError(f"{type=} is not supported")
 
@@ -437,7 +443,7 @@ def test_github_reports(
             assert check_json["conclusion"] == "action_required"
             assert (
                 check_json["output"]["summary"]
-                == f"Not all reviewers were added.{tc_trailer}"
+                == f"Not all reviewers were added.\n\nMissing/unresolved: ent:fluent-reviewers.{tc_trailer}"
             )
 
         if type == "success":

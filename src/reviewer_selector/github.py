@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 from abc import ABCMeta
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Collection, Iterable
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property, wraps
@@ -156,6 +156,10 @@ class GitHubPatchSource(PatchSource):
         return self._pr.metadata.get("title", "")
 
 
+class GitHubReviewerAdditionException(Exception):
+    pass
+
+
 @dataclass
 class GitHubReviewable(Reviewable):
     _pr: "GitHubPR"
@@ -183,38 +187,54 @@ class GitHubReviewable(Reviewable):
         If no reviewers were added after this retry, the exception is re-raised for
         processing in the caller.
         """
-        reviewers = list(reviewers)
-        requested_reviewers = self._build_request_reviewers_payload(reviewers)
+        reviewers = set(reviewers)
 
-        if (
-            len(requested_reviewers["team_reviewers"])
-            + len(requested_reviewers["reviewers"])
-            == 0
-        ):
+        new_reviewers_count = len(reviewers)
+        if new_reviewers_count == 0:
             return 0
+
+        requested_reviewers = self._build_request_reviewers_payload(reviewers)
+        expected_reviewers_count = len(set(self.reviewers) | reviewers)
 
         added = []
         failed = []
         try:
-            self._pr.authenticated_api_request(
+            resp = self._pr.authenticated_api_request(
                 "/requested_reviewers", "POST", requested_reviewers
             )
+            if (
+                all_reviewers_count := len(resp.get("requested_reviewers", []))
+                + len(resp.get("requested_teams", []))
+            ) != expected_reviewers_count:
+                # The REST API happily returns 201 in some cases where it could not
+                # resolve all the reviewers. Catch this, and try to add them one-by-one
+                # for proper error handling
+                raise GitHubReviewerAdditionException(
+                    f"Expected a total of {expected_reviewers_count} reviewers after adding, but only found {all_reviewers_count}."
+                )
             added = reviewers
-        except HTTPError as exc:
-            if exc.response.status_code >= 400 and exc.response.status_code < 500:
-                logger.warning("Adding one reviewer at a time ...")
+        except (HTTPError, GitHubReviewerAdditionException) as exc:
+            if type(exc) is HTTPError and (
+                exc.response.status_code < 400 or exc.response.status_code >= 500
+            ):
+                raise
+            # We let the caller report the raised exception above. But if we continue
+            # here, we take care of it ourselves.
+            logger.exception("Error while adding all reviewers at once")
 
-                for r in reviewers:
-                    try:
-                        self._pr.authenticated_api_request(
-                            "/requested_reviewers",
-                            "POST",
-                            self._build_request_reviewers_payload([r]),
-                        )
-                        added.append(r)
-                    except HTTPError as exc2:
-                        logger.warning(f"Failed to add reviewer {r.name}: {exc2}")
-                        failed.append(r)
+            logger.warning("Adding one reviewer at a time ...")
+
+            for r in reviewers:
+                try:
+                    self._pr.authenticated_api_request(
+                        "/requested_reviewers",
+                        "POST",
+                        self._build_request_reviewers_payload([r]),
+                    )
+                    added.append(r)
+                except HTTPError as exc2:
+                    logger.warning(f"Failed to add reviewer {r.name}: {exc2}")
+                    failed.append(r)
 
             if not added:
                 raise
@@ -238,7 +258,7 @@ class GitHubReviewable(Reviewable):
 
     @staticmethod
     def _build_request_reviewers_payload(
-        reviewers: list[Reviewer],
+        reviewers: Collection[Reviewer],
     ) -> dict[str, Any]:
         requested_reviewers = {
             "reviewers": [],

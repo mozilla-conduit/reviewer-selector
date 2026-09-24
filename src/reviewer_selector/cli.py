@@ -69,7 +69,12 @@ def cli() -> None:
     if not reviewable.reviewers:
         reviewable.report_error(f"No reviewer currently assigned.{tc_info}")
     elif not status.all_new_reviewer_added:
-        reviewable.report_warning(f"Not all reviewers were added.{tc_info}")
+        missing_reviewers = ", ".join(
+            r.name for r in set(resolved) - set(reviewable.reviewers)
+        )
+        reviewable.report_warning(
+            f"Not all reviewers were added.\n\nMissing/unresolved: {missing_reviewers}.{tc_info}"
+        )
     else:
         reviewable.report_success(f"Reviewers successfully assigned.{tc_info}")
 

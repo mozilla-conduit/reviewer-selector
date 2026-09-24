@@ -599,7 +599,10 @@ def configurable_mocked_github_request(
                     t = t.removeprefix("/")
                 requested_reviewers_data["teams"].append({"slug": t})
 
-            return {}
+            return {
+                "requested_reviewers": requested_reviewers_data["users"],
+                "requested_teams": requested_reviewers_data["teams"],
+            }
 
         def get_reviewers_callback(
             _request: requests.Request, _context: requests_mock.response._Context
