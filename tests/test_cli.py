@@ -395,7 +395,6 @@ def test_github_reports(
             Reviewer("ent:fluent-reviewers", is_group=True),
             Reviewer("fluent-reviewers", is_group=True),
         ]
-        # mock_reviewers.return_value = [Reviewer("alice")]
     else:
         raise ValueError(f"{type=} is not supported")
 
