@@ -390,7 +390,6 @@ def test_github_reports(
         mock_add_new_reviewers.side_effect = Exception(type)
         # After an error, returning any non-empty set of reviewers is sufficient.
         mock_reviewers.return_value = [Reviewer("fluent-reviewers", is_group=True)]
-        # mock_reviewers.return_value = [Reviewer("alice")]
     elif type == "success":
         mock_reviewers.return_value = [
             Reviewer("ent:fluent-reviewers", is_group=True),
