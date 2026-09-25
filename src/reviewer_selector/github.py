@@ -326,7 +326,7 @@ class GitHubReviewable(Reviewable):
         for team in teams:
             try:
                 members = self._pr.authenticated_api_request(
-                    f"/teams/{team}/members", request_type=RequestType.TEAMS
+                    f"/teams/{team}/members?per_page=1", request_type=RequestType.TEAMS
                 )
             except HTTPError:
                 logger.exception(f"Failed to check members of team {team}")
