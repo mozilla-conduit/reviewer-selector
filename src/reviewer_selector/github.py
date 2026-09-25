@@ -248,7 +248,7 @@ class GitHubReviewable(Reviewable):
                 )
             added = reviewers
         except (HTTPError, GitHubReviewerAdditionException) as exc:
-            if type(exc) is HTTPError and (
+            if isinstance(exc, HTTPError) and (
                 exc.response.status_code < 400 or exc.response.status_code >= 500
             ):
                 raise
