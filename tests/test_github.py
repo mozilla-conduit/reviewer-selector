@@ -1,4 +1,5 @@
 import itertools
+import logging
 from collections.abc import Callable
 from unittest.mock import Mock, patch
 
@@ -313,6 +314,8 @@ def test_github_reviewable_add_reviewers_retry(
     register_mock_teams_members: Callable,
     caplog: pytest.LogCaptureFixture,
 ):
+    caplog.set_level(logging.INFO)
+
     rejected_enterprise_team = Reviewer("ent:fluent-reviewers", True)
     expected_reviewers = [
         Reviewer("test-reviewer", False),
@@ -355,8 +358,8 @@ def test_github_reviewable_add_reviewers_retry(
         register_mock_issue_comment_handler(mock)
         register_mock_teams_members(
             mock,
-            nonempty_team_name="fluent-reviewers",
-            empty_team_name="ent:fluent-reviewers",
+            nonempty_team_name="ent:fluent-reviewers",
+            empty_team_name="fluent-reviewers",
         )
 
         status = gh.reviewable.add_new_reviewers(reviewers)
@@ -378,11 +381,11 @@ def test_github_reviewable_add_reviewers_retry(
         )
         assert (
             mock.mock_post_issue_comment.request_history[0].json()["body"]
-            == "> [!WARNING]\n\nThe following requested teams have no members: ent:fluent-reviewers"
+            == "> [!WARNING]\n> The following requested teams have no members: `fluent-reviewers`"
         )
         assert (
             mock.mock_post_issue_comment.request_history[1].json()["body"]
-            == "> [!WARNING]\n\nFailed to request reviews from the following reviewers: ent:fluent-reviewers"
+            == "> [!WARNING]\n> Failed to request reviews from the following reviewers: `ent:fluent-reviewers`"
         )
 
         # Make sure all reviewers are now present.

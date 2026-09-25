@@ -249,17 +249,28 @@ class GitHubReviewable(Reviewable):
             # here, we take care of it ourselves.
             logger.exception("Error while adding all reviewers at once")
 
-            logger.warning("Adding one reviewer at a time ...")
+            logger.info("Adding one reviewer at a time ...")
 
             for r in reviewers:
                 try:
-                    self._pr.authenticated_api_request(
+                    resp = self._pr.authenticated_api_request(
                         "/requested_reviewers",
                         "POST",
                         self._build_request_reviewers_payload([r]),
                     )
-                    added.append(r)
-                except HTTPError as exc2:
+                    if (
+                        r.is_group
+                        and r.name
+                        in [r.get("slug") for r in resp.get("requested_teams", [])]
+                        or r.name
+                        in [r.get("login") for r in resp.get("requested_reviewers", [])]
+                    ):
+                        added.append(r)
+                    else:
+                        raise GitHubReviewerAdditionException(
+                            "Reviewer not found after adding individually ..."
+                        )
+                except (HTTPError, GitHubReviewerAdditionException) as exc2:
                     logger.warning(f"Failed to add reviewer {r.name}: {exc2}")
                     failed.append(r)
 
@@ -279,9 +290,9 @@ class GitHubReviewable(Reviewable):
         if failed:
             # We don't prefix usernames with @, as they could be unmapped Phabricator
             # names that may not be the same person in GitHub.
-            failed_reviewers_string = ", ".join(f"{r.name}" for r in failed)
+            failed_reviewers_string = ", ".join(f"`{r.name}`" for r in failed)
             self.report_info(
-                f"> [!WARNING]\n\nFailed to request reviews from the following reviewers: {failed_reviewers_string}"
+                f"> [!WARNING]\n> Failed to request reviews from the following reviewers: {failed_reviewers_string}"
             )
 
         return len(added)
@@ -313,9 +324,9 @@ class GitHubReviewable(Reviewable):
                 empty_teams.append(team)
 
         if empty_teams:
-            empty_teams_names = ", ".join(empty_teams)
+            empty_teams_names = ", ".join(f"`{t}`" for t in empty_teams)
             self.report_info(
-                f"> [!WARNING]\n\nThe following requested teams have no members: {empty_teams_names}"
+                f"> [!WARNING]\n> The following requested teams have no members: {empty_teams_names}"
             )
 
     @override
