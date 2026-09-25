@@ -149,7 +149,7 @@ class GitHubApiObject(metaclass=ABCMeta):
         except HTTPError as exc:
             if exc.response.status_code >= 400 and exc.response.status_code < 500:
                 logger.exception(
-                    f"{exc.response.status_code} error from GitHub: {exc}, with payload {exc.request.body}: {exc.response.text}"
+                    f"{exc.response.status_code} error from GitHub, with payload {exc.request.body}: {exc.response.text}"
                 )
             raise
         return resp.json()
