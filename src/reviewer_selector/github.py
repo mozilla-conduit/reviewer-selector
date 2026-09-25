@@ -186,7 +186,7 @@ class GitHubPatchSource(PatchSource):
 class GitHubReviewerAdditionException(Exception):
     """Exception thrown when not all requested reviewers were added.
 
-    The GitHub REST API silently passes on non-existent users in post
+    The GitHub REST API silently ignores non-existent users in POST
     /requested_reviewers request, and returns apparently unconditional 201.
 
     To be sure reviewers were aded, we inspect the response. If they are found missing,
