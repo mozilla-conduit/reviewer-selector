@@ -324,9 +324,14 @@ class GitHubReviewable(Reviewable):
         empty_teams = []
 
         for team in teams:
-            members = self._pr.authenticated_api_request(
-                f"/teams/{team}/members?per_page=1", request_type=RequestType.TEAMS
-            )
+            try:
+                members = self._pr.authenticated_api_request(
+                    f"/teams/{team}/members", request_type=RequestType.TEAMS
+                )
+            except HTTPError:
+                logger.exception(f"Failed to check members of team {team}")
+                continue
+
             if len(members) < 1:
                 empty_teams.append(team)
 
