@@ -241,8 +241,8 @@ class GitHubReviewable(Reviewable):
                 + len(resp.get("requested_teams", []))
             ) != expected_reviewers_count:
                 # The REST API happily returns 201 in some cases where it could not
-                # resolve all the reviewers. Catch this, and try to add them one-by-one
-                # for proper error handling
+                # resolve some of the reviewers. Catch this, and try to add them one-by-one
+                # for proper error handling.
                 raise GitHubReviewerAdditionException(
                     f"Expected a total of {expected_reviewers_count} reviewers after adding, but only found {all_reviewers_count}."
                 )
