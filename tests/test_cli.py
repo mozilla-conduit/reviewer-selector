@@ -3,13 +3,13 @@ import json
 import logging
 import pathlib
 import sys
+from collections.abc import Callable
 from typing import Any
 from unittest import mock
-from unittest.mock import PropertyMock
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 import requests
-from requests_mock import Mocker
 
 from reviewer_selector import cli
 from reviewer_selector.review import Reviewer
@@ -149,7 +149,7 @@ def test_subject_reviewer_blocking(
 
 def test_github(
     tmp_path: pathlib.Path,
-    mocked_github_request: Mocker,
+    configurable_mocked_github_request: Callable,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
     sample_rules_data: dict[str, Any],
@@ -157,7 +157,7 @@ def test_github(
     # Empty rules. The real ones should be coming from in-tree.
     rules_path = _write_rules(tmp_path / "rules.json", {})
 
-    with mocked_github_request as mock:
+    with configurable_mocked_github_request() as mock:
         patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
         mock.get(patch_url, text=sample_diff)
 
@@ -283,10 +283,10 @@ def test_github_env(
     mock_github_app: mock.Mock,
     tmp_path: pathlib.Path,
     monkeypatch: pytest.MonkeyPatch,
-    mocked_github_request: Mocker,
+    configurable_mocked_github_request: Callable,
+    capsys: pytest.CaptureFixture,
     sample_diff: str,
     sample_rules_data: str,
-    capsys: pytest.CaptureFixture,
     env_github_token: str,
     env_gh_token: str,
     env_app_id: str,
@@ -311,7 +311,7 @@ def test_github_env(
         "GITHUB_APP_PRIVKEY": tc_app_privkey,
     }
 
-    with mocked_github_request as mock:
+    with configurable_mocked_github_request() as mock:
         patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
         mock.get(patch_url, text=sample_diff)
 
@@ -338,10 +338,11 @@ def test_github_env(
             mock_github_app.assert_called_with(
                 *expected_app_credentials, "mozilla-conduit", "reviewer-selector"
             )
-        assert mock_requested_reviewers.call_count == 1, (
+        # Initial check, check after adding, and final check at the end.
+        assert mock_requested_reviewers.call_count == 3, (
             "Incorrect number of requests to the requested reviewers endpoint"
         )
-        requested_reviewers_request = mock_requested_reviewers.last_request.json()
+        requested_reviewers_request = mock_requested_reviewers.request_history[0].json()
         assert requested_reviewers_request.get("reviewers", None) == [], (
             "Incorrect payload in request the requested reviewers endpoint"
         )
@@ -360,6 +361,95 @@ def test_github_env(
     assert needs_tc_secrets == mock_tc_load_secrets.called, (
         "Use of load_secrets doesn't match expectation"
     )
+
+
+@patch("reviewer_selector.github.GitHubReviewable.add_new_reviewers")
+@patch("reviewer_selector.github.GitHubReviewable.reviewers", new_callable=PropertyMock)
+@patch("reviewer_selector.cli.tc_task_url")
+@pytest.mark.parametrize("type", ("error", "warning", "success"))
+def test_github_reports(
+    mock_tc_task_url: Mock,
+    mock_reviewers: Mock,
+    mock_add_new_reviewers: Mock,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+    configurable_mocked_github_request: Callable,
+    register_mock_issue_comment_handler: Callable,
+    register_mock_check_handlers: Callable,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict[str, Any],
+    type: str,
+):
+    monkeypatch.setenv("GH_TOKEN", "gh_token")
+
+    if type == "error":
+        mock_add_new_reviewers.side_effect = Exception(type)
+        mock_reviewers.return_value = []
+    elif type == "warning":
+        mock_add_new_reviewers.side_effect = Exception(type)
+        # After an error, returning any non-empty set of reviewers is sufficient.
+        mock_reviewers.return_value = [Reviewer("fluent-reviewers", is_group=True)]
+    elif type == "success":
+        mock_reviewers.return_value = [
+            Reviewer("ent:fluent-reviewers", is_group=True),
+            Reviewer("fluent-reviewers", is_group=True),
+        ]
+    else:
+        raise ValueError(f"{type=} is not supported")
+
+    mock_tc_task_url.return_value = "https://some.tc.url"
+
+    # Empty rules. The real ones should be coming from in-tree.
+    rules_path = _write_rules(tmp_path / "rules.json", {})
+
+    with configurable_mocked_github_request() as mock:
+        register_mock_issue_comment_handler(mock)
+        register_mock_check_handlers(mock, 4, 200, {})
+
+        patch_url = "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
+        mock.get(patch_url, text=sample_diff)
+
+        rules_url = "https://github.com/mozilla-conduit/reviewer-selector/raw/refs/heads/test-branch/herald_rules.json"
+        mock.get(rules_url, text=json.dumps(sample_rules_data))
+
+        _run_cli(
+            [
+                rules_path,
+                "--pr-url",
+                "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+            ],
+            "",
+            capsys,
+        )
+
+        assert mock_add_new_reviewers.call_count == 1
+
+        assert mock.mock_post_check_run.call_count == 1
+
+        tc_trailer = "\n\n[See task in Taskcluster](https://some.tc.url)"
+
+        check_json = mock.mock_post_check_run.request_history[0].json()
+        if type == "error":
+            assert check_json["conclusion"] == "failure"
+            assert (
+                check_json["output"]["summary"]
+                == f"No reviewer currently assigned.{tc_trailer}"
+            )
+
+        if type == "warning":
+            assert check_json["conclusion"] == "action_required"
+            assert (
+                check_json["output"]["summary"]
+                == f"Not all reviewers were added.\n\nMissing/unresolved: `ent:fluent-reviewers`.{tc_trailer}"
+            )
+
+        if type == "success":
+            assert check_json["conclusion"] == "success"
+            assert (
+                check_json["output"]["summary"]
+                == f"Reviewers successfully assigned.{tc_trailer}"
+            )
 
 
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:

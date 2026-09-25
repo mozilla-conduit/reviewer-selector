@@ -5,6 +5,8 @@ import pytest
 import requests
 import requests_mock
 
+from reviewer_selector.github import GITHUB_CHECK_NAME
+
 #
 # DIFF FIXTURES
 #
@@ -548,11 +550,11 @@ def mocked_github_request(
     github_api_response_pull_request_requested_reviewers: str,
 ) -> requests_mock.Mocker:
     mock = requests_mock.Mocker()
-    mock.get(
+    mock.pull_request_get = mock.get(
         "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18",
         text=github_api_response_pull_request,
     )
-    mock.get(
+    mock.requested_reviewers_get = mock.get(
         "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
         text=github_api_response_pull_request_requested_reviewers,
     )
@@ -560,9 +562,9 @@ def mocked_github_request(
 
 
 @pytest.fixture
-def configurable_mocked_github_request() -> Callable[
-    [list[str], list[str]], requests_mock.Mocker
-]:
+def configurable_mocked_github_request(
+    mocked_github_request,
+) -> Callable[[list[str], list[str]], requests_mock.Mocker]:
 
     def _configurable_mocked_github_request(
         initial_reviewers: list[str] | None = None,
@@ -597,7 +599,10 @@ def configurable_mocked_github_request() -> Callable[
                     t = t.removeprefix("/")
                 requested_reviewers_data["teams"].append({"slug": t})
 
-            return {}
+            return {
+                "requested_reviewers": requested_reviewers_data["users"],
+                "requested_teams": requested_reviewers_data["teams"],
+            }
 
         def get_reviewers_callback(
             _request: requests.Request, _context: requests_mock.response._Context
@@ -605,7 +610,7 @@ def configurable_mocked_github_request() -> Callable[
             """Callback returning our in-memory set of reviewers."""
             return requested_reviewers_data
 
-        mock = requests_mock.Mocker()
+        mock = mocked_github_request
 
         # Attach sub-mock and data to the mock, for easier inspection by the caller.
         mock.requested_reviewers_post = mock.post(
@@ -621,6 +626,92 @@ def configurable_mocked_github_request() -> Callable[
         return mock
 
     return _configurable_mocked_github_request
+
+
+@pytest.fixture
+def register_mock_issue_comment_handler() -> Callable:
+    """Add handlers for posting comments to the GitHub PR.
+
+    Register the handler as `mock.mock_post_issue_comment`, for later inspection.
+
+    Best used on the configurable_mocked_github_request.
+    """
+
+    def register_handler(mock: requests_mock.Mocker, status_code: int = 201):
+        issue_comment_url = "https://api.github.com/repos/mozilla-conduit/reviewer-selector/issues/18/comments"
+        mock.mock_post_issue_comment = mock.post(
+            issue_comment_url,
+            status_code=status_code,
+            text="{}",
+        )
+
+    return register_handler
+
+
+@pytest.fixture
+def register_mock_check_handlers() -> Callable:
+    """Add handlers for managing checks on the GitHub PR.
+
+    Register the handlers as `mock.mock_[get|patch|post]_check_run` for later inspection.
+
+    Best used on the configurable_mocked_github_request.
+    """
+
+    def register_handlers(
+        mock: requests_mock.Mocker,
+        check_id: int,
+        get_status_code: int,
+        get_json: dict[str, Any],
+    ):
+        check_url = f"https://api.github.com/repos/mozilla-conduit/reviewer-selector/commits/5c9487af01e52713fc6cb60b4177ce407ed4fe7f/check-runs?check_name={GITHUB_CHECK_NAME}&filter=latest"
+
+        mock.mock_get_check_run = mock.get(
+            check_url,
+            status_code=get_status_code,
+            json=get_json,
+        )
+
+        mock.mock_patch_check_run = mock.patch(
+            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs/{check_id}",
+            json={
+                "id": check_id,
+            },
+        )
+        mock.mock_post_check_run = mock.post(
+            f"https://api.github.com/repos/mozilla-conduit/{GITHUB_CHECK_NAME}/check-runs",
+            json={
+                "id": check_id,
+            },
+        )
+
+    return register_handlers
+
+
+@pytest.fixture
+def register_mock_teams_members() -> Callable:
+    """Add handlers for checking team members on the GitHub PR.
+
+    Register the handlers as `mock.mock_get_teams_members_[empty|nonempty]` for later inspection.
+
+    Best used on the configurable_mocked_github_request.
+    """
+
+    def register_handlers(
+        mock: requests_mock.Mocker,
+        nonempty_team_name: str,
+        empty_team_name: str,
+    ):
+        # For team-emptiness checks.
+        mock.mock_get_teams_members_nonempty = mock.get(
+            f"https://api.github.com/orgs/mozilla-conduit/teams/{nonempty_team_name}/members",
+            json=[{"login": "reviewer-user"}],
+        )
+        mock.mock_get_teams_members_empty = mock.get(
+            f"https://api.github.com/orgs/mozilla-conduit/teams/{empty_team_name}/members",
+            json=[],
+        )
+
+    return register_handlers
 
 
 #

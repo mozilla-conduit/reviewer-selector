@@ -76,6 +76,22 @@ class Reviewable(metaclass=ABCMeta):
             regardless of previous status.
         """
 
+    def report_error(self, message: str, **kwargs):
+        """Report errors."""
+        logger.debug(f"Reporting error to Reviewable: {message}")
+
+    def report_info(self, message: str, **kwargs):
+        """Report info."""
+        logger.debug(f"Reporting info to Reviewable: {message}")
+
+    def report_success(self, message: str, **kwargs):
+        """Report success."""
+        logger.debug(f"Reporting success to Reviewable: {message}")
+
+    def report_warning(self, message: str, **kwargs):
+        """Report warnings."""
+        logger.debug(f"Reporting warning to Reviewable: {message}")
+
 
 class InMemoryReviewable(Reviewable):
     """A `Reviewable` implementation storing state in memory."""

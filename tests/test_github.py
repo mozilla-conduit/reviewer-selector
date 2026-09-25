@@ -1,3 +1,5 @@
+import itertools
+import logging
 from collections.abc import Callable
 from unittest.mock import Mock, patch
 
@@ -157,7 +159,6 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
             ),
             # Only new reviewers.
             1,
-            # One check before adding new reviewers.
             1,
         ),
         (
@@ -171,8 +172,7 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
             ),
             # Initial + new reviewers.
             2,
-            # One check before adding new reviewers.
-            1,
+            2,
         ),
         (
             (
@@ -184,8 +184,10 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
             (),
             # Only initial reviewers.
             1,
-            # One check before adding new reviewers.
-            1,
+            # Initial reviewers + check whether new are needed.
+            # Note: the @cached_property applies to mocked method too, and they are not
+            # called again.
+            2,
         ),
     ),
 )
@@ -193,19 +195,26 @@ def test_github_api_request_errors(caplog: pytest.LogCaptureFixture):
 def test_github_reviewable(
     mock_gh_generate_token: Mock,
     configurable_mocked_github_request: Callable,
+    register_mock_teams_members: Callable,
     initial_reviewers: list[Reviewer],
     new_reviewers: list[Reviewer],
     expected_post_call_count: int,
     expected_get_call_count: int,
 ):
     with configurable_mocked_github_request() as mock:
+        register_mock_teams_members(
+            mock,
+            nonempty_team_name="fluent-reviewers",
+            empty_team_name="ent:fluent-reviewers",
+        )
+
         gh = GitHubPR(
             "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
         )
         mock_gh_generate_token.return_value = "THE_TOKEN"
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
-        all_reviewers = set(initial_reviewers + new_reviewers)
 
+        all_reviewers = set(initial_reviewers + new_reviewers)
         init_added = gh.reviewable.add_reviewers(initial_reviewers)
         assert init_added == len(initial_reviewers)
 
@@ -278,6 +287,10 @@ def test_github_reviewable(
                 f"Missing group reviewer: {group.name}"
             )
 
+        # Check that the team-emptiness checks ran
+        assert mock.mock_get_teams_members_nonempty.called
+        assert mock.mock_get_teams_members_empty.called
+
         # When we run this a second time, no new network requests should happen.
         mock.requested_reviewers_post.reset()
         mock.requested_reviewers_get.reset()
@@ -297,8 +310,12 @@ def test_github_reviewable(
 def test_github_reviewable_add_reviewers_retry(
     mock_gh_generate_token: Mock,
     configurable_mocked_github_request: Callable,
+    register_mock_issue_comment_handler: Callable,
+    register_mock_teams_members: Callable,
     caplog: pytest.LogCaptureFixture,
 ):
+    caplog.set_level(logging.INFO)
+
     rejected_enterprise_team = Reviewer("ent:fluent-reviewers", True)
     expected_reviewers = [
         Reviewer("test-reviewer", False),
@@ -338,6 +355,12 @@ def test_github_reviewable_add_reviewers_retry(
             return None
 
         mock._adapter.add_matcher(matcher)
+        register_mock_issue_comment_handler(mock)
+        register_mock_teams_members(
+            mock,
+            nonempty_team_name="ent:fluent-reviewers",
+            empty_team_name="fluent-reviewers",
+        )
 
         status = gh.reviewable.add_new_reviewers(reviewers)
 
@@ -351,6 +374,19 @@ def test_github_reviewable_add_reviewers_retry(
 
         # The original mock doesn't see the requests summarily rejected by the matcher we added.
         assert mock.requested_reviewers_post.call_count == len(expected_reviewers)
+
+        # Missing review request, empty teams
+        assert mock.mock_post_issue_comment.call_count == 2, (
+            "Unexpected number of comments posted"
+        )
+        assert (
+            mock.mock_post_issue_comment.request_history[0].json()["body"]
+            == "> [!WARNING]\n> The following requested teams have no members: `fluent-reviewers`"
+        )
+        assert (
+            mock.mock_post_issue_comment.request_history[1].json()["body"]
+            == "> [!WARNING]\n> Failed to request reviews from the following reviewers: `ent:fluent-reviewers`"
+        )
 
         # Make sure all reviewers are now present.
         for user in [r for r in expected_reviewers if not r.is_group]:
@@ -398,3 +434,116 @@ def test_github_reviewable_add_reviewers_noretry(
 
         assert "Adding one reviewer at a time ..." not in caplog.text
         assert mock_post.call_count == 1
+
+
+@pytest.mark.parametrize("failure", (False, True))
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable_report_info(
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    register_mock_issue_comment_handler: Callable,
+    caplog: pytest.LogCaptureFixture,
+    failure: bool,
+):
+    with configurable_mocked_github_request() as mock:
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        if failure:
+            register_mock_issue_comment_handler(mock, 422)
+        else:
+            register_mock_issue_comment_handler(mock, 201)
+
+        gh.reviewable.report_info("info report")
+
+        if failure:
+            assert "Failed to report" in caplog.text
+            return
+
+        assert "Failed to report" not in caplog.text
+
+        assert mock.mock_post_issue_comment.call_count == 1, (
+            "New comment wasn't created"
+        )
+
+
+@pytest.mark.parametrize(
+    "type,existing,failure",
+    tuple(itertools.product(("warning", "error"), (False, True), (False, True))),
+)
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+@patch("reviewer_selector.github.tc_task_url")
+def test_github_reviewable_reports(
+    mock_tc_task_url: Mock,
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    register_mock_check_handlers: Callable,
+    caplog: pytest.LogCaptureFixture,
+    type: str,
+    existing: bool,
+    failure: bool,
+):
+    check_id = 4
+
+    mock_tc_task_url.return_value = "https://some.tc.url"
+
+    with configurable_mocked_github_request() as mock:
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        get_status_code = 418
+        get_json = {"teapot": True}
+        if failure:
+            get_status_code = 422
+            get_json = {"error": "fixture configured to fail"}
+
+        elif existing:
+            get_status_code = 200
+            get_json = {"check_runs": [{"id": check_id}]}
+
+        else:
+            get_status_code = 200
+            get_json = {"check_runs": []}
+
+        register_mock_check_handlers(mock, check_id, get_status_code, get_json)
+
+        if type == "warning":
+            gh.reviewable.report_warning(f"{type} report")
+        elif type == "error":
+            gh.reviewable.report_error(f"{type} report")
+        else:
+            raise ValueError(f"{type=} is not supported")
+
+        if failure:
+            assert "Failed to report" in caplog.text
+            return
+
+        assert "Failed to report" not in caplog.text
+
+        assert mock.mock_get_check_run.call_count == 1, "Check existence wasn't checked"
+
+        expected_conclusion = "failure" if type == "error" else "action_required"
+        if existing:
+            assert mock.mock_post_check_run.call_count == 0, (
+                "New check was created when one already existed"
+            )
+            assert mock.mock_patch_check_run.call_count == 1, (
+                "Existing check wasn't updated"
+            )
+            check_request = mock.mock_patch_check_run.last_request.json()
+            assert check_request["conclusion"] == expected_conclusion
+        else:
+            assert mock.mock_post_check_run.call_count == 1, "New check wasn't created"
+            assert mock.mock_patch_check_run.call_count == 0, (
+                "Attempted to update a non-existent check"
+            )
+            check_request = mock.mock_post_check_run.last_request.json()
+            assert check_request["conclusion"] == expected_conclusion
+
+            assert check_request["details_url"] == "https://some.tc.url"
