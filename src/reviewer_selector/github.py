@@ -189,7 +189,7 @@ class GitHubReviewerAdditionException(Exception):
     The GitHub REST API silently ignores non-existent users in POST
     /requested_reviewers request, and returns apparently unconditional 201.
 
-    To be sure reviewers were aded, we inspect the response. If they are found missing,
+    To be sure reviewers were added, we inspect the response. If they are found missing,
     we throw this exception to trigger the same fallback as if an HTTPError had occured.
     """
 
