@@ -441,7 +441,7 @@ def test_github_reports(
             assert check_json["conclusion"] == "action_required"
             assert (
                 check_json["output"]["summary"]
-                == f"Not all reviewers were added.\n\nMissing/unresolved: ent:fluent-reviewers.{tc_trailer}"
+                == f"Not all reviewers were added.\n\nMissing/unresolved: `ent:fluent-reviewers`.{tc_trailer}"
             )
 
         if type == "success":
