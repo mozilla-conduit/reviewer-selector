@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 
 from reviewer_selector import GitHubApp, Taskcluster
 
@@ -43,4 +44,4 @@ def generate_token(
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())
