@@ -1,4 +1,5 @@
-FROM python:3.12
+# NOTE: When bumping this, also update pyproject.toml to match.
+FROM python:3.14-slim
 
 ARG GH_VERSION=2.89.0
 
@@ -7,6 +8,12 @@ ARG BUILTIN_HERALD_RULES=herald_rules.json
 # Lift the build arguments into runtime environment variables.
 ENV GH_VERSION=${GH_VERSION}
 ENV DEFAULT_HERALD_RULES_JSON=${BUILTIN_HERALD_RULES}
+
+RUN apt-get update \
+  && apt-get install -y \
+    curl \
+    git \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /uvx /bin/
 
