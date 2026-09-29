@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=80", "setuptools-scm>=8"]
+requires = ["setuptools>=84.0.0", "setuptools-scm>=10.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -46,3 +46,6 @@ addopts = ["--cov", "--cov-context=test", "--cov-report", "html"]
 
 [tool.ruff.lint]
 extend-select = ["I"]
+exclude = [
+  "taskcluster/reviewer_selector_taskgraph/transforms/docker-image.py",  # fails to resolve the docker-image module
+]
