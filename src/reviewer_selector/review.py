@@ -16,7 +16,7 @@ class Reviewer:
     is_group: bool = False
     blocking: bool = False
 
-    def mutate(self, **kwargs) -> "Reviewer":
+    def mutate(self, **kwargs) -> Reviewer:
         """Return a mutated Reviewer based on the current instance."""
         values = asdict(self)
 
@@ -25,7 +25,7 @@ class Reviewer:
         return Reviewer(**values)
 
     @staticmethod
-    def flatten_blocking(reviewers: Iterable["Reviewer"]) -> Iterable["Reviewer"]:
+    def flatten_blocking(reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
         """Flatten a set of reviewers by only preserving blocking ones in case of duplicates."""
         reviewers = set(reviewers)
         reviewers_list = list(reviewers)

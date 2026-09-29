@@ -254,7 +254,7 @@ def get_team_members(
     return members
 
 
-def paginated_get(client: Client, url: str) -> Generator[list[Any], None, None]:
+def paginated_get(client: Client, url: str) -> Generator[list[Any]]:
     parsed_url = urlsplit(url)
     if not parsed_url.query or "per_page" not in (qs := parse_qs(parsed_url.query)):
         if not parsed_url.query:

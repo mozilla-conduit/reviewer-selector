@@ -169,7 +169,7 @@ class GitHubApiObject(metaclass=ABCMeta):
 
 @dataclass
 class GitHubPatchSource(PatchSource):
-    _pr: "GitHubPR"
+    _pr: GitHubPR
 
     @property
     @override
@@ -196,7 +196,7 @@ class GitHubReviewerAdditionException(Exception):
 
 @dataclass
 class GitHubReviewable(Reviewable):
-    _pr: "GitHubPR"
+    _pr: GitHubPR
 
     @cached_property
     @override  # From Reviewable.
