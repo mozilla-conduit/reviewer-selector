@@ -49,3 +49,6 @@ extend-select = ["I"]
 exclude = [
   "taskcluster/reviewer_selector_taskgraph/transforms/docker-image.py",  # fails to resolve the docker-image module
 ]
+
+[tool.setuptools_scm]
+version_file = "src/reviewer_selector/_version.py"

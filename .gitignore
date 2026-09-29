@@ -5,3 +5,4 @@ mise.toml
 build/
 *.egg-info
 topsrcdir
+src/reviewer_selector/_version.py
