@@ -31,7 +31,7 @@ def cli() -> None:
 
     rules = Rules.from_file(args.rules_file)
 
-    repos = args.repo
+    repos = set(args.repo)
 
     # Default parameters that always work.
     patch_source = StdinPatchSource()
@@ -49,6 +49,11 @@ def cli() -> None:
         reviewable = gh_reviewable or reviewable
 
     patch = Patch(patch_source.patch, patch_source.get_patch_subject())
+
+    # Select autoland rules for any revision targetting main.
+    autolands = {r.replace("-main", "-autoland") for r in repos}
+    repos |= autolands
+    repos = list(repos)
 
     reviewers = Reviewer.flatten_blocking(
         set(patch.get_subject_reviewers()) | set(rules.collect_reviewers(patch, repos))
@@ -87,16 +92,19 @@ def make_tc_task_link() -> str:
 
 
 def create_github_objects(
-    args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
+    args: argparse.Namespace, default_rules: Rules, repos_to_update: set[str]
 ) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
-    """Create the GitHub adapters."""
+    """Create the GitHub adapters.
+
+    Note: the repos_to_update may get updated based on information on the PR.
+    """
     ghpr = GitHubPR(args.pr_url, default_rules)
 
     repo_branch = f"{ghpr.repository}-{ghpr.target_branch_name}"
     logger.info(
         f"PR URL provided ({args.pr_url}); using GitHub adapters for {repo_branch} ..."
     )
-    repos_to_update.append(repo_branch)
+    repos_to_update.add(repo_branch)
 
     # Override rules with in-tree file if present.
     rules = ghpr.rules or default_rules
