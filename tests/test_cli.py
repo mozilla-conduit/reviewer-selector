@@ -74,7 +74,7 @@ def test_repo_filter(
         [
             rules_path,
             "--repo",
-            "mozilla-central",
+            "firefox-autoland",
         ],
         sample_diff_remote,
         capsys,

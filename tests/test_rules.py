@@ -16,7 +16,7 @@ from reviewer_selector.rules import Rules, RulesData
                     "id": "test_no_repo_flag_always_matches",
                     "name": "test_no_repo_flag_always_matches",
                     "conditions": [
-                        {"type": "repository", "value": ["mozilla-central"]}
+                        {"type": "repository", "value": ["firefox-autoland"]}
                     ],
                 }
             }
@@ -39,7 +39,7 @@ def test_rule_no_repo_flag_always_matches():
     rule = {
         "id": "test_no_repo_flag_always_matches",
         "name": "test_no_repo_flag_always_matches",
-        "conditions": [{"type": "repository", "value": ["mozilla-central"]}],
+        "conditions": [{"type": "repository", "value": ["firefox-autoland"]}],
     }
     assert Rules.rule_matches_repos(rule, []) is True
 
@@ -50,7 +50,7 @@ def test_rule_without_repo_condition_matches():
         "name": "test_rule_without_repo_condition_matches",
         "conditions": [{"type": "differential-affected-files", "value": ".*"}],
     }
-    assert Rules.rule_matches_repos(rule, ["mozilla-central"]) is True
+    assert Rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
 
 
 def test_rule_matching_repos():
@@ -61,11 +61,11 @@ def test_rule_matching_repos():
             {
                 "type": "repository",
                 "operator": "is-any-of",
-                "value": ["mozilla-central"],
+                "value": ["firefox-autoland"],
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["mozilla-central"]) is True
+    assert Rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
 
 
 def test_rule_non_matching_repo():
@@ -80,7 +80,7 @@ def test_rule_non_matching_repo():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["mozilla-central"]) is False
+    assert Rules.rule_matches_repos(rule, ["firefox-autoland"]) is False
 
 
 def test_rule_multiple_repos():
@@ -91,11 +91,11 @@ def test_rule_multiple_repos():
             {
                 "type": "repository",
                 "operator": "is-any-of",
-                "value": ["mozilla-central", "autoland"],
+                "value": ["firefox-autoland", "firefox-beta"],
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["autoland"]) is True
+    assert Rules.rule_matches_repos(rule, ["firefox-beta"]) is True
 
 
 def test_rule_multiple_repos_in_flag():
@@ -106,11 +106,11 @@ def test_rule_multiple_repos_in_flag():
             {
                 "type": "repository",
                 "operator": "is-any-of",
-                "value": ["mozilla-central"],
+                "value": ["firefox-autoland"],
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["autoland", "mozilla-central"]) is True
+    assert Rules.rule_matches_repos(rule, ["firefox-beta", "firefox-autoland"]) is True
 
 
 # --- Rules.rule_matches_files tests ---
@@ -213,7 +213,7 @@ def test_rule_no_affected_files_condition():
     rule = {
         "id": "test_no_affected_files_condition",
         "name": "test_no_affected_files_condition",
-        "conditions": [{"type": "repository", "value": ["mozilla-central"]}],
+        "conditions": [{"type": "repository", "value": ["firefox-autoland"]}],
     }
     assert Rules.rule_matches_files(rule, ["anything.txt"]) is False
 
@@ -319,7 +319,7 @@ def test_rule_respects_repo_filter(sample_rules_data: dict):
     patch = mock.MagicMock()
     patch.get_changed_files = lambda: ["/remote/protocol.js"]
 
-    reviewers = list(rules.collect_reviewers(patch, ["mozilla-central"]))
+    reviewers = list(rules.collect_reviewers(patch, ["firefox-autoland"]))
 
     assert Reviewer("jsmith") in reviewers
 
