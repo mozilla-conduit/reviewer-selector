@@ -52,3 +52,6 @@ exclude = [
 
 [tool.setuptools_scm]
 version_file = "src/reviewer_selector/_version.py"
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true } }]

@@ -1,5 +1,5 @@
 .coverage
-.git
+# .git
 .venv
 __pycache__
 build/
