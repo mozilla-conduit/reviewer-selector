@@ -752,7 +752,7 @@ def sample_rules_data() -> dict[str, Any]:
                     {
                         "type": "repository",
                         "operator": "is-any-of",
-                        "value": ["mozilla-central"],
+                        "value": ["firefox-autoland"],
                     },
                 ],
                 "actions": [

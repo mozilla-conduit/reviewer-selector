@@ -62,11 +62,13 @@ def test_cli_log_level(
         lbc.assert_called_once_with(level=expected_log_level)
 
 
+@pytest.mark.parametrize("repo", ("firefox-autoland", "firefox-main"))
 def test_repo_filter(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
     sample_diff_remote: str,
     sample_rules_data: dict[str, Any],
+    repo: str,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -74,13 +76,15 @@ def test_repo_filter(
         [
             rules_path,
             "--repo",
-            "mozilla-central",
+            repo,
         ],
         sample_diff_remote,
         capsys,
     )
 
-    assert outerr.out.strip() == "jsmith-gh"
+    assert outerr.out.strip() == "jsmith-gh", (
+        f"The rules for firefox-autoland should have been applied for {repo}"
+    )
 
 
 def test_group_prefix(
