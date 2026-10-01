@@ -3,6 +3,7 @@ import logging
 import os
 from collections.abc import Iterable
 
+from reviewer_selector.consts import version
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.patch import Patch, PatchSource, StdinPatchSource
 from reviewer_selector.review import (
@@ -28,6 +29,8 @@ def cli() -> None:
         logging.basicConfig(level=logging.DEBUG)
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
+
+    logger.info(f"reviewer-selector v{version}")
 
     rules = Rules.from_file(args.rules_file)
 
@@ -159,6 +162,12 @@ def parse_args() -> argparse.Namespace:
             curl https://github.com/mozilla-firefox/infra-testing/pull/30.diff | %(prog)s herald_rules.json
 
             Command line options take precedence over environment variables and stored credentials.""",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=version,
+        help="Show version number and exit",
     )
     parser.add_argument("rules_file", help="Path to JSON rules file")
     parser.add_argument(
