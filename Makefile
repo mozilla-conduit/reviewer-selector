@@ -26,5 +26,8 @@ test:
 .PHONY: test-docker
 test-docker:
 	touch coverage.xml
-	docker run --user root --rm -v ./coverage.xml:/app/coverage.xml --entrypoint bash ${DOCKER_TAG} \
-		-c 'uv sync --group dev && pytest tests/'
+	docker run --user root --rm --entrypoint bash \
+		-v ./coverage.xml:/app/coverage.xml \
+		-v ./.git:/app/.git \
+		${DOCKER_TAG} \
+		-c 'uv sync --group dev && pytest ${ARGS_TESTS} tests/'
