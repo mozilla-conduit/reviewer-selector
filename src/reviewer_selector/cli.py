@@ -102,6 +102,8 @@ def get_sentry_dsn(args) -> str | None:
     if tc_secret := get_tc_secret(get_tc_secret_id(args)):
         return tc_secret.get("SENTRY_DSN")
 
+    logger.warning("No SENTRY_DSN found. Exception will not be reported.")
+
 
 def create_github_objects(
     args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
