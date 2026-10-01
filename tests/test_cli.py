@@ -61,7 +61,8 @@ def test_cli_log_level(
 
     with mock.patch("logging.basicConfig") as lbc:
         _run_cli([logging_arg, rules_path], sample_diff, capsys)
-        lbc.assert_called_once_with(level=expected_log_level)
+        _, args = lbc.call_args_list[0]
+        assert args["level"] == expected_log_level
 
 
 def test_repo_filter(
