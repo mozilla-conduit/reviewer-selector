@@ -12,6 +12,7 @@ import pytest
 import requests
 
 from reviewer_selector import cli
+from reviewer_selector.cli import get_tc_secret
 from reviewer_selector.review import Reviewer
 
 MAIN_SCRIPT = "reviewer-selector"
@@ -222,17 +223,75 @@ def test_github_repo_added(
     )
 
 
+@pytest.fixture(autouse=True)
+def mock_sentry_sdk_init():
+    m = mock.patch("sentry_sdk.init")
+    return m
+
+
 @mock.patch("reviewer_selector.github.GitHubApp")
 @mock.patch("reviewer_selector.taskcluster.TaskclusterConfig")
 @mock.patch("reviewer_selector.taskcluster.load_secrets")
 @pytest.mark.parametrize(
-    "env_github_token,env_gh_token,env_app_id,env_app_privkey,env_tc_secret_id,tc_app_id,tc_app_privkey,expected_app_credentials,needs_tc_secrets",
+    "env_github_token,env_gh_token,env_app_id,env_app_privkey,env_tc_secret_id,tc_app_id,tc_app_privkey,expected_app_credentials,needs_tc_secrets,env_sentry_dsn,tc_sentry_dsn,needs_tc_sentry_dsn",
     (
-        ("", "", "", "", "", "", "", ("", ""), False),
-        ("", "", "", "", "", "TC_APP_ID", "TC_APP_PRIVKEY", ("", ""), False),
+        (
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ("", ""),
+            False,
+            "http://user@pass@ENV_SENTRY_DSN/42",
+            "",
+            False,
+        ),
+        (
+            "",
+            "",
+            "",
+            "",
+            "",
+            "TC_APP_ID",
+            "TC_APP_PRIVKEY",
+            ("", ""),
+            False,
+            "http://user@pass@ENV_SENTRY_DSN/42",
+            "",
+            False,
+        ),
         # Support immediate GitHub tokens.
-        ("GITHUB_TOKEN", "", "", "", "", "", "", ("", "", "GITHUB_TOKEN"), False),
-        ("", "GH_TOKEN", "", "", "", "", "", ("", "", "GH_TOKEN"), False),
+        (
+            "GITHUB_TOKEN",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ("", "", "GITHUB_TOKEN"),
+            False,
+            "http://user@pass@ENV_SENTRY_DSN/42",
+            "",
+            False,
+        ),
+        (
+            "",
+            "GH_TOKEN",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ("", "", "GH_TOKEN"),
+            False,
+            "http://user@pass@ENV_SENTRY_DSN/42",
+            "",
+            False,
+        ),
         # TC secrets are used only if env missing.
         (
             "",
@@ -243,6 +302,9 @@ def test_github_repo_added(
             "TC_APP_ID",
             "TC_APP_PRIVKEY",
             ("ENV_APP_ID", "ENV_APP_PRIVKEY"),
+            False,
+            "http://user@pass@ENV_SENTRY_DSN/42",
+            "",
             False,
         ),
         (
@@ -255,6 +317,9 @@ def test_github_repo_added(
             "TC_APP_PRIVKEY",
             ("TC_APP_ID", "TC_APP_PRIVKEY"),
             True,
+            "http://user@pass@ENV_SENTRY_DSN/42",
+            "",
+            False,
         ),
         # Some env takes priority over TC secrets.
         (
@@ -267,6 +332,9 @@ def test_github_repo_added(
             "TC_APP_PRIVKEY",
             ("ENV_APP_ID", "TC_APP_PRIVKEY"),
             True,
+            "http://user@pass@ENV_SENTRY_DSN/42",
+            "",
+            False,
         ),
         (
             "",
@@ -277,6 +345,23 @@ def test_github_repo_added(
             "TC_APP_ID",
             "TC_APP_PRIVKEY",
             ("TC_APP_ID", "ENV_APP_PRIVKEY"),
+            True,
+            "http://user@pass@ENV_SENTRY_DSN/42",
+            "",
+            False,
+        ),
+        (
+            "",
+            "",
+            "",
+            "ENV_APP_PRIVKEY",
+            "ENV_TC_SECRET_ID",
+            "TC_APP_ID",
+            "TC_APP_PRIVKEY",
+            ("TC_APP_ID", "ENV_APP_PRIVKEY"),
+            True,
+            "",
+            "http://user@pass@TC_SENTRY_DSN/42",
             True,
         ),
     ),
@@ -300,6 +385,9 @@ def test_github_env(
     tc_app_privkey: str,
     expected_app_credentials: tuple[str, str],
     needs_tc_secrets: bool,
+    env_sentry_dsn: str,
+    tc_sentry_dsn: str,
+    needs_tc_sentry_dsn: bool,
     caplog: pytest.LogCaptureFixture,
 ):
     """Test precedence between environment and TC secrets, including for incomplete data."""
@@ -310,9 +398,11 @@ def test_github_env(
     monkeypatch.setenv("GITHUB_APP_ID", env_app_id)
     monkeypatch.setenv("GITHUB_APP_PRIVKEY", env_app_privkey)
     monkeypatch.setenv("TC_SECRET_ID", env_tc_secret_id)
+    monkeypatch.setenv("SENTRY_DSN", env_sentry_dsn)
     mock_tc_load_secrets.return_value = {
         "GITHUB_APP_ID": tc_app_id,
         "GITHUB_APP_PRIVKEY": tc_app_privkey,
+        "SENTRY_DSN": tc_sentry_dsn,
     }
 
     with configurable_mocked_github_request() as mock:
@@ -362,9 +452,15 @@ def test_github_env(
             "Unexpected requests to the requested reviewers endpoint were made"
         )
 
-    assert needs_tc_secrets == mock_tc_load_secrets.called, (
-        "Use of load_secrets doesn't match expectation"
-    )
+    if needs_tc_sentry_dsn:
+        # The call is lru_cached.
+        assert mock_tc_load_secrets.call_count == 1, (
+            "Use of load_secrets doesn't match expectation (w/ tc_sentry_dsn)"
+        )
+    else:
+        assert mock_tc_load_secrets.call_count == (1 if needs_tc_secrets else 0), (
+            "Use of load_secrets doesn't match expectation"
+        )
 
 
 @patch("reviewer_selector.github.GitHubReviewable.add_new_reviewers")
@@ -465,6 +561,8 @@ def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:
 
 def _run_cli(args: list[str], stdin: str, capsys: pytest.CaptureFixture):
     """Run the cli entry point in the same process to record coverage."""
+
+    get_tc_secret.cache_clear()
 
     with (
         mock.patch.object(sys, "argv", [MAIN_SCRIPT] + args),

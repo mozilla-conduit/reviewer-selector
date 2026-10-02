@@ -94,20 +94,21 @@ def sample_patch() -> str:
     return SAMPLE_PATCH
 
 
-#
-# GITHUB FIXTURES
-#
-
-
 @pytest.fixture(autouse=True)
-def hide_github_tokens(
+def hide_env_variables(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """Shield the tests from real GitHub env variables."""
+    """Shield the tests from real env variables."""
     monkeypatch.setenv("GITHUB_APP_ID", "")
     monkeypatch.setenv("GITHUB_APP_PRIVKEY", "")
     monkeypatch.setenv("GITHUB_TOKEN", "")
     monkeypatch.setenv("GH_TOKEN", "")
+    monkeypatch.setenv("SENTRY_DSN", "")
+
+
+#
+# GITHUB FIXTURES
+#
 
 
 GITHUB_API_PARTIAL_USER = """\

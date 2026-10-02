@@ -12,6 +12,7 @@ classifiers = [
 dependencies= [
   "requests",
   "rs_parsepatch",
+  "sentry-sdk>=2.70.0",
   "simple-github>=3.2.2",
   "taskcluster",
 ]
@@ -23,7 +24,7 @@ maintainers = [
 ]
 name = "reviewer-selector"
 # NOTE: When bumping this, also update docker/Dockerfile to match.
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 
 [dependency-groups]
 dev = [
