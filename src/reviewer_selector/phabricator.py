@@ -163,16 +163,7 @@ class PhabricatorReviewable(Reviewable):
             return 0
 
         # XXX: Reuse one-by-one retry from GitHub adapter.
-        _add_reviewers_status = self.phab.call_conduit(
-            "differential.revision.edit",
-            objectIdentifier=self._rev.metadata["phid"],
-            transactions=[
-                {
-                    "type": "reviewers.add",
-                    "value": new_phids,
-                },
-            ],
-        )
+        _add_reviewers_status = self._rev.edit_transaction("reviewers.add", new_phids)
 
         self.invalidate_reviewers_cache()
 
@@ -364,3 +355,17 @@ class PhabricatorRevision:
     @property
     def int_rev_id(self):
         return int(self.revision_id.removeprefix("D"))
+
+    def edit_transaction(
+        self, ttype: str, value: list[dict[str, Any]] | str
+    ) -> dict[str, Any]:
+        return self.phab.call_conduit(
+            "differential.revision.edit",
+            objectIdentifier=self.metadata["phid"],
+            transactions=[
+                {
+                    "type": ttype,
+                    "value": value,
+                },
+            ],
+        )
