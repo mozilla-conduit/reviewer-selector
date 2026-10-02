@@ -1,7 +1,6 @@
 # This module is the authoritative one from where `version` should be imported.
-try:
-    from reviewer_selector._version import version
-except ImportError:
-    version = "unknown version"
+from importlib.metadata import version as metadata_version
+
+version = metadata_version("reviewer-selector")
 
 USER_AGENT = f"reviewer-selector/{version}"
