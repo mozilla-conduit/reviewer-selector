@@ -199,8 +199,8 @@ class PhabricatorReviewable(Reviewable):
         for rev in reviewers:
             phid = phids_by_names.get(rev.name)
             if not phid:
-                self.report_warning(
-                    f"Missing phid for reviewer {rev.name} after phid resolution attempt"
+                self.report_info(
+                    f"Missing PHID for reviewer `{rev.name}` after resolution attempt."
                 )
 
             rev.metadata["phid"] = phid
@@ -271,6 +271,29 @@ class PhabricatorReviewable(Reviewable):
 
     def invalidate_reviewers_cache(self):
         self._rev.invalidate_metadata()
+
+    def report_error(self, message: str, **kwargs):
+        """Report errors."""
+        super().report_error(message)
+        self._report_comment(f"IMPORTANT: {message}")
+
+    def report_info(self, message: str, **kwargs):
+        """Report info."""
+        super().report_info(message)
+        self._report_comment(f"NOTE: {message}")
+
+    def report_success(self, message: str, **kwargs):
+        """Report success."""
+        super().report_success(message)
+        # We don't report this one, to avoid being too noisy.
+
+    def report_warning(self, message: str, **kwargs):
+        """Report warnings."""
+        super().report_warning(message)
+        self._report_comment(f"WARNING: {message}")
+
+    def _report_comment(self, message: str):
+        self._rev.edit_transaction("comment", message)
 
 
 @final
