@@ -286,11 +286,7 @@ class GitHubReviewable(Reviewable):
                 raise
 
         # Invalidate cached_property.
-        try:
-            del self.reviewers
-        except AttributeError:
-            # There was no cache.
-            pass
+        self.invalidate_reviewers_cache()
 
         if teams := requested_reviewers.get("team_reviewers", []):
             self._report_empty_teams(teams)
@@ -304,6 +300,13 @@ class GitHubReviewable(Reviewable):
             )
 
         return len(added)
+
+    def invalidate_reviewers_cache(self):
+        try:
+            del self.reviewers
+        except AttributeError:
+            # There was no cache.
+            pass
 
     @staticmethod
     def _build_request_reviewers_payload(
