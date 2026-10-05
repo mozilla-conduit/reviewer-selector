@@ -167,7 +167,17 @@ class PhabricatorReviewable(Reviewable):
             return 0
 
         # XXX: Reuse one-by-one retry from GitHub adapter.
-        _add_reviewers_status = self._rev.edit_transaction("reviewers.add", new_phids)
+        _add_reviewers_tx = self._rev.edit_transaction("reviewers.add", new_phids)
+
+        txs = self.phab.expect(_add_reviewers_tx, "transactions")
+        for tx in txs:
+            try:
+                out = self.phab.call_conduit(
+                    "transaction.search", objectIdentifier=tx["phid"]
+                )
+                logger.debug(f"add_reviewers transaction: {out}")
+            except PhabricatorAPIException:
+                logger.exception(f"Failure when checking transaction {tx}")
 
         self.invalidate_reviewers_cache()
 
@@ -281,12 +291,12 @@ class PhabricatorReviewable(Reviewable):
     def report_error(self, message: str, **kwargs):
         """Report errors."""
         super().report_error(message)
-        self._report_comment(f"IMPORTANT: {message}")
+        self._report_comment(f"(IMPORTANT) {message}")
 
     def report_info(self, message: str, **kwargs):
         """Report info."""
         super().report_info(message)
-        self._report_comment(f"NOTE: {message}")
+        self._report_comment(f"(NOTE) {message}")
 
     def report_success(self, message: str, **kwargs):
         """Report success."""
@@ -296,7 +306,7 @@ class PhabricatorReviewable(Reviewable):
     def report_warning(self, message: str, **kwargs):
         """Report warnings."""
         super().report_warning(message)
-        self._report_comment(f"WARNING: {message}")
+        self._report_comment(f"(WARNING) {message}")
 
     def _report_comment(self, message: str):
         self._rev.edit_transaction("comment", message)
@@ -391,7 +401,7 @@ class PhabricatorRevision:
     def edit_transaction(
         self, ttype: str, value: list[dict[str, Any]] | str
     ) -> dict[str, Any]:
-        return self.phab.call_conduit(
+        tx = self.phab.call_conduit(
             "differential.revision.edit",
             objectIdentifier=self.metadata["phid"],
             transactions=[
@@ -401,3 +411,5 @@ class PhabricatorRevision:
                 },
             ],
         )
+        # logger.debug(f"{ttype} transaction: {tx}")
+        return tx
