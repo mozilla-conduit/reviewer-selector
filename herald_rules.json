@@ -842,7 +842,7 @@
           "type": "differential-reviewers",
           "operator": "include-none-of",
           "value": [
-            "mcheang",
+            "•mcheang",
             "daleharvey",
             "Standard8"
           ]
@@ -1504,7 +1504,7 @@
         {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": "/(?<!application-services/components/mobile/android/android-components/components/browser/storage-sync/src/test/java/mozilla/components/browser/storage/sync/)([Pp]laces|browser-places\\.js$|default-bookmarks\\.html$|default-bookmarks\\.ftl$|browser/components/pagedata)"
+          "value": "/(?<!application-services/components/|mobile/android/android-components/components/browser/storage-sync/src/test/java/mozilla/components/browser/storage/sync/)([Pp]laces|browser-places\\.js$|default-bookmarks\\.html$|default-bookmarks\\.ftl$|browser/components/pagedata)"
         }
       ],
       "actions": [
@@ -2406,7 +2406,7 @@
     },
     {
       "id": "H453",
-      "name": "Blocked by urlbar-reviewers",
+      "name": "Blocked by urlbar-reviewers-rotation",
       "author": "dkl_admin",
       "status": "active",
       "type": "differential-revision",
@@ -2440,6 +2440,16 @@
           "reviewers": [
             {
               "target": "urlbar-reviewers",
+              "blocking": false,
+              "is_group": true
+            }
+          ]
+        },
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "urlbar-reviewers-rotation",
               "blocking": true,
               "is_group": true
             }
@@ -4592,6 +4602,49 @@
           ]
         }
       ]
+    },
+    {
+      "id": "H551",
+      "name": "Blocked by remote-settings-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/?services/settings/"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "remote-settings-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
     }
   ],
   "groups": {
@@ -4798,7 +4851,6 @@
         "aborondo",
         "cdupuis",
         "iholmes",
-        "nalexander",
         "yjuglaret"
       ]
     },
@@ -4819,9 +4871,7 @@
       "display_name": "browser-installer-reviewers",
       "members": [
         "aborondo",
-        "aurora",
         "cdupuis",
-        "mpohle",
         "nalexander"
       ]
     },
@@ -4880,6 +4930,7 @@
         "kandres",
         "kbaliev",
         "mtigley",
+        "theidkamp",
         "tmanku",
         "vinilla",
         "vprema"
@@ -5267,6 +5318,7 @@
         "aosmond",
         "azebrowski",
         "chunmin",
+        "jmathies",
         "jolin",
         "karlt",
         "kinetik",
@@ -5421,6 +5473,14 @@
         "bhearsum",
         "hneiva",
         "jcristau"
+      ]
+    },
+    "remote-settings-reviewers": {
+      "id": "remote-settings-reviewers",
+      "display_name": "remote-settings-reviewers",
+      "members": [
+        "acottner",
+        "leplatrem"
       ]
     },
     "reusable-components-reviewers": {
@@ -5731,6 +5791,21 @@
     "urlbar-reviewers": {
       "id": "urlbar-reviewers",
       "display_name": "urlbar-reviewers",
+      "members": [
+        "Standard8",
+        "adw",
+        "daisuke",
+        "daleharvey",
+        "dao",
+        "jteow",
+        "mak",
+        "mbeier",
+        "mcheang"
+      ]
+    },
+    "urlbar-reviewers-rotation": {
+      "id": "urlbar-reviewers-rotation",
+      "display_name": "urlbar-reviewers-rotation",
       "members": [
         "Standard8",
         "adw",
@@ -7034,9 +7109,9 @@
   },
   "unresolved_users": [],
   "metadata": {
-    "extracted_at": "2026-09-21T04:24:13.529269Z",
-    "total_rules": 98,
-    "total_groups": 100,
+    "extracted_at": "2026-10-05T04:28:12.566952Z",
+    "total_rules": 99,
+    "total_groups": 102,
     "total_users_resolved": 300,
     "total_users_unresolved": 0,
     "phabricator_instance": "phabricator.services.mozilla.com",
