@@ -558,6 +558,29 @@ def test_github_reports(
             )
 
 
+@mock.patch("reviewer_selector.review.Reviewable.report_warning")
+def test_rule_error_report(
+    mock_report_warning: Mock,
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict[str, Any],
+):
+    sample_rules_data["rules"][0]["conditions"][0]["value"] = "^/(bad regex"
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    _run_cli([rules_path], sample_diff, capsys)
+
+    assert mock_report_warning.call_count == 1, (
+        "Unexpected number of calls to report_warning"
+    )
+    assert (
+        "Some rules reported exceptions:\n\n * H1: Problematic pattern: @^/(bad regex@.",
+    ) in mock_report_warning.call_args, (
+        "Unexpected rule errror in call to report_warning"
+    )
+
+
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:
     with rules_path.open(mode="w") as f:
         json.dump(rules_data, f)

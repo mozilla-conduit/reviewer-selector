@@ -80,6 +80,14 @@ def cli() -> None:
     if tc_info:
         tc_info = f"\n\n{tc_info}"
 
+    if rules.errors:
+        rule_errors = "\n".join(
+            f" * {id}: {', '.join(errors)}" for id, errors in rules.errors.items()
+        )
+        reviewable.report_warning(
+            f"Some rules reported exceptions:\n\n{rule_errors}.{tc_info}"
+        )
+
     if not reviewable.reviewers:
         reviewable.report_error(f"No reviewer currently assigned.{tc_info}")
     elif not status.all_new_reviewer_added:
