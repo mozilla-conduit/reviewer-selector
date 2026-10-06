@@ -78,7 +78,13 @@ class Rules(Sized):
         for cond in rule.get("conditions", []):
             if cond.get("type") == "differential-affected-files":
                 pattern = cond.get("value", "")
-                regex = re.compile(pattern)
+                try:
+                    regex = re.compile(pattern)
+                except re.PatternError:
+                    logger.exception(
+                        f"Problematic pattern in {rule.get('id')}: @{pattern}@"
+                    )
+                    continue
                 return any(regex.search(f) for f in changed_files)
         return False
 
