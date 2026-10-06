@@ -24,6 +24,7 @@ test:
 	uv run pytest ${ARGS_TESTS} tests/
 
 .PHONY: test-docker
+test-docker: ARGS_TESTS?=
 test-docker:
 	docker run --user root --rm --entrypoint bash ${DOCKER_TAG} \
-		-c 'uv sync --group dev && pytest tests/'
+		-c 'uv sync --group dev && pytest ${ARGS_TESTS} tests/'
