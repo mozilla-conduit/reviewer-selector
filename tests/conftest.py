@@ -1,3 +1,4 @@
+import os
 from collections.abc import Callable
 from typing import Any
 
@@ -99,11 +100,18 @@ def hide_env_variables(
     monkeypatch: pytest.MonkeyPatch,
 ):
     """Shield the tests from real env variables."""
-    monkeypatch.setenv("GITHUB_APP_ID", "")
-    monkeypatch.setenv("GITHUB_APP_PRIVKEY", "")
-    monkeypatch.setenv("GITHUB_TOKEN", "")
-    monkeypatch.setenv("GH_TOKEN", "")
-    monkeypatch.setenv("SENTRY_DSN", "")
+
+    def clean_env(varname: str):
+        if os.getenv(varname):
+            monkeypatch.delenv(varname)
+
+    clean_env("GITHUB_APP_ID")
+    clean_env("GITHUB_APP_PRIVKEY")
+    clean_env("GITHUB_TOKEN")
+    clean_env("GH_TOKEN")
+    clean_env("SENTRY_DSN")
+    clean_env("TASKCLUSTER_ROOT_URL")
+    clean_env("TC_SECRET_ID")
 
 
 #
