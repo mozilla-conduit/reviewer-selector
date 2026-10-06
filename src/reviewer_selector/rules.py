@@ -64,8 +64,7 @@ class Rules(Sized):
                 reviewers.update(self.get_rule_reviewers(rule))
         return reviewers
 
-    @classmethod
-    def rule_matches_repos(cls, rule: Rule, repos: Iterable[str]) -> bool:
+    def rule_matches_repos(self, rule: Rule, repos: Iterable[str]) -> bool:
         """Check if rule passes repository filter."""
         repos_set = list(repos)
         if not repos_set:
@@ -92,8 +91,7 @@ class Rules(Sized):
                 return any(comp_re.search(f) for f in changed_files)
         return False
 
-    @classmethod
-    def get_rule_reviewers(cls, rule: Rule) -> Iterable[Reviewer]:
+    def get_rule_reviewers(self, rule: Rule) -> Iterable[Reviewer]:
         """Extract reviewers from rule's add-reviewers action.
 
         Each entry is unique."""

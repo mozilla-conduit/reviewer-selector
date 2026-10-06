@@ -41,7 +41,8 @@ def test_rule_no_repo_flag_always_matches():
         "name": "test_no_repo_flag_always_matches",
         "conditions": [{"type": "repository", "value": ["firefox-autoland"]}],
     }
-    assert Rules.rule_matches_repos(rule, []) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, []) is True
 
 
 def test_rule_without_repo_condition_matches():
@@ -50,7 +51,8 @@ def test_rule_without_repo_condition_matches():
         "name": "test_rule_without_repo_condition_matches",
         "conditions": [{"type": "differential-affected-files", "value": ".*"}],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
 
 
 def test_rule_matching_repos():
@@ -65,7 +67,8 @@ def test_rule_matching_repos():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
 
 
 def test_rule_non_matching_repo():
@@ -80,7 +83,8 @@ def test_rule_non_matching_repo():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-autoland"]) is False
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-autoland"]) is False
 
 
 def test_rule_multiple_repos():
@@ -95,7 +99,8 @@ def test_rule_multiple_repos():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-beta"]) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-beta"]) is True
 
 
 def test_rule_multiple_repos_in_flag():
@@ -110,7 +115,8 @@ def test_rule_multiple_repos_in_flag():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-beta", "firefox-autoland"]) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-beta", "firefox-autoland"]) is True
 
 
 # --- Rules.rule_matches_files tests ---
@@ -265,15 +271,17 @@ def test_rule_look_behind():
             }
         ],
     }
+    rules = Rules({"rules": [rule]})
+
     should_not_match = [
         "/mobile/android/android-components/components/browser/storage-sync/src/test/java/mozilla/components/browser/storage/sync/browser-places.js"
     ]
-    assert not Rules.rule_matches_files(rule, should_not_match), (
+    assert not rules.rule_matches_files(rule, should_not_match), (
         f"Rule {rule['id']} should not have matched for {should_not_match}"
     )
 
     should_match = ["/another/browser-places.js"]
-    assert Rules.rule_matches_files(rule, should_match), (
+    assert rules.rule_matches_files(rule, should_match), (
         f"Rule {rule['id']} should have matched for {should_match}"
     )
 
@@ -322,7 +330,8 @@ def test_rule_extracts_reviewers():
             }
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert Reviewer("jsmith") in reviewers
 
 
@@ -337,7 +346,8 @@ def test_rule_extracts_groups():
             }
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert Reviewer("my-group", is_group=True) in reviewers
 
 
@@ -352,7 +362,8 @@ def test_rule_extracts_blocking():
             }
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert Reviewer("my-group", blocking=True) in reviewers
 
 
@@ -370,7 +381,8 @@ def test_rule_multiple_reviewers():
             }
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert len(list(reviewers)) == 2
 
 
@@ -386,7 +398,8 @@ def test_rule_ignores_non_reviewer_actions():
             },
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert len(list(reviewers)) == 1
 
 
