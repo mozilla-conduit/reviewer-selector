@@ -24,6 +24,7 @@ test:
 	uv run pytest ${ARGS_TESTS} tests/
 
 .PHONY: test-docker
+test-docker: ARGS_TESTS?=
 test-docker:
 	touch coverage.xml
 	docker run --user root --rm --entrypoint bash \
