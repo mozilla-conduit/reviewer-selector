@@ -228,7 +228,7 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
     )
 
 
-def test_rule_look_behind(caplog: pytest.LogCaptureFixture):
+def test_rule_look_behind():
     rule = {
         "id": "H401",
         "name": "Blocked by places-reviewers",
