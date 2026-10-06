@@ -191,6 +191,46 @@ def test_rule_non_matching_regex(rule: dict, files: list[str]):
     )
 
 
+def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
+    rule = {
+        "id": "H401",
+        "name": "Blocked by places-reviewers",
+        "author": "dkl_admin",
+        "status": "active",
+        "type": "differential-revision",
+        "conditions": [
+            {
+                "type": "repository",
+                "operator": "is-any-of",
+                "value": ["mozilla-central", "firefox-autoland"],
+            },
+            {
+                "type": "differential-affected-files",
+                "operator": "matches-regexp",
+                "value": "/(?<!application-services/components/|mobile/android/android-components/components/browser/storage-sync/src/test/java/mozilla/components/browser/storage/sync/)([Pp]laces|browser-places\\.js$|default-bookmarks\\.html$|default-bookmarks\\.ftl$|browser/components/pagedata)",
+            },
+        ],
+        "actions": [
+            {
+                "type": "add-reviewers",
+                "reviewers": [
+                    {"target": "places-reviewers", "blocking": True, "is_group": True}
+                ],
+            }
+        ],
+    }
+    files = ["/whatever"]
+    assert not Rules.rule_matches_files(rule, files), (
+        f"Rule {rule['id']} should NOT have matched for {files} (without exception)"
+    )
+    assert "Problematic pattern in H401" in caplog.text, (
+        "Problematic pattern exception not logged"
+    )
+    assert "PatternError: look-behind requires fixed-width pattern" in caplog.text, (
+        "PatternError exception not detailed"
+    )
+
+
 def test_rule_any_file_matches():
     rule = {
         "id": "test_any_file_matches",
