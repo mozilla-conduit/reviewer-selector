@@ -171,7 +171,8 @@ rule_h498 = {
     ),
 )
 def test_rule_matching_regex(rule: dict, files: list[str]):
-    assert Rules.rule_matches_files(rule, files), (
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_files(rule, files), (
         f"Rule {rule['id']} should have matched for {files}"
     )
 
@@ -186,14 +187,17 @@ def test_rule_matching_regex(rule: dict, files: list[str]):
     ),
 )
 def test_rule_non_matching_regex(rule: dict, files: list[str]):
-    assert not Rules.rule_matches_files(rule, files), (
+    rules = Rules({"rules": [rule]})
+    assert not rules.rule_matches_files(rule, files), (
         f"Rule {rule['id']} should NOT have matched for {files}"
     )
 
 
 def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
+    bad_pattern = "/(?missing closing paren"
+    rule_id = "H401"
     rule = {
-        "id": "H401",
+        "id": rule_id,
         "name": "Blocked by places-reviewers",
         "author": "dkl_admin",
         "status": "active",
@@ -207,7 +211,7 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
             {
                 "type": "differential-affected-files",
                 "operator": "matches-regexp",
-                "value": "/(?missing closing paren",
+                "value": bad_pattern,
             },
         ],
         "actions": [
@@ -219,13 +223,18 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
             }
         ],
     }
+    rules = Rules({"rules": [rule]})
+
     files = ["/whatever"]
-    assert not Rules.rule_matches_files(rule, files), (
+    assert not rules.rule_matches_files(rule, files), (
         f"Rule {rule['id']} should NOT have matched for {files} (without exception)"
     )
     assert "Problematic pattern in H401" in caplog.text, (
         "Problematic pattern exception not logged"
     )
+
+    assert rule_id in rules.errors, "The error was not reported for the ruleset"
+    assert bad_pattern in rules.errors[rule_id][0], "Bad pattern not present in errors"
 
 
 def test_rule_look_behind():
@@ -281,8 +290,10 @@ def test_rule_any_file_matches():
             }
         ],
     }
+    rules = Rules({"rules": [rule]})
+
     assert (
-        Rules.rule_matches_files(rule, ["README.md", "src/main.py", "config.json"])
+        rules.rule_matches_files(rule, ["README.md", "src/main.py", "config.json"])
         is True
     )
 
@@ -293,7 +304,8 @@ def test_rule_no_affected_files_condition():
         "name": "test_no_affected_files_condition",
         "conditions": [{"type": "repository", "value": ["firefox-autoland"]}],
     }
-    assert Rules.rule_matches_files(rule, ["anything.txt"]) is False
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_files(rule, ["anything.txt"]) is False
 
 
 # --- Rules.get_rule_reviewers tests ---

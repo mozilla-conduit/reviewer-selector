@@ -1,5 +1,6 @@
 import json
 import logging
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sized
 from typing import Any, Self
 
@@ -17,10 +18,13 @@ logger = logging.getLogger(__name__)
 class Rules(Sized):
     """Representation of Phabricator Herald Rules."""
 
+    errors: defaultdict[str, list[str]]
+
     _rules: RulesData
 
     def __init__(self, rules: RulesData):
         self._rules = rules
+        self.errors = defaultdict(list)
 
     def __len__(self) -> int:
         """Forward length queries to the underlying data.
@@ -72,8 +76,7 @@ class Rules(Sized):
                 return any(r in rule_repos for r in repos_set)
         return True
 
-    @classmethod
-    def rule_matches_files(cls, rule: Rule, changed_files: Iterable[str]) -> bool:
+    def rule_matches_files(self, rule: Rule, changed_files: Iterable[str]) -> bool:
         """Check if any changed file matches rule's regex."""
         changed_files = list(changed_files)
         for cond in rule.get("conditions", []):
@@ -82,9 +85,9 @@ class Rules(Sized):
                 try:
                     comp_re = regex.compile(pattern)
                 except regex.error:
-                    logger.exception(
-                        f"Problematic pattern in {rule.get('id')}: @{pattern}@"
-                    )
+                    rule_id = rule.get("id", "rule without id")
+                    self.errors[rule_id].append(f"Problematic pattern: @{pattern}@")
+                    logger.exception(f"Problematic pattern in {rule_id}: @{pattern}@")
                     continue
                 return any(comp_re.search(f) for f in changed_files)
         return False
