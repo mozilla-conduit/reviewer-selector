@@ -5,7 +5,7 @@ HERALD_RULES = Path(__file__).parent.parent / "herald_rules.json"
 
 
 def test_valid_reviewer_target():
-    with open(HERALD_RULES, "r") as fp:
+    with HERALD_RULES.open() as fp:
         herald_rules = json.load(fp)
 
     rules = herald_rules.get("rules")
