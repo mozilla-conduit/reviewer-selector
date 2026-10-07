@@ -458,7 +458,7 @@ def test_rule_deduplicates_reviewers(sample_rules_data: dict):
     "pattern,expected",
     (
         ("alice", "`@alice@`"),
-        ("eve`-- drop table bob;", "`@eve\\`-- drop table bob;`@"),
+        ("eve`-- drop table bob;", "`@eve\\`-- drop table bob;@`"),
     ),
 )
 def test_safe_pattern(pattern: str, expected: str):
