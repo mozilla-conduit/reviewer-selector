@@ -4,7 +4,6 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sized
 from typing import Any, Self
 
-import pytest
 import regex
 
 from reviewer_selector.patch import Patch
