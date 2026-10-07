@@ -452,3 +452,17 @@ def test_rule_deduplicates_reviewers(sample_rules_data: dict):
 
     # Count occurrences
     assert len([r for r in reviewers if r.name == "fluent-reviewers"]) <= 1
+
+
+@pytest.mark.parametrize(
+    "pattern,expected",
+    (
+        ("alice", "`@alice@`"),
+        ("eve`-- drop table bob;", "`@eve\\`-- drop table bob;`@"),
+    ),
+)
+def test_safe_pattern(pattern: str, expected: str):
+    breakpoint()
+    assert Rules._safe_pattern(pattern) == expected, (
+        "Unexpected pattern after sanitisation of {pattern}"
+    )

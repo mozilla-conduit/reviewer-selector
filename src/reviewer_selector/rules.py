@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sized
 from typing import Any, Self
 
+import pytest
 import regex
 
 from reviewer_selector.patch import Patch
@@ -85,17 +86,27 @@ class Rules(Sized):
                     comp_re = regex.compile(pattern)
                 except regex.error:
                     rule_id = rule.get("id", "rule without id")
-                    self.errors[rule_id].append(f"Problematic pattern: @{pattern}@")
-                    logger.exception(f"Problematic pattern in {rule_id}: @{pattern}@")
+                    self.errors[rule_id].append(
+                        f"Problematic pattern: {self._safe_pattern(pattern)}"
+                    )
+                    logger.exception(
+                        f"Problematic pattern in {rule_id}: {self._safe_pattern(pattern)}"
+                    )
                     continue
                 try:
                     return any(comp_re.search(f, timeout=5) for f in changed_files)
                 except TimeoutError:
                     logger.exception(
-                        f"Problematic pattern in {rule.get('id')} caused a timeout: @{pattern}@"
+                        f"Problematic pattern in {rule.get('id')} caused a timeout: {self._safe_pattern(pattern)}"
                     )
                     continue
         return False
+
+    @classmethod
+    def _safe_pattern(cls, pattern: str) -> str:
+        """Prepare a RegExp pattern for safe rendering in Markdown."""
+        escaped_backticks = pattern.replace("`", "\\`")
+        return f"`@{escaped_backticks}@`"
 
     def get_rule_reviewers(self, rule: Rule) -> Iterable[Reviewer]:
         """Extract reviewers from rule's add-reviewers action.
