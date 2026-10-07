@@ -78,28 +78,46 @@ def cli() -> None:
 
     tc_info = make_tc_task_link()
     if tc_info:
-        tc_info = f"\n\n{tc_info}"
+        tc_info = f"{tc_info}"
 
+    # report_warning may alter the whole state of the Reviewable (e.g., GitHub checks),
+    # so it should only be used once.
+    warnings = []
     if rules.errors:
         rule_errors = "\n".join(
             f" * {rule_id}: {', '.join(errors)}"
             for rule_id, errors in rules.errors.items()
         )
-        reviewable.report_warning(
-            f"Some rules reported exceptions:\n\n{rule_errors}.{tc_info}"
-        )
+        warnings.append(f"Some rules reported exceptions:\n\n{rule_errors}.")
 
     if not reviewable.reviewers:
-        reviewable.report_error(f"No reviewer currently assigned.{tc_info}")
-    elif not status.all_new_reviewer_added:
-        missing_reviewers = ", ".join(
-            f"`{r.name}`" for r in set(resolved) - set(reviewable.reviewers)
-        )
-        reviewable.report_warning(
-            f"Not all reviewers were added.\n\nMissing/unresolved: {missing_reviewers}.{tc_info}"
-        )
+        errors = ["No reviewer currently assigned."]
+        if warnings:
+            errors.extend(
+                ["", "In addition, the following warnings where reported.", ""]
+            )
+            errors.extend(warnings)
+        errors.extend(["", tc_info])
+        reviewable.report_error("\n".join(errors))
+    elif not status.all_new_reviewer_added or warnings:
+        # Put the most important warning first.
+        if not status.all_new_reviewer_added:
+            missing_reviewers = ", ".join(
+                f"`{r.name}`" for r in set(resolved) - set(reviewable.reviewers)
+            )
+            for line in reversed([
+                "Not all reviewers were added.",
+                "",
+                f"Missing/unresolved: {missing_reviewers}.",
+                "",
+            ]):
+                warnings.insert(0, line)
+
+        warnings.append(tc_info)
+
+        reviewable.report_warning("\n".join(warnings))
     else:
-        reviewable.report_success(f"Reviewers successfully assigned.{tc_info}")
+        reviewable.report_success(f"Reviewers successfully assigned.\n\n{tc_info}")
 
 
 def make_tc_task_link() -> str:

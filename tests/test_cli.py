@@ -571,7 +571,7 @@ def test_rule_error_report(
         "Unexpected number of calls to report_warning"
     )
     mock_report_warning.assert_called_once_with(
-        "Some rules reported exceptions:\n\n * H1: Problematic pattern: `@^/(bad regex@`.",
+        "Some rules reported exceptions:\n\n * H1: Problematic pattern: `@^/(bad regex@`.\n",
     )
 
 

@@ -369,7 +369,11 @@ class GitHubReviewable(Reviewable):
 
     @override
     def report_warning(self, message: str, **kwargs):
-        """Record a warning check to the PR."""
+        """Record a warning check to the PR.
+
+        WARNING: As this alters the state of a check, this should be used only once per
+        run, otherwise only the latest state will be recorded.
+        """
         super().report_warning(message)
         self._report_check("action_required", message)
 
