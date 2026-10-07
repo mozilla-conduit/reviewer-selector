@@ -85,7 +85,7 @@ def cli() -> None:
     warnings = []
     if rules.errors:
         rule_errors = "\n".join(
-            f" * {rule_id}: {', '.join(errors)}"
+            f" * {rule_id}: {'; '.join(errors)}"
             for rule_id, errors in rules.errors.items()
         )
         warnings.append(f"Some rules reported exceptions:\n\n{rule_errors}.")
