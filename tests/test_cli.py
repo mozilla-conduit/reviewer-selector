@@ -14,6 +14,7 @@ import requests
 from reviewer_selector import cli
 from reviewer_selector.cli import get_tc_secret
 from reviewer_selector.review import Reviewer
+from reviewer_selector.rules import Rules
 
 MAIN_SCRIPT = "reviewer-selector"
 
@@ -465,14 +466,18 @@ def test_github_env(
         )
 
 
+@patch("reviewer_selector.github.Rules")
 @patch("reviewer_selector.github.GitHubReviewable.add_new_reviewers")
 @patch("reviewer_selector.github.GitHubReviewable.reviewers", new_callable=PropertyMock)
 @patch("reviewer_selector.cli.tc_task_url")
-@pytest.mark.parametrize("type", ("error", "warning", "success"))
+@pytest.mark.parametrize(
+    "type", ("error", "warning", "success", "success-rule-warning")
+)
 def test_github_reports(
     mock_tc_task_url: Mock,
     mock_reviewers: Mock,
     mock_add_new_reviewers: Mock,
+    mock_rules: Mock,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
     configurable_mocked_github_request: Callable,
@@ -485,6 +490,18 @@ def test_github_reports(
 ):
     monkeypatch.setenv("GH_TOKEN", "gh_token")
 
+    def mocked_rules(rules_dict: dict[str, Any]):
+        """Build rules with a controlled errors attribute.
+
+        Skipped for the fully successful test case.
+        """
+        rules = Rules(rules_dict)
+        if type != "success":
+            rules.errors = {"H1": ["some error", "another error"]}
+        return rules
+
+    mock_rules.side_effect = mocked_rules
+
     if type == "error":
         mock_add_new_reviewers.side_effect = Exception(type)
         mock_reviewers.return_value = []
@@ -492,7 +509,7 @@ def test_github_reports(
         mock_add_new_reviewers.side_effect = Exception(type)
         # After an error, returning any non-empty set of reviewers is sufficient.
         mock_reviewers.return_value = [Reviewer("fluent-reviewers", is_group=True)]
-    elif type == "success":
+    elif type == "success" or type == "success-rule-warning":
         mock_reviewers.return_value = [
             Reviewer("ent:fluent-reviewers", is_group=True),
             Reviewer("fluent-reviewers", is_group=True),
@@ -529,6 +546,10 @@ def test_github_reports(
 
         assert mock.mock_post_check_run.call_count == 1
 
+        additional_warnings = "\n\nIn addition, the following warnings where reported."
+        rules_warnings = (
+            "Some rules reported exceptions:\n\n * H1: some error; another error."
+        )
         tc_trailer = "\n\n[See task in Taskcluster](https://some.tc.url)"
 
         check_json = mock.mock_post_check_run.request_history[0].json()
@@ -536,14 +557,14 @@ def test_github_reports(
             assert check_json["conclusion"] == "failure"
             assert (
                 check_json["output"]["summary"]
-                == f"No reviewer currently assigned.{tc_trailer}"
+                == f"No reviewer currently assigned.{additional_warnings}\n\n{rules_warnings}{tc_trailer}"
             )
 
         if type == "warning":
             assert check_json["conclusion"] == "action_required"
             assert (
                 check_json["output"]["summary"]
-                == f"Not all reviewers were added.\n\nMissing/unresolved: `ent:fluent-reviewers`.{tc_trailer}"
+                == f"Not all reviewers were added.\n\nMissing/unresolved: `ent:fluent-reviewers`.\n\n{rules_warnings}{tc_trailer}"
             )
 
         if type == "success":
@@ -552,6 +573,10 @@ def test_github_reports(
                 check_json["output"]["summary"]
                 == f"Reviewers successfully assigned.{tc_trailer}"
             )
+
+        if type == "success-rule-warning":
+            assert check_json["conclusion"] == "action_required"
+            assert check_json["output"]["summary"] == f"{rules_warnings}{tc_trailer}"
 
 
 @mock.patch("reviewer_selector.review.Reviewable.report_warning")
