@@ -116,7 +116,8 @@ def cli() -> None:
             ):
                 warnings.insert(0, line)
 
-        warnings.append(tc_info)
+        if tc_info:
+            warnings.extend(["", tc_info])
 
         reviewable.report_warning("\n".join(warnings))
     else:
