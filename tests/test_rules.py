@@ -226,6 +226,9 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
     assert "Problematic pattern in H401" in caplog.text, (
         "Problematic pattern exception not logged"
     )
+    assert "regex._regex_core.error: unknown extension at position 8" in caplog.text, (
+        "regex._regex_core.error exception not detailed"
+    )
 
 
 def test_rule_look_behind():
