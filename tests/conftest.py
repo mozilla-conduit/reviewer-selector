@@ -100,17 +100,16 @@ def hide_env_variables(
 ):
     """Shield the tests from real env variables."""
 
-    def clean_env(varname: str):
-        if os.getenv(varname):
-            monkeypatch.delenv(varname)
-
-    clean_env("GITHUB_APP_ID")
-    clean_env("GITHUB_APP_PRIVKEY")
-    clean_env("GITHUB_TOKEN")
-    clean_env("GH_TOKEN")
-    clean_env("SENTRY_DSN")
-    clean_env("TASKCLUSTER_ROOT_URL")
-    clean_env("TC_SECRET_ID")
+    for varname in [
+        "GITHUB_APP_ID",
+        "GITHUB_APP_PRIVKEY",
+        "GITHUB_TOKEN",
+        "GH_TOKEN",
+        "SENTRY_DSN",
+        "TASKCLUSTER_ROOT_URL",
+        "TC_SECRET_ID",
+    ]:
+        monkeypatch.delenv(varname, raising=False)
 
 
 #
