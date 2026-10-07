@@ -82,7 +82,8 @@ def cli() -> None:
 
     if rules.errors:
         rule_errors = "\n".join(
-            f" * {id}: {', '.join(errors)}" for id, errors in rules.errors.items()
+            f" * {rule_id}: {', '.join(errors)}"
+            for rule_id, errors in rules.errors.items()
         )
         reviewable.report_warning(
             f"Some rules reported exceptions:\n\n{rule_errors}.{tc_info}"
