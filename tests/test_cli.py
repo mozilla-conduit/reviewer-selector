@@ -215,10 +215,6 @@ def test_github_repo_added(
                 rules_path,
                 "--pr-url",
                 "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
-                # The configurable_mocked_github_request has a different target branch,
-                # so we set the main branch manually to exercise the logic.
-                "--repo",
-                "reviewer-selector-main",
             ],
             "",
             capsys,
