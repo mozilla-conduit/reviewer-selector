@@ -11,6 +11,7 @@ from reviewer_selector.review import Reviewer
 
 RulesData = Mapping[str, Any]
 Rule = Mapping[str, Any]
+RulesErrors = Mapping[str, list[str]]
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 class Rules(Sized):
     """Representation of Phabricator Herald Rules."""
 
-    errors: defaultdict[str, list[str]]
+    errors: RulesErrors
 
     _rules: RulesData
 
