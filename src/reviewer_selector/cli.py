@@ -97,7 +97,8 @@ def cli() -> None:
                 ["", "In addition, the following warnings where reported.", ""]
             )
             errors.extend(warnings)
-        errors.extend(["", tc_info])
+        if tc_info:
+            errors.extend(["", tc_info])
         reviewable.report_error("\n".join(errors))
     elif not status.all_new_reviewer_added or warnings:
         # Put the most important warning first.
