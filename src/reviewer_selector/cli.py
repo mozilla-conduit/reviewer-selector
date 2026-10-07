@@ -106,12 +106,14 @@ def cli() -> None:
             missing_reviewers = ", ".join(
                 f"`{r.name}`" for r in set(resolved) - set(reviewable.reviewers)
             )
-            for line in reversed([
-                "Not all reviewers were added.",
-                "",
-                f"Missing/unresolved: {missing_reviewers}.",
-                "",
-            ]):
+            for line in reversed(
+                [
+                    "Not all reviewers were added.",
+                    "",
+                    f"Missing/unresolved: {missing_reviewers}.",
+                    "",
+                ]
+            ):
                 warnings.insert(0, line)
 
         warnings.append(tc_info)
