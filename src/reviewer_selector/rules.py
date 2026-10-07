@@ -86,7 +86,13 @@ class Rules(Sized):
                         f"Problematic pattern in {rule.get('id')}: @{pattern}@"
                     )
                     continue
-                return any(comp_re.search(f, timeout=5) for f in changed_files)
+                try:
+                    return any(comp_re.search(f, timeout=5) for f in changed_files)
+                except TimeoutError:
+                    logger.exception(
+                        f"Problematic pattern in {rule.get('id')} caused a timeout: @{pattern}@"
+                    )
+                    continue
         return False
 
     @classmethod
