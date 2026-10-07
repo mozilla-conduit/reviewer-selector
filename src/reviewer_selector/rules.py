@@ -88,7 +88,13 @@ class Rules(Sized):
                     self.errors[rule_id].append(f"Problematic pattern: @{pattern}@")
                     logger.exception(f"Problematic pattern in {rule_id}: @{pattern}@")
                     continue
-                return any(comp_re.search(f) for f in changed_files)
+                try:
+                    return any(comp_re.search(f, timeout=5) for f in changed_files)
+                except TimeoutError:
+                    logger.exception(
+                        f"Problematic pattern in {rule.get('id')} caused a timeout: @{pattern}@"
+                    )
+                    continue
         return False
 
     def get_rule_reviewers(self, rule: Rule) -> Iterable[Reviewer]:

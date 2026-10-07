@@ -1008,7 +1008,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "regex" },
+    { name = "regex", specifier = ">=2026.9.29" },
     { name = "requests" },
     { name = "rs-parsepatch" },
     { name = "sentry-sdk", specifier = ">=2.70.0" },

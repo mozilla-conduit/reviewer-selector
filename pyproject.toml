@@ -10,7 +10,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies= [
-  "regex",
+  "regex>=2026.9.29",
   "requests",
   "rs_parsepatch",
   "sentry-sdk>=2.70.0",

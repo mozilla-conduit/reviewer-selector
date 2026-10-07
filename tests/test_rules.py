@@ -238,6 +238,9 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
     assert "Problematic pattern in H401" in caplog.text, (
         "Problematic pattern exception not logged"
     )
+    assert "regex._regex_core.error: unknown extension at position 8" in caplog.text, (
+        "regex._regex_core.error exception not detailed"
+    )
 
     assert rule_id in rules.errors, "The error was not reported for the ruleset"
     assert bad_pattern in rules.errors[rule_id][0], "Bad pattern not present in errors"
