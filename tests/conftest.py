@@ -99,11 +99,17 @@ def hide_env_variables(
     monkeypatch: pytest.MonkeyPatch,
 ):
     """Shield the tests from real env variables."""
-    monkeypatch.setenv("GITHUB_APP_ID", "")
-    monkeypatch.setenv("GITHUB_APP_PRIVKEY", "")
-    monkeypatch.setenv("GITHUB_TOKEN", "")
-    monkeypatch.setenv("GH_TOKEN", "")
-    monkeypatch.setenv("SENTRY_DSN", "")
+
+    for varname in [
+        "GITHUB_APP_ID",
+        "GITHUB_APP_PRIVKEY",
+        "GITHUB_TOKEN",
+        "GH_TOKEN",
+        "SENTRY_DSN",
+        "TASKCLUSTER_ROOT_URL",
+        "TC_SECRET_ID",
+    ]:
+        monkeypatch.delenv(varname, raising=False)
 
 
 #
