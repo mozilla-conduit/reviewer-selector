@@ -257,8 +257,8 @@ def report_status(
                 ["", "In addition, the following warnings were reported.", ""]
             )
             errors.extend(warnings)
-        if tc_info:
-            errors.extend(["", tc_info])
+
+        errors.extend(tc_info)
         reviewable.report_error("\n".join(errors))
     elif not status.all_new_reviewer_added or warnings:
         # Put the most important warning first.
