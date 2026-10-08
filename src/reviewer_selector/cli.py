@@ -254,7 +254,7 @@ def report_status(
         errors = ["No reviewer currently assigned."]
         if warnings:
             errors.extend(
-                ["", "In addition, the following warnings where reported.", ""]
+                ["", "In addition, the following warnings were reported.", ""]
             )
             errors.extend(warnings)
         if tc_info:
