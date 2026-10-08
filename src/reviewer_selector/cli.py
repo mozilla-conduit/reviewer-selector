@@ -277,9 +277,7 @@ def report_status(
             ):
                 warnings.insert(0, line)
 
-        if tc_info:
-            warnings.extend(["", tc_info])
-
+        warnings.extend(tc_info)
         reviewable.report_warning("\n".join(warnings))
     else:
         reviewable.report_success(f"Reviewers successfully assigned.\n\n{tc_info}")
