@@ -280,7 +280,9 @@ def report_status(
         warnings.extend(tc_info)
         reviewable.report_warning("\n".join(warnings))
     else:
-        reviewable.report_success(f"Reviewers successfully assigned.\n\n{tc_info}")
+        success = ["Reviewers successfully assigned."]
+        success.extend(tc_info)
+        reviewable.report_success("\n".join(success))
 
 
 def make_tc_task_link() -> str:
