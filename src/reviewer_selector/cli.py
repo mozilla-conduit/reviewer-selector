@@ -248,7 +248,7 @@ def report_status(
             f" * {rule_id}: {'; '.join(errors)}"
             for rule_id, errors in rules_errors.items()
         )
-        warnings.append(f"Some rules reported exceptions:\n\n{rule_errors}.")
+        warnings.append(f"Some rules reported exceptions:\n\n{rule_errors}")
 
     if not reviewable.reviewers:
         errors = ["No reviewer currently assigned."]
