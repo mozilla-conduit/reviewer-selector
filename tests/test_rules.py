@@ -463,5 +463,5 @@ def test_rule_deduplicates_reviewers(sample_rules_data: dict):
 )
 def test_safe_pattern(pattern: str, expected: str):
     assert Rules._safe_pattern(pattern) == expected, (
-        "Unexpected pattern after sanitisation of {pattern}"
+        f"Unexpected pattern after sanitisation of {pattern}"
     )
