@@ -548,7 +548,7 @@ def test_github_reports(
 
         additional_warnings = "\n\nIn addition, the following warnings were reported."
         rules_warnings = (
-            "Some rules reported exceptions:\n\n * H1: some error; another error."
+            "Some rules reported exceptions:\n\n * H1: some error; another error"
         )
         tc_trailer = "\n\n[See task in Taskcluster](https://some.tc.url)"
 
