@@ -236,9 +236,9 @@ def report_status(
     requested_reviewers: Collection[Reviewer],
     rules_errors: RulesErrors,
 ):
-    tc_info = make_tc_task_link()
-    if tc_info:
-        tc_info = f"{tc_info}"
+    tc_info = []
+    if tc_link := make_tc_task_link():
+        tc_info = ["", tc_link]
 
     # report_warning may alter the whole state of the Reviewable (e.g., GitHub checks),
     # so it should only be used once.
