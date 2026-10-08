@@ -546,7 +546,7 @@ def test_github_reports(
 
         assert mock.mock_post_check_run.call_count == 1
 
-        additional_warnings = "\n\nIn addition, the following warnings where reported."
+        additional_warnings = "\n\nIn addition, the following warnings were reported."
         rules_warnings = (
             "Some rules reported exceptions:\n\n * H1: some error; another error."
         )
