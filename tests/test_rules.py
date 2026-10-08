@@ -41,7 +41,8 @@ def test_rule_no_repo_flag_always_matches():
         "name": "test_no_repo_flag_always_matches",
         "conditions": [{"type": "repository", "value": ["firefox-autoland"]}],
     }
-    assert Rules.rule_matches_repos(rule, []) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, []) is True
 
 
 def test_rule_without_repo_condition_matches():
@@ -50,7 +51,8 @@ def test_rule_without_repo_condition_matches():
         "name": "test_rule_without_repo_condition_matches",
         "conditions": [{"type": "differential-affected-files", "value": ".*"}],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
 
 
 def test_rule_matching_repos():
@@ -65,7 +67,8 @@ def test_rule_matching_repos():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-autoland"]) is True
 
 
 def test_rule_non_matching_repo():
@@ -80,7 +83,8 @@ def test_rule_non_matching_repo():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-autoland"]) is False
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-autoland"]) is False
 
 
 def test_rule_multiple_repos():
@@ -95,7 +99,8 @@ def test_rule_multiple_repos():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-beta"]) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-beta"]) is True
 
 
 def test_rule_multiple_repos_in_flag():
@@ -110,7 +115,8 @@ def test_rule_multiple_repos_in_flag():
             }
         ],
     }
-    assert Rules.rule_matches_repos(rule, ["firefox-beta", "firefox-autoland"]) is True
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_repos(rule, ["firefox-beta", "firefox-autoland"]) is True
 
 
 # --- Rules.rule_matches_files tests ---
@@ -171,7 +177,8 @@ rule_h498 = {
     ),
 )
 def test_rule_matching_regex(rule: dict, files: list[str]):
-    assert Rules.rule_matches_files(rule, files), (
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_files(rule, files), (
         f"Rule {rule['id']} should have matched for {files}"
     )
 
@@ -186,14 +193,17 @@ def test_rule_matching_regex(rule: dict, files: list[str]):
     ),
 )
 def test_rule_non_matching_regex(rule: dict, files: list[str]):
-    assert not Rules.rule_matches_files(rule, files), (
+    rules = Rules({"rules": [rule]})
+    assert not rules.rule_matches_files(rule, files), (
         f"Rule {rule['id']} should NOT have matched for {files}"
     )
 
 
 def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
+    bad_pattern = "/(?missing closing paren"
+    rule_id = "H401"
     rule = {
-        "id": "H401",
+        "id": rule_id,
         "name": "Blocked by places-reviewers",
         "author": "dkl_admin",
         "status": "active",
@@ -207,7 +217,7 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
             {
                 "type": "differential-affected-files",
                 "operator": "matches-regexp",
-                "value": "/(?missing closing paren",
+                "value": bad_pattern,
             },
         ],
         "actions": [
@@ -219,8 +229,10 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
             }
         ],
     }
+    rules = Rules({"rules": [rule]})
+
     files = ["/whatever"]
-    assert not Rules.rule_matches_files(rule, files), (
+    assert not rules.rule_matches_files(rule, files), (
         f"Rule {rule['id']} should NOT have matched for {files} (without exception)"
     )
     assert "Problematic pattern in H401" in caplog.text, (
@@ -229,6 +241,9 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
     assert "regex._regex_core.error: unknown extension at position 8" in caplog.text, (
         "regex._regex_core.error exception not detailed"
     )
+
+    assert rule_id in rules.errors, "The error was not reported for the ruleset"
+    assert bad_pattern in rules.errors[rule_id][0], "Bad pattern not present in errors"
 
 
 def test_rule_look_behind():
@@ -259,15 +274,17 @@ def test_rule_look_behind():
             }
         ],
     }
+    rules = Rules({"rules": [rule]})
+
     should_not_match = [
         "/mobile/android/android-components/components/browser/storage-sync/src/test/java/mozilla/components/browser/storage/sync/browser-places.js"
     ]
-    assert not Rules.rule_matches_files(rule, should_not_match), (
+    assert not rules.rule_matches_files(rule, should_not_match), (
         f"Rule {rule['id']} should not have matched for {should_not_match}"
     )
 
     should_match = ["/another/browser-places.js"]
-    assert Rules.rule_matches_files(rule, should_match), (
+    assert rules.rule_matches_files(rule, should_match), (
         f"Rule {rule['id']} should have matched for {should_match}"
     )
 
@@ -284,8 +301,10 @@ def test_rule_any_file_matches():
             }
         ],
     }
+    rules = Rules({"rules": [rule]})
+
     assert (
-        Rules.rule_matches_files(rule, ["README.md", "src/main.py", "config.json"])
+        rules.rule_matches_files(rule, ["README.md", "src/main.py", "config.json"])
         is True
     )
 
@@ -296,7 +315,8 @@ def test_rule_no_affected_files_condition():
         "name": "test_no_affected_files_condition",
         "conditions": [{"type": "repository", "value": ["firefox-autoland"]}],
     }
-    assert Rules.rule_matches_files(rule, ["anything.txt"]) is False
+    rules = Rules({"rules": [rule]})
+    assert rules.rule_matches_files(rule, ["anything.txt"]) is False
 
 
 # --- Rules.get_rule_reviewers tests ---
@@ -313,7 +333,8 @@ def test_rule_extracts_reviewers():
             }
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert Reviewer("jsmith") in reviewers
 
 
@@ -328,7 +349,8 @@ def test_rule_extracts_groups():
             }
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert Reviewer("my-group", is_group=True) in reviewers
 
 
@@ -343,7 +365,8 @@ def test_rule_extracts_blocking():
             }
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert Reviewer("my-group", blocking=True) in reviewers
 
 
@@ -361,7 +384,8 @@ def test_rule_multiple_reviewers():
             }
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert len(list(reviewers)) == 2
 
 
@@ -377,7 +401,8 @@ def test_rule_ignores_non_reviewer_actions():
             },
         ],
     }
-    reviewers = Rules.get_rule_reviewers(rule)
+    rules = Rules({"rules": [rule]})
+    reviewers = rules.get_rule_reviewers(rule)
     assert len(list(reviewers)) == 1
 
 
@@ -427,3 +452,16 @@ def test_rule_deduplicates_reviewers(sample_rules_data: dict):
 
     # Count occurrences
     assert len([r for r in reviewers if r.name == "fluent-reviewers"]) <= 1
+
+
+@pytest.mark.parametrize(
+    "pattern,expected",
+    (
+        ("alice", "`@alice@`"),
+        ("eve`-- drop table bob;", "`@eve\\`-- drop table bob;@`"),
+    ),
+)
+def test_safe_pattern(pattern: str, expected: str):
+    assert Rules._safe_pattern(pattern) == expected, (
+        f"Unexpected pattern after sanitisation of {pattern}"
+    )

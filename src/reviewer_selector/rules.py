@@ -1,5 +1,6 @@
 import json
 import logging
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sized
 from typing import Any, Self
 
@@ -10,6 +11,7 @@ from reviewer_selector.review import Reviewer
 
 RulesData = Mapping[str, Any]
 Rule = Mapping[str, Any]
+RulesErrors = Mapping[str, list[str]]
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +19,13 @@ logger = logging.getLogger(__name__)
 class Rules(Sized):
     """Representation of Phabricator Herald Rules."""
 
+    errors: RulesErrors
+
     _rules: RulesData
 
     def __init__(self, rules: RulesData):
         self._rules = rules
+        self.errors = defaultdict(list)
 
     def __len__(self) -> int:
         """Forward length queries to the underlying data.
@@ -60,8 +65,7 @@ class Rules(Sized):
                 reviewers.update(self.get_rule_reviewers(rule))
         return reviewers
 
-    @classmethod
-    def rule_matches_repos(cls, rule: Rule, repos: Iterable[str]) -> bool:
+    def rule_matches_repos(self, rule: Rule, repos: Iterable[str]) -> bool:
         """Check if rule passes repository filter."""
         repos_set = list(repos)
         if not repos_set:
@@ -72,8 +76,7 @@ class Rules(Sized):
                 return any(r in rule_repos for r in repos_set)
         return True
 
-    @classmethod
-    def rule_matches_files(cls, rule: Rule, changed_files: Iterable[str]) -> bool:
+    def rule_matches_files(self, rule: Rule, changed_files: Iterable[str]) -> bool:
         """Check if any changed file matches rule's regex."""
         changed_files = list(changed_files)
         for cond in rule.get("conditions", []):
@@ -82,21 +85,30 @@ class Rules(Sized):
                 try:
                     comp_re = regex.compile(pattern)
                 except regex.error:
+                    rule_id = rule.get("id", "rule without id")
+                    self.errors[rule_id].append(
+                        f"Problematic pattern: {self._safe_pattern(pattern)}"
+                    )
                     logger.exception(
-                        f"Problematic pattern in {rule.get('id')}: @{pattern}@"
+                        f"Problematic pattern in {rule_id}: {self._safe_pattern(pattern)}"
                     )
                     continue
                 try:
                     return any(comp_re.search(f, timeout=5) for f in changed_files)
                 except TimeoutError:
                     logger.exception(
-                        f"Problematic pattern in {rule.get('id')} caused a timeout: @{pattern}@"
+                        f"Problematic pattern in {rule.get('id')} caused a timeout: {self._safe_pattern(pattern)}"
                     )
                     continue
         return False
 
     @classmethod
-    def get_rule_reviewers(cls, rule: Rule) -> Iterable[Reviewer]:
+    def _safe_pattern(cls, pattern: str) -> str:
+        """Prepare a RegExp pattern for safe rendering in Markdown."""
+        escaped_backticks = pattern.replace("`", "\\`")
+        return f"`@{escaped_backticks}@`"
+
+    def get_rule_reviewers(self, rule: Rule) -> Iterable[Reviewer]:
         """Extract reviewers from rule's add-reviewers action.
 
         Each entry is unique."""
