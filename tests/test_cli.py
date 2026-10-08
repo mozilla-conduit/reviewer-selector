@@ -196,6 +196,7 @@ def test_github_repo_added(
     mock_patch: mock.Mock,
     mock_fetch_rules: mock.Mock,
     tmp_path: pathlib.Path,
+    configurable_mocked_github_request: Callable,
     capsys: pytest.CaptureFixture,
     sample_diff: str,
 ):
@@ -208,17 +209,18 @@ def test_github_repo_added(
 
     mock_patch.return_value = sample_diff
 
-    _run_cli(
-        [
-            rules_path,
-            "--pr-url",
-            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
-        ],
-        "",
-        capsys,
-    )
+    with configurable_mocked_github_request():
+        _run_cli(
+            [
+                rules_path,
+                "--pr-url",
+                "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+            ],
+            "",
+            capsys,
+        )
 
-    assert "reviewer-selector-main" in mock_collect_reviewers.call_args[0][1], (
+    assert "reviewer-selector-test-branch" in mock_collect_reviewers.call_args[0][1], (
         "The GitHub repo name was not passed to the Rules.collect_reviewers method"
     )
 

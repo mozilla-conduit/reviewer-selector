@@ -1,8 +1,9 @@
 import json
 import logging
-import re
 from collections.abc import Iterable, Mapping, Sized
 from typing import Any, Self
+
+import regex
 
 from reviewer_selector.patch import Patch
 from reviewer_selector.review import Reviewer
@@ -79,13 +80,19 @@ class Rules(Sized):
             if cond.get("type") == "differential-affected-files":
                 pattern = cond.get("value", "")
                 try:
-                    regex = re.compile(pattern)
-                except re.PatternError:
+                    comp_re = regex.compile(pattern)
+                except regex.error:
                     logger.exception(
                         f"Problematic pattern in {rule.get('id')}: @{pattern}@"
                     )
                     continue
-                return any(regex.search(f) for f in changed_files)
+                try:
+                    return any(comp_re.search(f, timeout=5) for f in changed_files)
+                except TimeoutError:
+                    logger.exception(
+                        f"Problematic pattern in {rule.get('id')} caused a timeout: @{pattern}@"
+                    )
+                    continue
         return False
 
     @classmethod

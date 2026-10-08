@@ -207,7 +207,7 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
             {
                 "type": "differential-affected-files",
                 "operator": "matches-regexp",
-                "value": "/(?<!application-services/components/|mobile/android/android-components/components/browser/storage-sync/src/test/java/mozilla/components/browser/storage/sync/)([Pp]laces|browser-places\\.js$|default-bookmarks\\.html$|default-bookmarks\\.ftl$|browser/components/pagedata)",
+                "value": "/(?missing closing paren",
             },
         ],
         "actions": [
@@ -226,8 +226,49 @@ def test_rule_erroneous_regex(caplog: pytest.LogCaptureFixture):
     assert "Problematic pattern in H401" in caplog.text, (
         "Problematic pattern exception not logged"
     )
-    assert "PatternError: look-behind requires fixed-width pattern" in caplog.text, (
-        "PatternError exception not detailed"
+    assert "regex._regex_core.error: unknown extension at position 8" in caplog.text, (
+        "regex._regex_core.error exception not detailed"
+    )
+
+
+def test_rule_look_behind():
+    rule = {
+        "id": "H401",
+        "name": "Blocked by places-reviewers",
+        "author": "dkl_admin",
+        "status": "active",
+        "type": "differential-revision",
+        "conditions": [
+            {
+                "type": "repository",
+                "operator": "is-any-of",
+                "value": ["mozilla-central", "firefox-autoland"],
+            },
+            {
+                "type": "differential-affected-files",
+                "operator": "matches-regexp",
+                "value": "/(?<!application-services/components/|mobile/android/android-components/components/browser/storage-sync/src/test/java/mozilla/components/browser/storage/sync/)([Pp]laces|browser-places\\.js$|default-bookmarks\\.html$|default-bookmarks\\.ftl$|browser/components/pagedata)",
+            },
+        ],
+        "actions": [
+            {
+                "type": "add-reviewers",
+                "reviewers": [
+                    {"target": "places-reviewers", "blocking": True, "is_group": True}
+                ],
+            }
+        ],
+    }
+    should_not_match = [
+        "/mobile/android/android-components/components/browser/storage-sync/src/test/java/mozilla/components/browser/storage/sync/browser-places.js"
+    ]
+    assert not Rules.rule_matches_files(rule, should_not_match), (
+        f"Rule {rule['id']} should not have matched for {should_not_match}"
+    )
+
+    should_match = ["/another/browser-places.js"]
+    assert Rules.rule_matches_files(rule, should_match), (
+        f"Rule {rule['id']} should have matched for {should_match}"
     )
 
 
