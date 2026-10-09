@@ -529,12 +529,138 @@ GITHUB_API_RESPONSE_PULL_REQUEST_REQUESTED_REVIEWERS = (
 """
 )
 
+GITHUB_API_RESPONSE_PULL_REQUEST_REVIEWS = """\
+[
+  {
+    "_links": {
+      "html": {
+        "href": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5439437173"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/mozilla-conduit/lando/pulls/1518"
+      }
+    },
+    "author_association": "MEMBER",
+    "body": "",
+    "commit_id": "d47d4e43a03f44864d8df7f320faee6a0081e1c5",
+    "html_url": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5439437173",
+    "id": 5439437173,
+    "node_id": "PRR_kwDOKrAYJc8AAAABRDc5dQ",
+    "pull_request_url": "https://api.github.com/repos/mozilla-conduit/lando/pulls/1518",
+    "state": "COMMENTED",
+    "submitted_at": "2026-10-07T08:11:32Z",
+    "user": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/160280?v=4",
+      "events_url": "https://api.github.com/users/shtrom/events{/privacy}",
+      "followers_url": "https://api.github.com/users/shtrom/followers",
+      "following_url": "https://api.github.com/users/shtrom/following{/other_user}",
+      "gists_url": "https://api.github.com/users/shtrom/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/shtrom",
+      "id": 160280,
+      "login": "shtrom",
+      "node_id": "MDQ6VXNlcjE2MDI4MA==",
+      "organizations_url": "https://api.github.com/users/shtrom/orgs",
+      "received_events_url": "https://api.github.com/users/shtrom/received_events",
+      "repos_url": "https://api.github.com/users/shtrom/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/shtrom/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/shtrom/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/shtrom",
+      "user_view_type": "public"
+    }
+  },
+  {
+    "_links": {
+      "html": {
+        "href": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5442704157"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/mozilla-conduit/lando/pulls/1518"
+      }
+    },
+    "author_association": "MEMBER",
+    "body": "",
+    "commit_id": "d47d4e43a03f44864d8df7f320faee6a0081e1c5",
+    "html_url": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5442704157",
+    "id": 5442704157,
+    "node_id": "PRR_kwDOKrAYJc8AAAABRGkTHQ",
+    "pull_request_url": "https://api.github.com/repos/mozilla-conduit/lando/pulls/1518",
+    "state": "APPROVED",
+    "submitted_at": "2026-10-07T13:06:15Z",
+    "user": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/2043828?v=4",
+      "events_url": "https://api.github.com/users/zzzeid/events{/privacy}",
+      "followers_url": "https://api.github.com/users/zzzeid/followers",
+      "following_url": "https://api.github.com/users/zzzeid/following{/other_user}",
+      "gists_url": "https://api.github.com/users/zzzeid/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/zzzeid",
+      "id": 2043828,
+      "login": "zzzeid",
+      "node_id": "MDQ6VXNlcjIwNDM4Mjg=",
+      "organizations_url": "https://api.github.com/users/zzzeid/orgs",
+      "received_events_url": "https://api.github.com/users/zzzeid/received_events",
+      "repos_url": "https://api.github.com/users/zzzeid/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/zzzeid/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/zzzeid/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/zzzeid",
+      "user_view_type": "public"
+    }
+  },
+  {
+    "_links": {
+      "html": {
+        "href": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5450178759"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/mozilla-conduit/lando/pulls/1518"
+      }
+    },
+    "author_association": "MEMBER",
+    "body": "",
+    "commit_id": "d47d4e43a03f44864d8df7f320faee6a0081e1c5",
+    "html_url": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5450178759",
+    "id": 5450178759,
+    "node_id": "PRR_kwDOKrAYJc8AAAABRNsgxw",
+    "pull_request_url": "https://api.github.com/repos/mozilla-conduit/lando/pulls/1518",
+    "state": "COMMENTED",
+    "submitted_at": "2026-10-08T00:58:17Z",
+    "user": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/160280?v=4",
+      "events_url": "https://api.github.com/users/shtrom/events{/privacy}",
+      "followers_url": "https://api.github.com/users/shtrom/followers",
+      "following_url": "https://api.github.com/users/shtrom/following{/other_user}",
+      "gists_url": "https://api.github.com/users/shtrom/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/shtrom",
+      "id": 160280,
+      "login": "shtrom",
+      "node_id": "MDQ6VXNlcjE2MDI4MA==",
+      "organizations_url": "https://api.github.com/users/shtrom/orgs",
+      "received_events_url": "https://api.github.com/users/shtrom/received_events",
+      "repos_url": "https://api.github.com/users/shtrom/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/shtrom/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/shtrom/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/shtrom",
+      "user_view_type": "public"
+    }
+  }
+]
+"""
+
 
 @pytest.fixture
 def github_api_response_pull_request() -> str:
     """Return basic pull request metadata.
 
-    XXX: GitHub never populates the requested_teams property.
+    XXX: GitHub populates the requested_teams property, but it's dependent on the
+    permissions of the requester.
     """
     return GITHUB_API_RESPONSE_PULL_REQUEST
 
@@ -543,6 +669,12 @@ def github_api_response_pull_request() -> str:
 def github_api_response_pull_request_requested_reviewers() -> str:
     """Return pull request requested_reviewers data with one user and no team."""
     return GITHUB_API_RESPONSE_PULL_REQUEST_REQUESTED_REVIEWERS
+
+
+@pytest.fixture
+def github_api_response_pull_request_reviews() -> str:
+    """Return non-empty pull request review data with one user."""
+    return GITHUB_API_RESPONSE_PULL_REQUEST_REVIEWS
 
 
 @pytest.fixture
@@ -558,6 +690,10 @@ def mocked_github_request(
     mock.requested_reviewers_get = mock.get(
         "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
         text=github_api_response_pull_request_requested_reviewers,
+    )
+    mock.reviews_get = mock.get(
+        "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/reviews",
+        text="[]",
     )
     return mock
 
