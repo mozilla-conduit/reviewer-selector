@@ -307,6 +307,31 @@ def test_github_reviewable(
 
 
 @patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_reviewable_reviewers_already_reviewed(
+    mock_gh_generate_token: Mock,
+    configurable_mocked_github_request: Callable,
+    github_api_response_pull_request_reviews: Callable,
+):
+    """Ensure that reviewers who already provided a review are still found."""
+    with configurable_mocked_github_request() as mock:
+        mock.reviews_get = mock.get(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/reviews",
+            text=github_api_response_pull_request_reviews,
+        )
+
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        assert gh.reviewable.reviewers == {
+            Reviewer("zzzeid"), # Requested reviewer.
+            Reviewer("shtrom"), # Already reviewed.
+        }
+
+
+@patch("reviewer_selector.github.GitHubApp.generate_token")
 def test_github_reviewable_add_reviewers_retry(
     mock_gh_generate_token: Mock,
     configurable_mocked_github_request: Callable,

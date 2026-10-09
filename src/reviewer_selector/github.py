@@ -205,11 +205,17 @@ class GitHubReviewable(Reviewable):
         requested_reviewers_json = self._pr.authenticated_api_request(
             "/requested_reviewers"
         )
-        reviewers = []
+        reviewers = set()
         for r in requested_reviewers_json.get("users", []):
-            reviewers.append(Reviewer(r["login"], False))
+            reviewers.add(Reviewer(r["login"], False))
         for t in requested_reviewers_json.get("teams", []):
-            reviewers.append(Reviewer(t["slug"], True))
+            reviewers.add(Reviewer(t["slug"], True))
+
+        if reviews_json := self._pr.authenticated_api_request("/reviews"):
+            for review in reviews_json:
+                reviewer = review.get("user", {}).get("login")
+                if reviewer:
+                    reviewers.add(Reviewer(reviewer, False))
 
         return reviewers
 
