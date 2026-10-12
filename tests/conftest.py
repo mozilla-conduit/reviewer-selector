@@ -546,7 +546,7 @@ GITHUB_API_RESPONSE_PULL_REQUEST_REVIEWS = """\
     "html_url": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5439437173",
     "id": 5439437173,
     "node_id": "PRR_kwDOKrAYJc8AAAABRDc5dQ",
-    "pull_request_url": "https://api.github.com/repos/mozilla-conduit/lando/pulls/1518",
+    "pull_request_url": "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18",
     "state": "COMMENTED",
     "submitted_at": "2026-10-07T08:11:32Z",
     "user": {
