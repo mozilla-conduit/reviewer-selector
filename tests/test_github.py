@@ -313,7 +313,7 @@ def test_github_reviewable_reviewers_already_reviewed(
     github_api_response_pull_request_reviews: Callable,
 ):
     """Ensure that reviewers who already provided a review are still found."""
-    with configurable_mocked_github_request() as mock:
+    with mocked_github_request as mock:
         mock.reviews_get = mock.get(
             "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/reviews",
             text=github_api_response_pull_request_reviews,
