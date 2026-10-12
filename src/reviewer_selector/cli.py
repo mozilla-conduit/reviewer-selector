@@ -1,7 +1,7 @@
 import argparse
 import logging
 import os
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from functools import lru_cache
 from typing import Any
 
@@ -17,7 +17,7 @@ from reviewer_selector.review import (
     StdoutReviewable,
     UserResolver,
 )
-from reviewer_selector.rules import Rules
+from reviewer_selector.rules import Rules, RulesErrors
 from reviewer_selector.taskcluster import Taskcluster, tc_task_url
 
 logger = logging.getLogger(__name__)
@@ -76,28 +76,72 @@ def cli() -> None:
         logger.exception("Error adding new reviewers")
         status = AddReviewersStatus(0, False)
 
-    tc_info = make_tc_task_link()
-    if tc_info:
-        tc_info = f"\n\n{tc_info}"
-
-    if not reviewable.reviewers:
-        reviewable.report_error(f"No reviewer currently assigned.{tc_info}")
-    elif not status.all_new_reviewer_added:
-        missing_reviewers = ", ".join(
-            f"`{r.name}`" for r in set(resolved) - set(reviewable.reviewers)
-        )
-        reviewable.report_warning(
-            f"Not all reviewers were added.\n\nMissing/unresolved: {missing_reviewers}.{tc_info}"
-        )
-    else:
-        reviewable.report_success(f"Reviewers successfully assigned.{tc_info}")
+    report_status(reviewable, status, resolved, rules.errors)
 
 
-def make_tc_task_link() -> str:
-    if task_url := tc_task_url():
-        return f"[See task in Taskcluster]({task_url})"
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Select reviewers from Herald rules and git diff",
+        epilog="""Example:
+            curl https://github.com/mozilla-firefox/infra-testing/pull/30.diff | %(prog)s herald_rules.json
 
-    return ""
+            Command line options take precedence over environment variables and stored credentials.""",
+    )
+    parser.add_argument("rules_file", help="Path to JSON rules file")
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Log details of the reviewer selection",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Log debug message of the reviewer selection",
+    )
+
+    parser.add_argument(
+        "--repo", action="append", default=[], help="Filter by repository (repeatable)"
+    )
+
+    # GitHub options.
+    parser.add_argument(
+        "--pr-url",
+        default=None,
+        help="HTML URL of the GitHub PR to process. If app credentials are provided, the reviewers will be set on the PR automatically.",
+    )
+    parser.add_argument(
+        "--github-app-id",
+        default=None,
+        help="GitHub application ID (credentials: GITHUB_APP_ID)",
+    )
+    parser.add_argument(
+        "--github-app-privkey",
+        default=None,
+        help="GitHub application private key (credentials: GITHUB_APP_PRIVKEY)",
+    )
+    parser.add_argument(
+        "--github-token",
+        default=None,
+        help="GitHub token (credentials: GITHUB_TOKEN; env: also GH_TOKEN)",
+    )
+
+    parser.add_argument(
+        "--taskcluster-secret-id",
+        default=None,
+        help="TaskCluster secret ID to fetch GitHub credentials from (environment: TC_SECRET_ID). Command line options take precedence.",
+    )
+
+    parser.add_argument(
+        "--group-prefix", default="#", help="Prefix for group names in output"
+    )
+    parser.add_argument(
+        "--reviewer-separator",
+        default=" ",
+        help="Separator for reviewer names in output",
+    )
+    return parser.parse_args()
 
 
 def get_sentry_dsn(args) -> str | None:
@@ -186,69 +230,66 @@ def get_tc_secret(tc_secret_id: str | None) -> dict[str, Any] | None:
     return tc.fetch_secret(tc_secret_id)
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Select reviewers from Herald rules and git diff",
-        epilog="""Example:
-            curl https://github.com/mozilla-firefox/infra-testing/pull/30.diff | %(prog)s herald_rules.json
+def report_status(
+    reviewable: Reviewable,
+    status: AddReviewersStatus,
+    requested_reviewers: Collection[Reviewer],
+    rules_errors: RulesErrors,
+):
+    tc_info = []
+    if tc_link := make_tc_task_link():
+        tc_info = ["", tc_link]
 
-            Command line options take precedence over environment variables and stored credentials.""",
-    )
-    parser.add_argument("rules_file", help="Path to JSON rules file")
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        default=False,
-        help="Log details of the reviewer selection",
-    )
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        default=False,
-        help="Log debug message of the reviewer selection",
-    )
+    # report_warning may alter the whole state of the Reviewable (e.g., GitHub checks),
+    # so it should only be used once.
+    warnings = []
+    if rules_errors:
+        rule_errors = "\n".join(
+            f" * {rule_id}: {'; '.join(errors)}"
+            for rule_id, errors in rules_errors.items()
+        )
+        warnings.append(f"Some rules reported exceptions:\n\n{rule_errors}")
 
-    parser.add_argument(
-        "--repo", action="append", default=[], help="Filter by repository (repeatable)"
-    )
+    if not reviewable.reviewers:
+        errors = ["No reviewer currently assigned."]
+        if warnings:
+            errors.extend(
+                ["", "In addition, the following warnings were reported.", ""]
+            )
+            errors.extend(warnings)
 
-    # GitHub options.
-    parser.add_argument(
-        "--pr-url",
-        default=None,
-        help="HTML URL of the GitHub PR to process. If app credentials are provided, the reviewers will be set on the PR automatically.",
-    )
-    parser.add_argument(
-        "--github-app-id",
-        default=None,
-        help="GitHub application ID (credentials: GITHUB_APP_ID)",
-    )
-    parser.add_argument(
-        "--github-app-privkey",
-        default=None,
-        help="GitHub application private key (credentials: GITHUB_APP_PRIVKEY)",
-    )
-    parser.add_argument(
-        "--github-token",
-        default=None,
-        help="GitHub token (credentials: GITHUB_TOKEN; env: also GH_TOKEN)",
-    )
+        errors.extend(tc_info)
+        reviewable.report_error("\n".join(errors))
+    elif not status.all_new_reviewer_added or warnings:
+        # Put the most important warning first.
+        if not status.all_new_reviewer_added:
+            missing_reviewers = ", ".join(
+                f"`{r.name}`"
+                for r in set(requested_reviewers) - set(reviewable.reviewers)
+            )
+            for line in reversed(
+                [
+                    "Not all reviewers were added.",
+                    "",
+                    f"Missing/unresolved: {missing_reviewers}.",
+                    "",
+                ]
+            ):
+                warnings.insert(0, line)
 
-    parser.add_argument(
-        "--taskcluster-secret-id",
-        default=None,
-        help="TaskCluster secret ID to fetch GitHub credentials from (environment: TC_SECRET_ID). Command line options take precedence.",
-    )
+        warnings.extend(tc_info)
+        reviewable.report_warning("\n".join(warnings))
+    else:
+        success = ["Reviewers successfully assigned."]
+        success.extend(tc_info)
+        reviewable.report_success("\n".join(success))
 
-    parser.add_argument(
-        "--group-prefix", default="#", help="Prefix for group names in output"
-    )
-    parser.add_argument(
-        "--reviewer-separator",
-        default=" ",
-        help="Separator for reviewer names in output",
-    )
-    return parser.parse_args()
+
+def make_tc_task_link() -> str:
+    if task_url := tc_task_url():
+        return f"[See task in Taskcluster]({task_url})"
+
+    return ""
 
 
 if __name__ == "__main__":
