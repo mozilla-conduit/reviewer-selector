@@ -3495,8 +3495,9 @@
           "type": "add-reviewers",
           "reviewers": [
             {
-              "target": "Restricted Project",
-              "blocking": true
+              "target": "fluent-reviewers",
+              "blocking": true,
+              "is_group": true
             }
           ]
         }
@@ -3578,7 +3579,9 @@
         {
           "type": "differential-reviewers",
           "operator": "include-none-of",
-          "value": []
+          "value": [
+            "mozperftest-reviewers"
+          ]
         }
       ],
       "actions": [
@@ -3586,8 +3589,9 @@
           "type": "add-reviewers",
           "reviewers": [
             {
-              "target": "Restricted Project",
-              "blocking": true
+              "target": "mozperftest-reviewers",
+              "blocking": true,
+              "is_group": true
             }
           ]
         }
@@ -3847,8 +3851,9 @@
           "type": "add-reviewers",
           "reviewers": [
             {
-              "target": "Restricted Project",
-              "blocking": true
+              "target": "supply-chain-reviewers",
+              "blocking": true,
+              "is_group": true
             }
           ]
         }
@@ -7166,7 +7171,7 @@
   },
   "unresolved_users": [],
   "metadata": {
-    "extracted_at": "2026-10-12T04:30:19.685279Z",
+    "extracted_at": "2026-10-12T04:59:33.394181Z",
     "total_rules": 100,
     "total_groups": 104,
     "total_users_resolved": 300,
@@ -7174,7 +7179,7 @@
     "phabricator_instance": "phabricator.services.mozilla.com",
     "scrape_status": {
       "rules_complete": true,
-      "groups_complete": false,
+      "groups_complete": true,
       "github_complete": true
     }
   }
