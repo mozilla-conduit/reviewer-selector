@@ -529,12 +529,58 @@ GITHUB_API_RESPONSE_PULL_REQUEST_REQUESTED_REVIEWERS = (
 """
 )
 
+GITHUB_API_RESPONSE_PULL_REQUEST_REVIEWS = """\
+[
+  {
+    "_links": {
+      "html": {
+        "href": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5439437173"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18"
+      }
+    },
+    "author_association": "MEMBER",
+    "body": "",
+    "commit_id": "d47d4e43a03f44864d8df7f320faee6a0081e1c5",
+    "html_url": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5439437173",
+    "id": 5439437173,
+    "node_id": "PRR_kwDOKrAYJc8AAAABRDc5dQ",
+    "pull_request_url": "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18",
+    "state": "COMMENTED",
+    "submitted_at": "2026-10-07T08:11:32Z",
+    "user": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/1337?v=4",
+      "events_url": "https://api.github.com/users/already-reviewed/events{/privacy}",
+      "followers_url": "https://api.github.com/users/already-reviewed/followers",
+      "following_url": "https://api.github.com/users/already-reviewed/following{/other_user}",
+      "gists_url": "https://api.github.com/users/already-reviewed/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/already-reviewed",
+      "id": 1337,
+      "login": "already-reviewed",
+      "node_id": "MDQ6VXNlcjEzMzcK",
+      "organizations_url": "https://api.github.com/users/already-reviewed/orgs",
+      "received_events_url": "https://api.github.com/users/already-reviewed/received_events",
+      "repos_url": "https://api.github.com/users/already-reviewed/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/already-reviewed/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/already-reviewed/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/already-reviewed",
+      "user_view_type": "public"
+    }
+  }
+]
+"""
+
 
 @pytest.fixture
 def github_api_response_pull_request() -> str:
     """Return basic pull request metadata.
 
-    XXX: GitHub never populates the requested_teams property.
+    XXX: GitHub populates the requested_teams property, but it's dependent on the
+    permissions of the requester.
     """
     return GITHUB_API_RESPONSE_PULL_REQUEST
 
@@ -543,6 +589,12 @@ def github_api_response_pull_request() -> str:
 def github_api_response_pull_request_requested_reviewers() -> str:
     """Return pull request requested_reviewers data with one user and no team."""
     return GITHUB_API_RESPONSE_PULL_REQUEST_REQUESTED_REVIEWERS
+
+
+@pytest.fixture
+def github_api_response_pull_request_reviews() -> str:
+    """Return non-empty pull request review data with one user."""
+    return GITHUB_API_RESPONSE_PULL_REQUEST_REVIEWS
 
 
 @pytest.fixture
@@ -558,6 +610,10 @@ def mocked_github_request(
     mock.requested_reviewers_get = mock.get(
         "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/requested_reviewers",
         text=github_api_response_pull_request_requested_reviewers,
+    )
+    mock.reviews_get = mock.get(
+        "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/reviews",
+        text="[]",
     )
     return mock
 
