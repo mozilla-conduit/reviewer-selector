@@ -564,8 +564,8 @@ GITHUB_API_RESPONSE_PULL_REQUEST_REVIEWS = """\
       "received_events_url": "https://api.github.com/users/already-reviewed/received_events",
       "repos_url": "https://api.github.com/users/already-reviewed/repos",
       "site_admin": false,
-      "starred_url": "https://api.github.com/users/shtrom/starred{/owner}{/repo}",
-      "subscriptions_url": "https://api.github.com/users/shtrom/subscriptions",
+      "starred_url": "https://api.github.com/users/already-reviewed/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/already-reviewed/subscriptions",
       "type": "User",
       "url": "https://api.github.com/users/shtrom",
       "user_view_type": "public"
