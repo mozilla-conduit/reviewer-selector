@@ -537,7 +537,7 @@ GITHUB_API_RESPONSE_PULL_REQUEST_REVIEWS = """\
         "href": "https://github.com/mozilla-conduit/reviewer-selector/pull/18#pullrequestreview-5439437173"
       },
       "pull_request": {
-        "href": "https://api.github.com/repos/mozilla-conduit/lando/pulls/1518"
+        "href": "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18"
       }
     },
     "author_association": "MEMBER",
