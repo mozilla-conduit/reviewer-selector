@@ -309,7 +309,7 @@ def test_github_reviewable(
 @patch("reviewer_selector.github.GitHubApp.generate_token")
 def test_github_reviewable_reviewers_already_reviewed(
     mock_gh_generate_token: Mock,
-    configurable_mocked_github_request: Callable,
+    mocked_github_request: Callable,
     github_api_response_pull_request_reviews: Callable,
 ):
     """Ensure that reviewers who already provided a review are still found."""
