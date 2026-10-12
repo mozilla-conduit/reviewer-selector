@@ -326,8 +326,8 @@ def test_github_reviewable_reviewers_already_reviewed(
         gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
 
         assert gh.reviewable.reviewers == {
-            Reviewer("zzzeid"), # Requested reviewer.
-            Reviewer("shtrom"), # Already reviewed.
+            Reviewer("test-reviewer"),
+            Reviewer("already-reviewed"),
         }
 
 
