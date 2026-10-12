@@ -11,6 +11,7 @@ def test_valid_reviewer_target():
     rules = herald_rules.get("rules")
     assert rules, f"Missing rules section in {HERALD_RULES}"
 
+    incorrect_rules = []
     for rule in rules:
         rule_id = rule.get("id")
         assert rule_id, f"Missing ID in rule {rule}"
@@ -25,6 +26,9 @@ def test_valid_reviewer_target():
             if a.get("type") == "add-reviewers"
         ]
 
-        assert not (any(not t or t == "Restricted Project" for t in targets)), (
-            f"Incorrect add-reviewers target for rule {rule_id}"
-        )
+        if [t for t in targets if not t or t == "Restricted Project"]:
+            incorrect_rules.append(rule_id)
+
+    assert not incorrect_rules, (
+        f"Incorrect add-reviewers target for rules: {', '.join(incorrect_rules)}"
+    )
