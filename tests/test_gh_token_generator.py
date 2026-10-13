@@ -5,6 +5,22 @@ import pytest
 from gh_token_generator import main
 
 
+@pytest.fixture(autouse=True)
+def hide_env_variables(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    for env_var in [
+        "GITHUB_APP_ID",
+        "GITHUB_APP_PRIVKEY",
+        "ORG_NAME",
+        "REPO_NAME",
+        "TASKCLUSTER_ROOT_URL",
+        "TC_SECRET_ID",
+        "GH_TOKEN",
+    ]:
+        monkeypatch.delenv(env_var, raising=False)
+
+
 def test_no_org_name():
     with pytest.raises(ValueError, match="ORG_NAME"):
         main()
