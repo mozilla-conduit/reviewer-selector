@@ -4,8 +4,10 @@ import json
 import logging
 import os
 import sys
+from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
+from enum import Enum
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlsplit
 
@@ -15,6 +17,75 @@ from simple_github import Client, TokenClient
 from simple_github.client import GITHUB_API_ENDPOINT
 
 logger = logging.getLogger(__name__)
+
+
+class CreationAction(Enum):
+    ADD_USER = "add_user"
+    CREATE_TEAM = "create_team"
+    DELETE_TEAM = "delete_team"
+    REMOVE_USER = "remove_user"
+    RESOLVE_USERNAME = "resolve_username"
+
+
+class CreationStatus(Enum):
+    ABSENT = "absent"
+    CREATED = "created"
+    FAILED = "failed"
+    PRESENT = "present"
+    REMOVED = "removed"
+    MISSING = "missing"
+    UNRESOLVED = "unresolved"
+
+
+class Output(metaclass=ABCMeta):
+    @abstractmethod
+    def report(
+        self,
+        team: str,
+        action: CreationAction,
+        status: CreationStatus,
+        user: str = "",
+        details: str = "",
+    ):
+        pass
+
+    def report_users(
+        self,
+        team: str,
+        action: CreationAction,
+        status: CreationStatus,
+        users: Iterable[str],
+        details: str = "",
+    ):
+        for u in users:
+            self.report(team, action, status, u, details)
+
+
+class NoopOutput(Output):
+    def report(
+        self,
+        team: str,
+        action: CreationAction,
+        status: CreationStatus,
+        user: str = "",
+        details: str = "",
+    ):
+        pass
+
+
+class CsvOutput(Output):
+    def __init__(self):
+        print("team,action,status,user,details")
+
+    def report(
+        self,
+        team: str,
+        action: CreationAction,
+        status: CreationStatus,
+        user: str = "",
+        details: str = "",
+    ):
+        print(f"{team},{action.value},{status.value},{user},{details}")
 
 
 def main():
@@ -27,6 +98,11 @@ def main():
     )
     args_parser.add_argument(
         "--dry-run",
+        action="store_true",
+        default=False,
+    )
+    args_parser.add_argument(
+        "--csv",
         action="store_true",
         default=False,
     )
@@ -55,8 +131,10 @@ def main():
     with open(arguments.rules) as f:
         rules = json.load(f)
 
+    output = CsvOutput() if arguments.csv else NoopOutput()
+
     try:
-        create_teams(client, rules, organisation, base_team, arguments.dry_run)
+        create_teams(client, rules, organisation, base_team, arguments.dry_run, output)
     except HTTPError as exc:
         logger.error(
             f"Exception when creating teams: {exc} for {exc.request.body}: {exc.response.text}"
@@ -77,6 +155,7 @@ def create_teams(
     organisation: str,
     base_team: str,
     dry_run: bool,
+    output: Output,
 ):
 
     logger.debug("Creating Phabricator->GitHub user map ...")
@@ -91,19 +170,31 @@ def create_teams(
         for phab_name in group_data.get("members", []):
             if phab_name not in github_users:
                 logger.warning(f"Unresolved GitHub username for {phab_name}")
+                output.report(
+                    "PHAB_RESOLUTION",
+                    CreationAction.RESOLVE_USERNAME,
+                    CreationStatus.UNRESOLVED,
+                    phab_name,
+                )
                 continue
             github_name = github_users[phab_name].get("username", "")
             if not github_name:
                 logger.warning(f"Empty or missing GitHub username for {phab_name}")
+                output.report(
+                    "PHAB_RESOLUTION",
+                    CreationAction.RESOLVE_USERNAME,
+                    CreationStatus.MISSING,
+                    phab_name,
+                )
                 continue
             members.add(github_name)
 
         teams[group_name] = members
 
     # find base team
-    ensure_team_exists(client, organisation, base_team, dry_run)
+    ensure_team_exists(client, organisation, base_team, dry_run, output)
     all_users = {u["username"] for u in github_users.values() if u.get("username")}
-    update_team_members(client, organisation, base_team, all_users, dry_run)
+    update_team_members(client, organisation, base_team, all_users, dry_run, output)
 
     for team, target_members in teams.items():
         # create team
@@ -112,10 +203,11 @@ def create_teams(
             organisation,
             team,
             dry_run,
+            output,
             parent_team=base_team,
             display_name=groups.get(team, {}).get("display_name"),
         )
-        update_team_members(client, organisation, team, target_members, dry_run)
+        update_team_members(client, organisation, team, target_members, dry_run, output)
 
 
 def ensure_team_exists(
@@ -123,6 +215,7 @@ def ensure_team_exists(
     organisation: str,
     team_name: str,
     dry_run: bool,
+    output: Output,
     *,
     display_name: str = "",
     parent_team: str = "",
@@ -133,7 +226,8 @@ def ensure_team_exists(
 
     if resp.status_code == 404:
         if dry_run:
-            logger.info(f"[DRY-RUN] Would create team {team_name}")
+            logger.info(f"[DRY RUN] Would create team {team_name}")
+            output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED)
             return {}
 
         description = "Automatically created by reviewer-selector's team-creator"
@@ -152,15 +246,19 @@ def ensure_team_exists(
 
         logger.debug(f"Creating team {team_name} ...")
         resp = client.post(f"/orgs/{organisation}/teams", data=create_payload)
+        output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED)
         logger.info(f"Created team {team_name}")
 
     try:
         resp.raise_for_status()
     except HTTPError:
+        output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.FAILED)
         if not dry_run:
             raise
-        logger.info(f"[DRY-RUN] Error getting {team_name} details")
+        logger.info(f"[DRY RUN] Error getting {team_name} details")
         return {}
+
+    output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT)
 
     return resp.json()
 
@@ -171,20 +269,28 @@ def update_team_members(
     team: str,
     target_members: set[str],
     dry_run: bool,
+    output: Output,
 ):
     """Add and remove team members as needed to match target_members."""
     current_members = get_team_members(client, organisation, team, dry_run)
     logger.info(f"Current members of {team}: {current_members}")
 
     if users_to_add := target_members - current_members:
-        add_team_members(client, organisation, team, users_to_add, dry_run)
+        add_team_members(client, organisation, team, users_to_add, dry_run, output)
 
     if members_to_remove := current_members - target_members:
-        remove_team_members(client, organisation, team, members_to_remove, dry_run)
+        remove_team_members(
+            client, organisation, team, members_to_remove, dry_run, output
+        )
 
 
 def add_team_members(
-    client: Client, organisation: str, team_name: str, users: set[str], dry_run: bool
+    client: Client,
+    organisation: str,
+    team_name: str,
+    users: set[str],
+    dry_run: bool,
+    output: Output,
 ):
     logger.debug(f"Adding users to {team_name}: {users} ...")
     add_url = f"orgs/{organisation}/teams/{team_name}/memberships/"
@@ -193,6 +299,9 @@ def add_team_members(
 
     if dry_run:
         logger.info(f"[DRY RUN] Would add users to {team_name}: {users}")
+        output.report_users(
+            team_name, CreationAction.ADD_USER, CreationStatus.CREATED, users
+        )
         return
 
     for user in users:
@@ -200,14 +309,25 @@ def add_team_members(
             resp: requests.Response = client.put(add_url + user, data=add_payload)
             resp.raise_for_status()
             added_users.append(user)
+            output.report_users(
+                team_name, CreationAction.ADD_USER, CreationStatus.CREATED, [user]
+            )
         except HTTPError as exc:
             logger.warning(f"Cannot add {user} to {team_name}: {exc.response.text}")
+            output.report_users(
+                team_name, CreationAction.ADD_USER, CreationStatus.FAILED, [user]
+            )
 
     logger.info(f"Added users to {team_name}: {added_users}")
 
 
 def remove_team_members(
-    client: Client, organisation: str, team_name: str, members: set[str], dry_run: bool
+    client: Client,
+    organisation: str,
+    team_name: str,
+    members: set[str],
+    dry_run: bool,
+    output: Output,
 ):
     logger.debug(f"Removing members from {team_name}: {members} ...")
     remove_url = f"orgs/{organisation}/teams/{team_name}/memberships/"
@@ -215,6 +335,9 @@ def remove_team_members(
 
     if dry_run:
         logger.info(f"[DRY RUN] Would remove members from {team_name}: {members}")
+        output.report_users(
+            team_name, CreationAction.REMOVE_USER, CreationStatus.REMOVED, members
+        )
         return
 
     for user in members:
@@ -222,12 +345,18 @@ def remove_team_members(
             # As of 3.2.2, simple_github.Client.delete returns None ...
             client.delete(remove_url + user)
             removed_members.append(user)
+            output.report_users(
+                team_name, CreationAction.REMOVE_USER, CreationStatus.REMOVED, [user]
+            )
         except HTTPError as exc:
             # ... so this is dead code, as we don't raise_for_status.
             # We keep it here for now, with the intention of making simple_github more
             # consistent.
             logger.warning(
                 f"Cannot remove {user} from {team_name}: {exc.response.text}"
+            )
+            output.report_users(
+                team_name, CreationAction.REMOVE_USER, CreationStatus.FAILED, [user]
             )
 
     logger.info(f"Removed members from {team_name}: {removed_members}")
@@ -248,7 +377,7 @@ def get_team_members(
     except HTTPError:
         if not dry_run:
             raise
-        logger.info(f"[DRY-RUN] Error getting {team_name} membership, assuming empty")
+        logger.info(f"[DRY RUN] Error getting {team_name} membership, assuming empty")
         return set()
 
     return members
