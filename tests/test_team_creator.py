@@ -211,13 +211,13 @@ def test_paginated_get(
 
         return [user]
 
-    with github_double as mock:
+    with github_double as m_gh:
         # add link header
-        mock.get(base_url, json=callback)
+        m_gh.get(base_url, json=callback)
         response = [
             elt
             for pg in paginated_get(
-                mocked_github_client, f"/orgs/{mock.org_name}/test_paginated_url"
+                mocked_github_client, f"/orgs/{m_gh.org_name}/test_paginated_url"
             )
             for elt in pg
         ]
@@ -225,7 +225,7 @@ def test_paginated_get(
         with pytest.raises(requests.exceptions.HTTPError) as exc_info:
             next(
                 paginated_get(
-                    mocked_github_client, f"/orgs/{mock.org_name}/test_paginated_url"
+                    mocked_github_client, f"/orgs/{m_gh.org_name}/test_paginated_url"
                 )
             )
 
@@ -498,9 +498,9 @@ def test_dry_run(
 
     # /orgs/{organisation}/teams/{team_name}
     team_name = "raises-error"
-    with github_double as mock:
-        mock.get(
-            f"{mock.base_url}/orgs/{mock.org_name}/teams/{team_name}", status_code=418
+    with github_double as m_gh:
+        m_gh.get(
+            f"{m_gh.base_url}/orgs/{m_gh.org_name}/teams/{team_name}", status_code=418
         )
         ret = ensure_team_exists(
             mocked_github_client,
