@@ -325,9 +325,7 @@ def test_add_team_members(
                 "alice",
                 "",
             ),
-            call(
-                team_name, CreationAction.ADD_USER, CreationStatus.CREATED, "bob", ""
-            ),
+            call(team_name, CreationAction.ADD_USER, CreationStatus.CREATED, "bob", ""),
         ],
         any_order=True,
     )
@@ -599,9 +597,7 @@ def test_dry_run(
     # /orgs/{organisation}/teams/{team_name}
     error_team_name = "raises-error"
     with github_double as m_gh:
-        m_gh.get(
-            f"{m_gh.base_url}/orgs/{m_gh.org_name}/teams/{error_team_name}", status_code=418
-        )
+        m_gh.get(f"{m_gh.base_url}/teams/{error_team_name}", status_code=418)
         ret = ensure_team_exists(
             mocked_github_client,
             github_double.org_name,
@@ -623,9 +619,7 @@ def test_dry_run(
         [
             call(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED),
             call(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT),
-            call(
-                team_name, CreationAction.ADD_USER, CreationStatus.CREATED, "bob", ""
-            ),
+            call(team_name, CreationAction.ADD_USER, CreationStatus.CREATED, "bob", ""),
             call(
                 team_name,
                 CreationAction.ADD_USER,
@@ -647,7 +641,7 @@ def test_dry_run(
                 "alice",
                 "",
             ),
-            call(error_team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call(error_team_name, CreationAction.CREATE_TEAM, CreationStatus.UNKNOWN),
         ],
         any_order=True,
     )

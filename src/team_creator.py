@@ -36,9 +36,10 @@ class CreationStatus(Enum):
     ABSENT = "absent"
     CREATED = "created"
     FAILED = "failed"
+    MISSING = "missing"
     PRESENT = "present"
     REMOVED = "removed"
-    MISSING = "missing"
+    UNKNOWN = "unknown"
     UNRESOLVED = "unresolved"
 
 
@@ -234,6 +235,11 @@ def ensure_team_exists(
         output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT)
         return resp.json()
 
+    if resp.status_code != 404:
+        logger.warning(f"Error checking for existence of team {team_name}: {resp.text}")
+        output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.UNKNOWN)
+        return {}
+
     if dry_run:
         logger.info(f"[DRY RUN] Would create team {team_name}")
         output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED)
@@ -260,9 +266,6 @@ def ensure_team_exists(
         resp.raise_for_status()
     except HTTPError:
         output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.FAILED)
-        if not dry_run:
-            raise
-        logger.info(f"[DRY RUN] Error creating {team_name}")
         return {}
 
     output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED)
