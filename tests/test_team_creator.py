@@ -967,6 +967,7 @@ def test_team_creator_most_args(
     tmp_path: pathlib.Path,
     github_double: GithubDouble,
     sample_rules_data: dict[str, Any],
+    capsys: pytest.CaptureFixture,
 ):
     args = [
         "--base-team",
@@ -984,6 +985,12 @@ def test_team_creator_most_args(
     assert len(github_double.request_history), "No requests were made"
     assert all(r.method == "GET" for r in github_double.request_history), (
         "Only GET requests should have happened in dry-run"
+    )
+
+    outerr = capsys.readouterr()
+
+    assert "team,action,status,user,details" in outerr.out, (
+        "Missing CSV header in stdout"
     )
 
 

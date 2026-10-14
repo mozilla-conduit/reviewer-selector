@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import csv
 import json
 import logging
 import os
@@ -20,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class CreationAction(Enum):
+    """Actions that can be logged to CSV."""
+
     ADD_USER = "add_user"
     CREATE_TEAM = "create_team"
     DELETE_TEAM = "delete_team"
@@ -28,6 +31,8 @@ class CreationAction(Enum):
 
 
 class CreationStatus(Enum):
+    """Actions statuses that can be logged to CSV."""
+
     ABSENT = "absent"
     CREATED = "created"
     FAILED = "failed"
@@ -74,8 +79,11 @@ class NoopOutput(Output):
 
 
 class CsvOutput(Output):
+    writer: csv.Writer
+
     def __init__(self):
-        print("team,action,status,user,details")
+        self.writer = csv.writer(sys.stdout)
+        self.writer.writerow(["team", "action", "status", "user", "details"])
 
     def report(
         self,
@@ -85,7 +93,7 @@ class CsvOutput(Output):
         user: str = "",
         details: str = "",
     ):
-        print(f"{team},{action.value},{status.value},{user},{details}")
+        self.writer.writerow([team, action.value, status.value, user, details])
 
 
 def main():
@@ -102,9 +110,7 @@ def main():
         default=False,
     )
     args_parser.add_argument(
-        "--csv",
-        action="store_true",
-        default=False,
+        "--csv", action="store_true", default=False, help="Output CSV log to STDOUT"
     )
     args_parser.add_argument("--github-token")
     args_parser.add_argument("--organisation", default="mozilla-firefox")
