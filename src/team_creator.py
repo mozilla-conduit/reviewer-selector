@@ -230,30 +230,31 @@ def ensure_team_exists(
     team_url = _make_team_url(organisation, team_name)
     resp: requests.Response = client.get(team_url)
 
-    if resp.status_code == 404:
-        if dry_run:
-            logger.info(f"[DRY RUN] Would create team {team_name}")
-            output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED)
-            return {}
+    if resp.status_code == 200:
+        output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT)
+        return resp.json()
 
-        description = "Automatically created by reviewer-selector's team-creator"
-        if display_name:
-            description = f"{display_name} ({description})"
-
-        create_payload = {
-            "name": team_name,
-            "description": description,
-            "permission": "pull",
-            "notification_setting": "notifications_enabled",
-            "privacy": "closed",
-        }
-        if parent_team:
-            create_payload["parent_team_slug"] = parent_team
-
-        logger.debug(f"Creating team {team_name} ...")
-        resp = client.post(f"/orgs/{organisation}/teams", data=create_payload)
+    if dry_run:
+        logger.info(f"[DRY RUN] Would create team {team_name}")
         output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED)
-        logger.info(f"Created team {team_name}")
+        return {}
+
+    description = "Automatically created by reviewer-selector's team-creator"
+    if display_name:
+        description = f"{display_name} ({description})"
+
+    create_payload = {
+        "name": team_name,
+        "description": description,
+        "permission": "pull",
+        "notification_setting": "notifications_enabled",
+        "privacy": "closed",
+    }
+    if parent_team:
+        create_payload["parent_team_slug"] = parent_team
+
+    logger.debug(f"Creating team {team_name} ...")
+    resp = client.post(f"/orgs/{organisation}/teams", data=create_payload)
 
     try:
         resp.raise_for_status()
@@ -261,10 +262,11 @@ def ensure_team_exists(
         output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.FAILED)
         if not dry_run:
             raise
-        logger.info(f"[DRY RUN] Error getting {team_name} details")
+        logger.info(f"[DRY RUN] Error creating {team_name}")
         return {}
 
-    output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT)
+    output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED)
+    logger.info(f"Created team {team_name}")
 
     return resp.json()
 
@@ -314,14 +316,15 @@ def add_team_members(
         try:
             resp: requests.Response = client.put(add_url + user, data=add_payload)
             resp.raise_for_status()
-            added_users.append(user)
-            output.report_users(
-                team_name, CreationAction.ADD_USER, CreationStatus.CREATED, [user]
-            )
         except HTTPError as exc:
             logger.warning(f"Cannot add {user} to {team_name}: {exc.response.text}")
             output.report_users(
                 team_name, CreationAction.ADD_USER, CreationStatus.FAILED, [user]
+            )
+        else:
+            added_users.append(user)
+            output.report_users(
+                team_name, CreationAction.ADD_USER, CreationStatus.CREATED, [user]
             )
 
     logger.info(f"Added users to {team_name}: {added_users}")
@@ -350,10 +353,6 @@ def remove_team_members(
         try:
             # As of 3.2.2, simple_github.Client.delete returns None ...
             client.delete(remove_url + user)
-            removed_members.append(user)
-            output.report_users(
-                team_name, CreationAction.REMOVE_USER, CreationStatus.REMOVED, [user]
-            )
         except HTTPError as exc:
             # ... so this is dead code, as we don't raise_for_status.
             # We keep it here for now, with the intention of making simple_github more
@@ -363,6 +362,11 @@ def remove_team_members(
             )
             output.report_users(
                 team_name, CreationAction.REMOVE_USER, CreationStatus.FAILED, [user]
+            )
+        else:
+            removed_members.append(user)
+            output.report_users(
+                team_name, CreationAction.REMOVE_USER, CreationStatus.REMOVED, [user]
             )
 
     logger.info(f"Removed members from {team_name}: {removed_members}")
