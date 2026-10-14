@@ -99,7 +99,6 @@ def hide_env_variables(
     monkeypatch: pytest.MonkeyPatch,
 ):
     """Shield the tests from real env variables."""
-
     for varname in [
         "GITHUB_APP_ID",
         "GITHUB_APP_PRIVKEY",

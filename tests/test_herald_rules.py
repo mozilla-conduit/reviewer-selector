@@ -5,6 +5,12 @@ HERALD_RULES = Path(__file__).parent.parent / "herald_rules.json"
 
 
 def test_valid_reviewer_target():
+    """Ensure that there aren't any Restricted Projects in the herald_rules.
+
+    Restricted Projects ar visible to `All users`, but not to the `Public`. This needs
+    to be fixed in Phabricator prior to re-running a crawl.
+    """
+
     with HERALD_RULES.open() as fp:
         herald_rules = json.load(fp)
 
