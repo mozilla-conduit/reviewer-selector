@@ -537,11 +537,11 @@ def test_update_team_members(
 
 
 def test_dry_run(
-    github_double: GithubDouble, mocked_github_client: simple_github.Client
+    github_double: GithubDouble,
+    mocked_github_client: simple_github.Client,
+    mock_output: Output,
 ):
     team_name = "test-team"
-
-    output = NoopOutput()
 
     with github_double:
         # Test failure modes.
@@ -550,7 +550,7 @@ def test_dry_run(
             github_double.org_name,
             team_name,
             True,
-            output,
+            mock_output,
             display_name="team_name",
         )
         get_team_members(mocked_github_client, github_double.org_name, team_name, True)
@@ -564,7 +564,7 @@ def test_dry_run(
             github_double.org_name,
             team_name,
             True,
-            output,
+            mock_output,
             display_name="team_name",
         )
         assert team == {}, "Missing data should be shimmed in dry run"
@@ -580,7 +580,7 @@ def test_dry_run(
             team_name,
             {"alice", "bob"},
             True,
-            output,
+            mock_output,
         )
         remove_team_members(
             mocked_github_client,
@@ -588,7 +588,7 @@ def test_dry_run(
             team_name,
             {"alice", "bob"},
             True,
-            output,
+            mock_output,
         )
 
     assert len(members) == 1, "Expected correct member list in dry run"
@@ -608,7 +608,7 @@ def test_dry_run(
             github_double.org_name,
             team_name,
             True,
-            output,
+            mock_output,
             display_name=team_name,
         )
 
@@ -619,6 +619,39 @@ def test_dry_run(
         "Unexpected number of requests to GitHub (only GETs allowed)"
     )
     assert ret == {}
+
+    mock_output.report.assert_has_calls(
+        [
+            call("test-team", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call("test-team", CreationAction.CREATE_TEAM, CreationStatus.PRESENT),
+            call(
+                "test-team", CreationAction.ADD_USER, CreationStatus.CREATED, "bob", ""
+            ),
+            call(
+                "test-team",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "alice",
+                "",
+            ),
+            call(
+                "test-team",
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                "bob",
+                "",
+            ),
+            call(
+                "test-team",
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                "alice",
+                "",
+            ),
+            call("raises-error", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+        ],
+        any_order=True,
+    )
 
 
 def test_create_teams(
