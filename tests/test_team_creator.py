@@ -4,7 +4,7 @@ import sys
 from collections.abc import Callable, Iterable
 from functools import wraps
 from typing import Any, TypeVar
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import requests
@@ -17,6 +17,7 @@ from team_creator import (
     CreationAction,
     CreationStatus,
     NoopOutput,
+    Output,
     add_team_members,
     create_teams,
     ensure_team_exists,
@@ -276,7 +277,7 @@ def test_get_team_members(
 
 
 @pytest.fixture()
-def mock_output() -> Mock:
+def mock_output() -> Output:
     mock_output = NoopOutput()
     mock_output.report = MagicMock()
     return mock_output
@@ -285,7 +286,7 @@ def mock_output() -> Mock:
 def test_add_team_members(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
-    mock_output: Mock,
+    mock_output: Output,
 ):
     team_name = "test-team"
 
@@ -335,7 +336,7 @@ def test_add_team_members(
 def test_ensure_team_exists(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
-    mock_output: Mock,
+    mock_output: Output,
 ):
     team_name = "test-team"
     parent_team_name = "parent-team"
@@ -404,7 +405,7 @@ def test_ensure_team_exists(
 def test_remove_team_members(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
-    mock_output: Mock,
+    mock_output: Output,
 ):
     team_name = "test-team"
 
@@ -468,7 +469,7 @@ def test_remove_team_members(
 def test_update_team_members(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
-    mock_output: Mock,
+    mock_output: Output,
 ):
     team_name = "test-team"
 
@@ -624,7 +625,7 @@ def test_create_teams(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
     sample_rules_data: dict[str, Any],
-    mock_output: Mock,
+    mock_output: Output,
 ):
 
     with github_double:
@@ -733,7 +734,7 @@ def test_create_teams_missing_mappings(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
     sample_rules_data: dict[str, Any],
-    mock_output: Mock,
+    mock_output: Output,
     caplog: pytest.LogCaptureFixture,
 ):
     del sample_rules_data["github_users"]["alice"]
@@ -823,7 +824,7 @@ def test_create_teams_user_removal(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
     sample_rules_data: dict[str, Any],
-    mock_output: Mock,
+    mock_output: Output,
 ):
     team_name = next(iter(sample_rules_data["groups"]))
     github_double.create_team(team_name)
