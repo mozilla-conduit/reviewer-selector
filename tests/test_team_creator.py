@@ -601,8 +601,6 @@ def test_team_creator_gh_tokens(
     use_short_env_variable: bool,
 ):
     env_var = "GH_TOKEN" if use_short_env_variable else "GITHUB_TOKEN"
-    unset_var = "GITHUB_TOKEN" if use_short_env_variable else "GH_TOKEN"
-    monkeypatch.delenv(unset_var)
     monkeypatch.setenv(env_var, f"env_{env_var}")
 
     _run_team_creator(tmp_path, github_double, [], sample_rules_data)
