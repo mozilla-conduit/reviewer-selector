@@ -4,7 +4,7 @@ import sys
 from collections.abc import Callable, Iterable
 from functools import wraps
 from typing import Any, TypeVar
-from unittest import mock
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import requests
@@ -14,6 +14,10 @@ from requests.compat import urlsplit
 from requests_mock.mocker import Mocker
 
 from team_creator import (
+    CreationAction,
+    CreationStatus,
+    NoopOutput,
+    Output,
     add_team_members,
     create_teams,
     ensure_team_exists,
@@ -211,13 +215,13 @@ def test_paginated_get(
 
         return [user]
 
-    with github_double as mock:
+    with github_double as m_gh:
         # add link header
-        mock.get(base_url, json=callback)
+        m_gh.get(base_url, json=callback)
         response = [
             elt
             for pg in paginated_get(
-                mocked_github_client, f"/orgs/{mock.org_name}/test_paginated_url"
+                mocked_github_client, f"/orgs/{m_gh.org_name}/test_paginated_url"
             )
             for elt in pg
         ]
@@ -225,7 +229,7 @@ def test_paginated_get(
         with pytest.raises(requests.exceptions.HTTPError) as exc_info:
             next(
                 paginated_get(
-                    mocked_github_client, f"/orgs/{mock.org_name}/test_paginated_url"
+                    mocked_github_client, f"/orgs/{m_gh.org_name}/test_paginated_url"
                 )
             )
 
@@ -272,8 +276,17 @@ def test_get_team_members(
     )
 
 
+@pytest.fixture()
+def mock_output() -> Output:
+    mock_output = NoopOutput()
+    mock_output.report = MagicMock()
+    return mock_output
+
+
 def test_add_team_members(
-    github_double: GithubDouble, mocked_github_client: simple_github.Client
+    github_double: GithubDouble,
+    mocked_github_client: simple_github.Client,
+    mock_output: Output,
 ):
     team_name = "test-team"
 
@@ -286,6 +299,7 @@ def test_add_team_members(
             team_name,
             {"alice", "bob"},
             False,
+            mock_output,
         )
 
     members = github_double.get_team_members(team_name)
@@ -302,9 +316,25 @@ def test_add_team_members(
         request.method == "PUT" for request in github_double.adapter.request_history
     )
 
+    mock_output.report.assert_has_calls(
+        [
+            call(
+                team_name,
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "alice",
+                "",
+            ),
+            call(team_name, CreationAction.ADD_USER, CreationStatus.CREATED, "bob", ""),
+        ],
+        any_order=True,
+    )
+
 
 def test_ensure_team_exists(
-    github_double: GithubDouble, mocked_github_client: simple_github.Client
+    github_double: GithubDouble,
+    mocked_github_client: simple_github.Client,
+    mock_output: Output,
 ):
     team_name = "test-team"
     parent_team_name = "parent-team"
@@ -315,6 +345,7 @@ def test_ensure_team_exists(
             github_double.org_name,
             team_name,
             False,
+            mock_output,
             parent_team=parent_team_name,
             display_name=team_name,
         )
@@ -325,6 +356,7 @@ def test_ensure_team_exists(
             github_double.org_name,
             team_name,
             False,
+            mock_output,
             display_name=team_name,
         )
 
@@ -359,9 +391,18 @@ def test_ensure_team_exists(
     ), "Unexpected request URL"
     assert second_get_request.method == "GET", "Unexpected request method"
 
+    mock_output.report.assert_has_calls(
+        [
+            call(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT),
+        ],
+    )
+
 
 def test_remove_team_members(
-    github_double: GithubDouble, mocked_github_client: simple_github.Client
+    github_double: GithubDouble,
+    mocked_github_client: simple_github.Client,
+    mock_output: Output,
 ):
     team_name = "test-team"
 
@@ -370,10 +411,20 @@ def test_remove_team_members(
 
     with github_double:
         remove_team_members(
-            mocked_github_client, github_double.org_name, team_name, {"bob"}, False
+            mocked_github_client,
+            github_double.org_name,
+            team_name,
+            {"bob"},
+            False,
+            mock_output,
         )
         remove_team_members(
-            mocked_github_client, github_double.org_name, team_name, {"mallory"}, False
+            mocked_github_client,
+            github_double.org_name,
+            team_name,
+            {"mallory"},
+            False,
+            mock_output,
         )
 
     members = github_double.get_team_members(team_name)
@@ -392,9 +443,30 @@ def test_remove_team_members(
         "Unexpected request method"
     )
 
+    mock_output.report.assert_has_calls(
+        [
+            call(
+                team_name,
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                "bob",
+                "",
+            ),
+            call(
+                team_name,
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                "mallory",
+                "",
+            ),
+        ]
+    )
+
 
 def test_update_team_members(
-    github_double: GithubDouble, mocked_github_client: simple_github.Client
+    github_double: GithubDouble,
+    mocked_github_client: simple_github.Client,
+    mock_output: Output,
 ):
     team_name = "test-team"
 
@@ -408,6 +480,7 @@ def test_update_team_members(
             team_name,
             {"alice", "carol"},
             False,
+            mock_output,
         )
 
     members = github_double.get_team_members(team_name)
@@ -440,9 +513,30 @@ def test_update_team_members(
         "Unexpected request method"
     )
 
+    mock_output.report.assert_has_calls(
+        [
+            call(
+                team_name,
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "carol",
+                "",
+            ),
+            call(
+                team_name,
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                "bob",
+                "",
+            ),
+        ]
+    )
+
 
 def test_dry_run(
-    github_double: GithubDouble, mocked_github_client: simple_github.Client
+    github_double: GithubDouble,
+    mocked_github_client: simple_github.Client,
+    mock_output: Output,
 ):
     team_name = "test-team"
 
@@ -453,6 +547,7 @@ def test_dry_run(
             github_double.org_name,
             team_name,
             True,
+            mock_output,
             display_name="team_name",
         )
         get_team_members(mocked_github_client, github_double.org_name, team_name, True)
@@ -466,6 +561,7 @@ def test_dry_run(
             github_double.org_name,
             team_name,
             True,
+            mock_output,
             display_name="team_name",
         )
         assert team == {}, "Missing data should be shimmed in dry run"
@@ -481,6 +577,7 @@ def test_dry_run(
             team_name,
             {"alice", "bob"},
             True,
+            mock_output,
         )
         remove_team_members(
             mocked_github_client,
@@ -488,6 +585,7 @@ def test_dry_run(
             team_name,
             {"alice", "bob"},
             True,
+            mock_output,
         )
 
     assert len(members) == 1, "Expected correct member list in dry run"
@@ -497,17 +595,16 @@ def test_dry_run(
     )
 
     # /orgs/{organisation}/teams/{team_name}
-    team_name = "raises-error"
-    with github_double as mock:
-        mock.get(
-            f"{mock.base_url}/orgs/{mock.org_name}/teams/{team_name}", status_code=418
-        )
+    error_team_name = "raises-error"
+    with github_double as m_gh:
+        m_gh.get(f"{m_gh.base_url}/teams/{error_team_name}", status_code=418)
         ret = ensure_team_exists(
             mocked_github_client,
             github_double.org_name,
-            team_name,
+            error_team_name,
             True,
-            display_name=team_name,
+            mock_output,
+            display_name=error_team_name,
         )
 
     # Due to https://github.com/jamielennox/requests-mock/issues/277, we cannot reset
@@ -518,11 +615,43 @@ def test_dry_run(
     )
     assert ret == {}
 
+    mock_output.report.assert_has_calls(
+        [
+            call(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT),
+            call(team_name, CreationAction.ADD_USER, CreationStatus.CREATED, "bob", ""),
+            call(
+                team_name,
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "alice",
+                "",
+            ),
+            call(
+                team_name,
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                "bob",
+                "",
+            ),
+            call(
+                team_name,
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                "alice",
+                "",
+            ),
+            call(error_team_name, CreationAction.CREATE_TEAM, CreationStatus.UNKNOWN),
+        ],
+        any_order=True,
+    )
+
 
 def test_create_teams(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
     sample_rules_data: dict[str, Any],
+    mock_output: Output,
 ):
 
     with github_double:
@@ -532,15 +661,96 @@ def test_create_teams(
             github_double.org_name,
             "all-reviewers",
             False,
+            mock_output,
         )
 
     assert_all_rules_teams_up_to_date(github_double, sample_rules_data)
+
+    mock_output.report.assert_has_calls(
+        [
+            call("all-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "alice-gh",
+                "",
+            ),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "bob-gh",
+                "",
+            ),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "charlie-gh",
+                "",
+            ),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "jdoe-gh",
+                "",
+            ),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "jsmith-gh",
+                "",
+            ),
+            call(
+                "fluent-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED
+            ),
+            call(
+                "fluent-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "alice-gh",
+                "",
+            ),
+            call(
+                "fluent-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "bob-gh",
+                "",
+            ),
+            call("test-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call(
+                "test-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "charlie-gh",
+                "",
+            ),
+            call(
+                "ent:fluent-reviewers",
+                CreationAction.CREATE_TEAM,
+                CreationStatus.CREATED,
+            ),
+            call(
+                "ent:fluent-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "bob-gh",
+                "",
+            ),
+        ],
+        any_order=True,
+    )
 
 
 def test_create_teams_missing_mappings(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
     sample_rules_data: dict[str, Any],
+    mock_output: Output,
     caplog: pytest.LogCaptureFixture,
 ):
     del sample_rules_data["github_users"]["alice"]
@@ -554,22 +764,78 @@ def test_create_teams_missing_mappings(
             github_double.org_name,
             "all-reviewers",
             False,
+            mock_output,
         )
 
     assert "Unresolved GitHub username for alice" in caplog.text
     assert "Empty or missing GitHub username for bob" in caplog.text
     assert "Empty or missing GitHub username for charlie" in caplog.text
 
+    mock_output.report.assert_has_calls(
+        [
+            call(
+                "PHAB_RESOLUTION",
+                CreationAction.RESOLVE_USERNAME,
+                CreationStatus.UNRESOLVED,
+                "alice",
+            ),
+            call(
+                "PHAB_RESOLUTION",
+                CreationAction.RESOLVE_USERNAME,
+                CreationStatus.MISSING,
+                "bob",
+            ),
+            call(
+                "PHAB_RESOLUTION",
+                CreationAction.RESOLVE_USERNAME,
+                CreationStatus.MISSING,
+                "charlie",
+            ),
+            call(
+                "PHAB_RESOLUTION",
+                CreationAction.RESOLVE_USERNAME,
+                CreationStatus.MISSING,
+                "bob",
+            ),
+            call("all-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "jsmith-gh",
+                "",
+            ),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "jdoe-gh",
+                "",
+            ),
+            call(
+                "fluent-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED
+            ),
+            call("test-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call(
+                "ent:fluent-reviewers",
+                CreationAction.CREATE_TEAM,
+                CreationStatus.CREATED,
+            ),
+        ],
+        any_order=True,
+    )
+
 
 def test_create_teams_user_removal(
     github_double: GithubDouble,
     mocked_github_client: simple_github.Client,
     sample_rules_data: dict[str, Any],
+    mock_output: Output,
 ):
     team_name = next(iter(sample_rules_data["groups"]))
     github_double.create_team(team_name)
     # Add an extra user to be removed.
-    github_double.add_members(team_name, "mallory")
+    github_double.add_members(team_name, ["mallory"])
 
     with github_double:
         create_teams(
@@ -578,9 +844,96 @@ def test_create_teams_user_removal(
             github_double.org_name,
             "all-reviewers",
             False,
+            mock_output,
         )
 
     assert_all_rules_teams_up_to_date(github_double, sample_rules_data)
+
+    mock_output.report.assert_has_calls(
+        [
+            call("all-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "alice-gh",
+                "",
+            ),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "bob-gh",
+                "",
+            ),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "charlie-gh",
+                "",
+            ),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "jsmith-gh",
+                "",
+            ),
+            call(
+                "all-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "jdoe-gh",
+                "",
+            ),
+            call(
+                "fluent-reviewers", CreationAction.CREATE_TEAM, CreationStatus.PRESENT
+            ),
+            call(
+                "fluent-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "alice-gh",
+                "",
+            ),
+            call(
+                "fluent-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "bob-gh",
+                "",
+            ),
+            call(
+                "fluent-reviewers",
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                "mallory",
+                "",
+            ),
+            call("test-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
+            call(
+                "test-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "charlie-gh",
+                "",
+            ),
+            call(
+                "ent:fluent-reviewers",
+                CreationAction.CREATE_TEAM,
+                CreationStatus.CREATED,
+            ),
+            call(
+                "ent:fluent-reviewers",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "bob-gh",
+                "",
+            ),
+        ],
+        any_order=True,
+    )
 
 
 def test_team_creator_no_args(
@@ -612,12 +965,14 @@ def test_team_creator_most_args(
     tmp_path: pathlib.Path,
     github_double: GithubDouble,
     sample_rules_data: dict[str, Any],
+    capsys: pytest.CaptureFixture,
 ):
     args = [
         "--base-team",
         "all-reviewers",
         "--debug",
         "--dry-run",
+        "--csv",
         "--github-token",
         "cli_gh_token",
     ]
@@ -628,6 +983,12 @@ def test_team_creator_most_args(
     assert len(github_double.request_history), "No requests were made"
     assert all(r.method == "GET" for r in github_double.request_history), (
         "Only GET requests should have happened in dry-run"
+    )
+
+    outerr = capsys.readouterr()
+
+    assert "team,action,status,user,details" in outerr.out, (
+        "Missing CSV header in stdout"
     )
 
 
@@ -642,7 +1003,7 @@ def _run_team_creator(
 
     args += ["--organisation", github_double.org_name, str(rules_path)]
 
-    with mock.patch.object(sys, "argv", ["team_creator"] + args), github_double:
+    with patch.object(sys, "argv", ["team_creator"] + args), github_double:
         main()
 
 
