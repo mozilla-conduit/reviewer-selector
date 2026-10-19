@@ -689,7 +689,7 @@
           "type": "differential-reviewers",
           "operator": "include-none-of",
           "value": [
-            "•sgalich",
+            "sgalich",
             "dimi",
             "jneuberger",
             "issammani"
@@ -842,9 +842,9 @@
           "type": "differential-reviewers",
           "operator": "include-none-of",
           "value": [
-            "•mcheang",
+            "mcheang",
             "daleharvey",
-            "•Standard8"
+            "Standard8"
           ]
         },
         {
