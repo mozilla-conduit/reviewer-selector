@@ -195,7 +195,7 @@ GITHUB_API_RESPONSE_PULL_REQUEST = (
 
   ],
   "milestone": null,
-  "draft": true,
+  "draft": false,
   "commits_url": "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/commits",
   "review_comments_url": "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18/comments",
   "review_comment_url": "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/comments{/number}",

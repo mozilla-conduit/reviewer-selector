@@ -9,7 +9,7 @@ import requests_mock
 from requests.exceptions import HTTPError
 from requests_mock.mocker import Mocker
 
-from reviewer_selector.github import GitHubPR
+from reviewer_selector.github import GITHUB_PILOT_REPO, GITHUB_PILOT_TEAM, GitHubPR
 from reviewer_selector.review import AddReviewersStatus, Reviewer
 from reviewer_selector.rules import Rules
 
@@ -572,3 +572,92 @@ def test_github_reviewable_reports(
             assert check_request["conclusion"] == expected_conclusion
 
             assert check_request["details_url"] == "https://some.tc.url"
+
+
+@pytest.mark.parametrize(
+    "readiness_type", (("closed", "draft", "non-pilot", "in-pilot", "error-pilot"))
+)
+@patch("reviewer_selector.github.GitHubApp.generate_token")
+def test_github_ready_for_review(
+    mock_gh_generate_token: Mock,
+    github_api_response_pull_request: str,
+    configurable_mocked_github_request: Callable,
+    caplog: pytest.LogCaptureFixture,
+    readiness_type: str,
+):
+
+    if readiness_type == "closed":
+        mutated_metadata = _mutate_pr_metadata(
+            github_api_response_pull_request, '"state": "open",', '"state": "closed",'
+        )
+
+    elif readiness_type == "draft":
+        mutated_metadata = _mutate_pr_metadata(
+            github_api_response_pull_request, '"draft": false,', '"draft": "true",'
+        )
+
+    elif readiness_type.endswith("-pilot"):
+        mutated_metadata = _mutate_pr_metadata(
+            github_api_response_pull_request,
+            '"full_name": "mozilla-conduit/reviewer-selector",',
+            f'"full_name": "{GITHUB_PILOT_REPO}",',
+        )
+
+    else:
+        raise AssertionError(f"Unknown readiness_type: {readiness_type}")
+
+    with configurable_mocked_github_request() as mock:
+        # Replace existing metadata mock.
+        mock.pull_request_get = mock.get(
+            "https://api.github.com/repos/mozilla-conduit/reviewer-selector/pulls/18",
+            text=mutated_metadata,
+        )
+
+        if readiness_type == "non-pilot":
+            mock.membership_get = mock.get(
+                f"https://api.github.com/orgs/mozilla-conduit/teams/{GITHUB_PILOT_TEAM}/memberships/conduit-test-user",
+                status_code=404,
+            )
+        elif readiness_type == "erre-pilot":
+            mock.membership_get = mock.get(
+                f"https://api.github.com/orgs/mozilla-conduit/teams/{GITHUB_PILOT_TEAM}/memberships/conduit-test-user",
+                status_code=418,
+            )
+        else:
+            mock.membership_get = mock.get(
+                f"https://api.github.com/orgs/mozilla-conduit/teams/{GITHUB_PILOT_TEAM}/memberships/conduit-test-user",
+                json={"state": "active", "role": "member", "url": "...."},
+            )
+
+        gh = GitHubPR(
+            "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+        )
+        mock_gh_generate_token.return_value = "THE_TOKEN"
+        gh.set_app_credentials(app_id="THE_APP_ID", app_privkey="THE_APP_PRIVKEY")
+
+        is_ready = gh.reviewable.ready_for_review()
+
+        # On membership-check error, we err on the side of caution.
+        if readiness_type in ["in-pilot", "error-pilot"]:
+            assert mock.membership_get.call_count == 1, (
+                "Should have checked author membership"
+            )
+            assert is_ready, f"{readiness_type} PR should be ready for review "
+
+        else:
+            assert not is_ready, f"{readiness_type} PR should be not ready for review "
+            if readiness_type == "closed":
+                assert "PR is closed" in caplog.text
+
+            elif readiness_type == "draft":
+                assert "PR is a draft" in caplog.text
+
+            elif readiness_type == ("non-pilot"):
+                assert mock.membership_get.call_count == 1, (
+                    "Should have checked author membership"
+                )
+                assert "Author is not part of the pilot" in caplog.text
+
+
+def _mutate_pr_metadata(response: str, pattern: str, repl: str):
+    return response.replace(pattern, repl)

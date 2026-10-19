@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 
 GITHUB_CHECK_NAME = "reviewer-selector"
 
+GITHUB_PILOT_REPO = "mozilla-firefox/firefox"
+GITHUB_PILOT_TEAM = "lando-github-pilot"
+
 
 @dataclass
 class GitHubApp:
@@ -346,6 +349,58 @@ class GitHubReviewable(Reviewable):
             self.report_info(
                 f"> [!WARNING]\n> The following requested teams have no members: {empty_teams_names}"
             )
+
+    @override
+    def ready_for_review(self) -> bool:
+        """Allows to skip reviewer selection.
+
+        Criteria:
+        - not closed
+        - not draft
+        - author in the pilot group (Firefox only)
+        """
+
+        if self._pr.metadata.get("state") == "closed":
+            logger.warning("PR is closed.")
+            return False
+
+        if self._pr.metadata.get("draft"):
+            logger.warning("PR is a draft.")
+            return False
+
+        if (
+            self._pr.metadata.get("head", {}).get("repo", {}).get("full_name")
+            == GITHUB_PILOT_REPO
+        ):
+            author = self._pr.metadata.get("user", {}).get("login")
+            try:
+                in_team = self.user_in_team(author, GITHUB_PILOT_TEAM)
+            except HTTPError:
+                logger.exception(
+                    f"Error determining pilot membership for author {author}."
+                )
+                # Assume they are a member.
+                return True
+            if not in_team:
+                logger.warning("Author is not part of the pilot.")
+                return False
+
+        return True
+
+    def user_in_team(self, user: str, team: str) -> bool:
+        try:
+            membership = self._pr.authenticated_api_request(
+                f"/teams/{team}/memberships/{user}", request_type=RequestType.TEAMS
+            )
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                return False
+            raise
+
+        return membership.get("state") == "active" and membership.get("role") in [
+            "maintainer",
+            "member",
+        ]
 
     @override
     def report_error(self, message: str, **kwargs):
