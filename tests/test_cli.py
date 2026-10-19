@@ -105,6 +105,24 @@ def test_group_prefix(
     assert outerr.out.strip() == "@ent:fluent-reviewers @fluent-reviewers"
 
 
+@mock.patch("reviewer_selector.review.Reviewable.ready_for_review")
+def test_reviewable_not_ready_for_review(
+    mock_ready_for_review: Mock,
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    caplog: pytest.LogCaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict[str, Any],
+):
+    mock_ready_for_review.return_value = False
+
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    _run_cli([rules_path], sample_diff, capsys)
+
+    assert "Reviewable is not ready for review." in caplog.text
+
+
 def test_subject_reviewer(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,

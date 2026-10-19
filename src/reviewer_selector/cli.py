@@ -58,6 +58,10 @@ def cli() -> None:
 
         reviewable = gh_reviewable or reviewable
 
+    if not reviewable.ready_for_review():
+        logger.warning("Reviewable is not ready for review.")
+        return 0
+
     patch = Patch(patch_source.patch, patch_source.get_patch_subject())
 
     reviewers = Reviewer.flatten_blocking(
