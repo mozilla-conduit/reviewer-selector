@@ -638,7 +638,7 @@
             "mconley",
             "mhowell",
             "mtigley",
-            "•kpatenio"
+            "kpatenio"
           ]
         },
         {
@@ -844,7 +844,7 @@
           "value": [
             "•mcheang",
             "daleharvey",
-            "Standard8"
+            "•Standard8"
           ]
         },
         {
@@ -1210,7 +1210,7 @@
         {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": "/?toolkit/components/antitracking"
+          "value": "/(toolkit/components/antitracking|dom/credentialmanagement/identity)"
         }
       ],
       "actions": [
@@ -4690,6 +4690,49 @@
           ]
         }
       ]
+    },
+    {
+      "id": "H553",
+      "name": "Blocked by android-build-system-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^(?!/?(third_party|tools/lint/test|mobile/android/gradle/plugins/apilint/[^/]+/src/test/(resources|fake_root))/)/?((.*/)?([^/]+\\.gradle(\\.kts)?|gradle\\.properties|gradlew(\\.bat)?)$|(.*/)?gradle/|mobile/android/(gradle\\.py|gradle\\.configure|mach_commands\\.py|build\\.mk|moz\\.configure)$|mobile/android/(android-components|fenix)/plugins/|mobile/android/config/mozconfigs/|build/moz\\.configure/android-[^/]+\\.configure$|python/mozboot/mozboot/android(\\.py|-packages\\.txt)$|python/mozbuild/mozbuild/android_version_code\\.py$|taskcluster/scripts/(.*/)?[^/]*gradle|taskcluster/scripts/builder/build-android\\.sh$|taskcluster/scripts/misc/repack-android-(sdk|ndk)-)"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "android-build-system-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
     }
   ],
   "groups": {
@@ -4769,6 +4812,7 @@
         "again",
         "bjohns",
         "cdipersio",
+        "cgopal",
         "cmurray",
         "gazhibekova",
         "mshillabeer",
@@ -4823,6 +4867,19 @@
         "willdurand",
         "zfatima",
         "zombie"
+      ]
+    },
+    "android-build-system-reviewers": {
+      "id": "android-build-system-reviewers",
+      "display_name": "android-build-system-reviewers",
+      "members": [
+        "RyanVM",
+        "adhingra",
+        "ahochheiden",
+        "jonalmeida",
+        "mcarare",
+        "nalexander",
+        "tcampbell"
       ]
     },
     "android-l10n-reviewers": {
@@ -4893,6 +4950,7 @@
         "aborondo",
         "cdupuis",
         "iholmes",
+        "spohl",
         "yjuglaret"
       ]
     },
@@ -4914,7 +4972,9 @@
       "members": [
         "aborondo",
         "cdupuis",
-        "nalexander"
+        "nalexander",
+        "spohl",
+        "yjuglaret"
       ]
     },
     "ci-and-tooling": {
@@ -7171,9 +7231,9 @@
   },
   "unresolved_users": [],
   "metadata": {
-    "extracted_at": "2026-10-12T04:59:33.394181Z",
-    "total_rules": 100,
-    "total_groups": 104,
+    "extracted_at": "2026-10-19T04:23:00.152671Z",
+    "total_rules": 101,
+    "total_groups": 105,
     "total_users_resolved": 300,
     "total_users_unresolved": 0,
     "phabricator_instance": "phabricator.services.mozilla.com",
