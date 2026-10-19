@@ -60,10 +60,6 @@ def cli() -> None:
 
     patch = Patch(patch_source.patch, patch_source.get_patch_subject())
 
-    # Select autoland rules for any revision targetting main.
-    autolands = {r.replace("-main", "-autoland") for r in repos}
-    repos |= autolands
-
     reviewers = Reviewer.flatten_blocking(
         set(patch.get_subject_reviewers()) | set(rules.collect_reviewers(patch, repos))
     )
