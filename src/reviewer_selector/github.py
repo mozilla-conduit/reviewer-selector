@@ -390,6 +390,11 @@ class GitHubReviewable(Reviewable):
         return True
 
     def user_in_team(self, user: str, team: str) -> bool:
+        """Test whether a user is in a given team (of the PR's target org).
+
+        A user is considered a member if they have an `active` membership in the team,
+        with either `member` or `maintainer` roles.
+        """
         try:
             membership = self._pr.authenticated_api_request(
                 f"/teams/{team}/memberships/{user}", request_type=RequestType.TEAMS
