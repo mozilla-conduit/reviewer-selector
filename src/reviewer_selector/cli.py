@@ -60,7 +60,7 @@ def cli() -> None:
 
     if not reviewable.ready_for_review():
         logger.warning("Reviewable is not ready for review.")
-        return 0
+        return
 
     patch = Patch(patch_source.patch, patch_source.get_patch_subject())
 
