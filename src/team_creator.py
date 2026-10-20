@@ -122,8 +122,10 @@ def main():
     # Honour the highest verbosity level requested.
     if arguments.debug:
         logging.basicConfig(level=logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
+        logger.setLevel(logging.INFO)
 
     organisation = arguments.organisation
     base_team = arguments.base_team
