@@ -577,6 +577,7 @@ def test_github_reviewable_reports(
 @pytest.mark.parametrize(
     "readiness_type", (("closed", "draft", "non-pilot", "in-pilot", "error-pilot"))
 )
+@patch("reviewer_selector.github.GitHubPR.repo_full_name", new_callable=PropertyMock)
 @patch("reviewer_selector.github.GitHubApp.generate_token")
 def test_github_ready_for_review(
     mock_gh_generate_token: Mock,
