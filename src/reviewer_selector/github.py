@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 
 GITHUB_CHECK_NAME = "reviewer-selector"
 
+GITHUB_PILOT_REPO = "mozilla-firefox/firefox"
+GITHUB_PILOT_TEAM = "lando-github-pilot"
+
 
 @dataclass
 class GitHubApp:
@@ -165,6 +168,10 @@ class GitHubApiObject(metaclass=ABCMeta):
     @authenticated
     def authenticated_api_request(self, *args, **kwargs) -> dict[str, Any]:
         return self.api_request(*args, **kwargs)
+
+    @cached_property
+    def repo_full_name(self) -> str:
+        return f"{self.owner}/{self.repository}"
 
 
 @dataclass
@@ -346,6 +353,65 @@ class GitHubReviewable(Reviewable):
             self.report_info(
                 f"> [!WARNING]\n> The following requested teams have no members: {empty_teams_names}"
             )
+
+    @override
+    def ready_for_review(self) -> bool:
+        """Allows to skip reviewer selection.
+
+        Criteria:
+        - not closed
+        - not draft
+        - author in the pilot group (Firefox only)
+        """
+
+        if self._pr.metadata.get("state") == "closed":
+            logger.warning("PR is closed.")
+            return False
+
+        if self._pr.metadata.get("draft"):
+            logger.warning("PR is a draft.")
+            return False
+
+        if self._pr.repo_full_name == GITHUB_PILOT_REPO:
+            author = self._pr.metadata.get("user", {}).get("login")
+            try:
+                in_team = self.user_in_team(author, GITHUB_PILOT_TEAM)
+            except HTTPError:
+                logger.exception(
+                    f"Error determining pilot membership for author {author}."
+                )
+                # Assume they are a member. The readiness logic prevents requesting
+                # reviews when authors aren't part of the pilot (and their PR will get
+                # closed imminently). However, if we are not able to confirm membership
+                # here, we err on the side of caution, preferring to create a bit of
+                # noise for an invalid PR, rather than leaving a valid PR without review
+                # requests.
+                return True
+            if not in_team:
+                logger.warning("Author is not part of the pilot.")
+                return False
+
+        return True
+
+    def user_in_team(self, user: str, team: str) -> bool:
+        """Test whether a user is in a given team (of the PR's target org).
+
+        A user is considered a member if they have an `active` membership in the team,
+        with either `member` or `maintainer` roles.
+        """
+        try:
+            membership = self._pr.authenticated_api_request(
+                f"/teams/{team}/memberships/{user}", request_type=RequestType.TEAMS
+            )
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                return False
+            raise
+
+        return membership.get("state") == "active" and membership.get("role") in [
+            "maintainer",
+            "member",
+        ]
 
     @override
     def report_error(self, message: str, **kwargs):

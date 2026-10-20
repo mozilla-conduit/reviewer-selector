@@ -76,6 +76,10 @@ class Reviewable(metaclass=ABCMeta):
             regardless of previous status.
         """
 
+    def ready_for_review(self) -> bool:
+        """Allows to skip reviewer selection based on Reviewable-specific criteria."""
+        return True
+
     def report_error(self, message: str, **kwargs):
         """Report errors."""
         logger.debug(f"Reporting error to Reviewable: {message}")
