@@ -619,7 +619,7 @@ def test_github_ready_for_review(
                 f"https://api.github.com/orgs/mozilla-conduit/teams/{GITHUB_PILOT_TEAM}/memberships/conduit-test-user",
                 status_code=404,
             )
-        elif readiness_type == "erre-pilot":
+        elif readiness_type == "error-pilot":
             mock.membership_get = mock.get(
                 f"https://api.github.com/orgs/mozilla-conduit/teams/{GITHUB_PILOT_TEAM}/memberships/conduit-test-user",
                 status_code=418,
