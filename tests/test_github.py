@@ -581,6 +581,7 @@ def test_github_reviewable_reports(
 @patch("reviewer_selector.github.GitHubApp.generate_token")
 def test_github_ready_for_review(
     mock_gh_generate_token: Mock,
+    mock_repo_full_name: Mock,
     github_api_response_pull_request: str,
     configurable_mocked_github_request: Callable,
     caplog: pytest.LogCaptureFixture,
