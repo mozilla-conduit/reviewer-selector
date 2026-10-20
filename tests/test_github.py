@@ -588,6 +588,8 @@ def test_github_ready_for_review(
     readiness_type: str,
 ):
 
+    mock_repo_full_name.return_value = GITHUB_PILOT_REPO
+
     if readiness_type == "closed":
         mutated_metadata = _mutate_pr_metadata(
             github_api_response_pull_request, '"state": "open",', '"state": "closed",'
