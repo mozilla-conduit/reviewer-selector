@@ -597,7 +597,7 @@ def test_github_ready_for_review(
 
     elif readiness_type == "draft":
         mutated_metadata = _mutate_pr_metadata(
-            github_api_response_pull_request, '"draft": false,', '"draft": "true",'
+            github_api_response_pull_request, '"draft": false,', '"draft": true,'
         )
 
     elif readiness_type.endswith("-pilot"):
