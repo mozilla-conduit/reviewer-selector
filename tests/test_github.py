@@ -601,11 +601,8 @@ def test_github_ready_for_review(
         )
 
     elif readiness_type.endswith("-pilot"):
-        mutated_metadata = _mutate_pr_metadata(
-            github_api_response_pull_request,
-            '"full_name": "mozilla-conduit/reviewer-selector",',
-            f'"full_name": "{GITHUB_PILOT_REPO}",',
-        )
+        # We rely on the repo_full_name being to provide the target repo name.
+        mutated_metadata = github_api_response_pull_request
 
     else:
         raise AssertionError(f"Unknown readiness_type: {readiness_type}")
