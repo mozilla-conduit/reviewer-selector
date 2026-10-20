@@ -368,10 +368,7 @@ class GitHubReviewable(Reviewable):
             logger.warning("PR is a draft.")
             return False
 
-        if (
-            self._pr.metadata.get("head", {}).get("repo", {}).get("full_name")
-            == GITHUB_PILOT_REPO
-        ):
+        if self._pr.repo_full_name == GITHUB_PILOT_REPO:
             author = self._pr.metadata.get("user", {}).get("login")
             try:
                 in_team = self.user_in_team(author, GITHUB_PILOT_TEAM)
