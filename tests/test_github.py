@@ -1,7 +1,7 @@
 import itertools
 import logging
 from collections.abc import Callable
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 import requests
@@ -24,6 +24,7 @@ def test_github_url_handling():
         gh.patch_url
         == "https://github.com/mozilla-conduit/reviewer-selector/pull/18.patch"
     )
+    assert gh.repo_full_name == "mozilla-conduit/reviewer-selector"
 
 
 def test_github_url_handling_invalid():

@@ -169,6 +169,10 @@ class GitHubApiObject(metaclass=ABCMeta):
     def authenticated_api_request(self, *args, **kwargs) -> dict[str, Any]:
         return self.api_request(*args, **kwargs)
 
+    @cached_property
+    def repo_full_name(self) -> str:
+        return f"{self.owner}/{self.repository}"
+
 
 @dataclass
 class GitHubPatchSource(PatchSource):
