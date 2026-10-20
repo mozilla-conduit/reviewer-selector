@@ -376,7 +376,12 @@ class GitHubReviewable(Reviewable):
                 logger.exception(
                     f"Error determining pilot membership for author {author}."
                 )
-                # Assume they are a member.
+                # Assume they are a member. The readiness logic prevents requesting
+                # reviews when authors aren't part of the pilot (and their PR will get
+                # closed imminently). However, if we are not able to confirm membership
+                # here, we err on the side of caution, preferring to create a bit of
+                # noise for an invalid PR, rather than leaving a valid PR without review
+                # requests.
                 return True
             if not in_team:
                 logger.warning("Author is not part of the pilot.")
