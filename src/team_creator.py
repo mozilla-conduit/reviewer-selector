@@ -263,7 +263,10 @@ def ensure_team_exists(
     if resp.status_code != 404:
         logger.warning(f"Error checking for existence of team {team_name}: {resp.text}")
         output.report(
-            team_name, CreationAction.CREATE_TEAM, CreationStatus.UNKNOWN, resp.text
+            team_name,
+            CreationAction.CREATE_TEAM,
+            CreationStatus.UNKNOWN,
+            details=resp.text,
         )
         return {}
 
