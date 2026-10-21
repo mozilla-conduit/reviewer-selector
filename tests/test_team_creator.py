@@ -1058,6 +1058,10 @@ def test_team_creator_only_team(
     ), "Missing log message about skipped team"
 
     gets = [r.url for r in github_double.request_history if r.method == "GET"]
-    assert "https://api.github.com/orgs/test-org/teams/fluent-reviewers" in gets
-    assert "https://api.github.com/orgs/test-org/teams/test-reviewers" in gets
-    assert "https://api.github.com/orgs/test-org/teams/ent:fluent-reviewers" not in gets
+    for team in ["fluent-reviewers", "test-reviewers"]:
+        assert f"https://api.github.com/orgs/test-org/teams/{team}" in gets, (
+            f"Missing GET request for selectod team {team}"
+        )
+    assert (
+        "https://api.github.com/orgs/test-org/teams/ent:fluent-reviewers" not in gets
+    ), "Unexpected GET request for filtered-out team ent:fluent-reviewers"
