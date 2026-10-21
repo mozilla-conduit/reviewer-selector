@@ -641,7 +641,12 @@ def test_dry_run(
                 "alice",
                 "",
             ),
-            call(error_team_name, CreationAction.CREATE_TEAM, CreationStatus.UNKNOWN),
+            call(
+                error_team_name,
+                CreationAction.CREATE_TEAM,
+                CreationStatus.UNKNOWN,
+                details="",
+            ),
         ],
         any_order=True,
     )
@@ -966,6 +971,7 @@ def test_team_creator_most_args(
     github_double: GithubDouble,
     sample_rules_data: dict[str, Any],
     capsys: pytest.CaptureFixture,
+    caplog: pytest.LogCaptureFixture,
 ):
     args = [
         "--base-team",
@@ -984,6 +990,8 @@ def test_team_creator_most_args(
     assert all(r.method == "GET" for r in github_double.request_history), (
         "Only GET requests should have happened in dry-run"
     )
+
+    assert "DEBUG" in caplog.text, "No DEBUG-level messages logs despite --debug flag"
 
     outerr = capsys.readouterr()
 
@@ -1021,3 +1029,39 @@ def assert_all_rules_teams_up_to_date(
             (rules["github_users"].get(m, {}).get("username") or m)
             for m in team["members"]
         }, f"Unexpected members in team {team_name}"
+
+
+def test_team_creator_only_team(
+    tmp_path: pathlib.Path,
+    github_double: GithubDouble,
+    sample_rules_data: dict[str, Any],
+    caplog: pytest.LogCaptureFixture,
+):
+    args = [
+        "--github-token",
+        "cli_gh_token",
+        "--debug",
+        "--only-team",
+        "fluent-reviewers",
+        "--only-team",
+        "test-reviewers",
+    ]
+
+    _run_team_creator(tmp_path, github_double, args, sample_rules_data)
+
+    assert (
+        "Only creating team(s): fluent-reviewers, test-reviewers ..." in caplog.text
+    ), "Missing log message about limited team selection"
+    assert (
+        "Team ent:fluent-reviewers not in requested subset, skipping creation/update ..."
+        in caplog.text
+    ), "Missing log message about skipped team"
+
+    gets = [r.url for r in github_double.request_history if r.method == "GET"]
+    for team in ["fluent-reviewers", "test-reviewers"]:
+        assert f"https://api.github.com/orgs/test-org/teams/{team}" in gets, (
+            f"Missing GET request for selectod team {team}"
+        )
+    assert (
+        "https://api.github.com/orgs/test-org/teams/ent:fluent-reviewers" not in gets
+    ), "Unexpected GET request for filtered-out team ent:fluent-reviewers"

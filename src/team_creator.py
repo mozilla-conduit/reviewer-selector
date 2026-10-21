@@ -115,6 +115,12 @@ def main():
     )
     args_parser.add_argument("--github-token")
     args_parser.add_argument("--organisation", default="mozilla-firefox")
+    args_parser.add_argument(
+        "--only-team",
+        action="append",
+        default=[],
+        help="Only create/update this team. Can be provided multiple times.",
+    )
     args_parser.add_argument("rules")
 
     arguments = args_parser.parse_args()
@@ -122,8 +128,10 @@ def main():
     # Honour the highest verbosity level requested.
     if arguments.debug:
         logging.basicConfig(level=logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
+        logger.setLevel(logging.INFO)
 
     organisation = arguments.organisation
     base_team = arguments.base_team
@@ -140,8 +148,19 @@ def main():
 
     output = CsvOutput() if arguments.csv else NoopOutput()
 
+    if arguments.only_team:
+        logger.info(f"Only creating team(s): {', '.join(arguments.only_team)} ...")
+
     try:
-        create_teams(client, rules, organisation, base_team, arguments.dry_run, output)
+        create_teams(
+            client,
+            rules,
+            organisation,
+            base_team,
+            arguments.dry_run,
+            output,
+            only_teams=arguments.only_team,
+        )
     except HTTPError as exc:
         logger.error(
             f"Exception when creating teams: {exc} for {exc.request.body}: {exc.response.text}"
@@ -163,8 +182,9 @@ def create_teams(
     base_team: str,
     dry_run: bool,
     output: Output,
+    *,
+    only_teams: list[str] | None = None,
 ):
-
     logger.debug("Creating Phabricator->GitHub user map ...")
     github_users: RulesGitHubUsers = herald_rules.get("github_users", {})
     logger.info(f"Found {len(github_users)} Phabricator->GitHub user mappings")
@@ -173,6 +193,11 @@ def create_teams(
     groups: RulesGroups = herald_rules.get("groups", {})
     teams: GitHubTeams = {}
     for group_name, group_data in groups.items():
+        if only_teams and group_name not in only_teams:
+            logger.debug(
+                f"Team {group_name} not in requested subset, skipping creation/update ..."
+            )
+            continue
         members = set()
         for phab_name in group_data.get("members", []):
             if phab_name not in github_users:
@@ -237,7 +262,12 @@ def ensure_team_exists(
 
     if resp.status_code != 404:
         logger.warning(f"Error checking for existence of team {team_name}: {resp.text}")
-        output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.UNKNOWN)
+        output.report(
+            team_name,
+            CreationAction.CREATE_TEAM,
+            CreationStatus.UNKNOWN,
+            details=resp.text,
+        )
         return {}
 
     if dry_run:
@@ -322,7 +352,11 @@ def add_team_members(
         except HTTPError as exc:
             logger.warning(f"Cannot add {user} to {team_name}: {exc.response.text}")
             output.report_users(
-                team_name, CreationAction.ADD_USER, CreationStatus.FAILED, [user]
+                team_name,
+                CreationAction.ADD_USER,
+                CreationStatus.FAILED,
+                [user],
+                exc.response.text,
             )
         else:
             added_users.append(user)
@@ -364,7 +398,11 @@ def remove_team_members(
                 f"Cannot remove {user} from {team_name}: {exc.response.text}"
             )
             output.report_users(
-                team_name, CreationAction.REMOVE_USER, CreationStatus.FAILED, [user]
+                team_name,
+                CreationAction.REMOVE_USER,
+                CreationStatus.FAILED,
+                [user],
+                exc.response.text,
             )
         else:
             removed_members.append(user)
