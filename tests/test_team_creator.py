@@ -1055,7 +1055,7 @@ def test_team_creator_only_team(
     assert (
         "Team ent:fluent-reviewers not in requested subset, skipping creation/update ..."
         in caplog.text
-    )
+    ), "Missing log message about skipped team"
 
     gets = [r.url for r in github_double.request_history if r.method == "GET"]
     assert "https://api.github.com/orgs/test-org/teams/fluent-reviewers" in gets
