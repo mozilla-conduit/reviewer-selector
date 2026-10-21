@@ -642,7 +642,10 @@ def test_dry_run(
                 "",
             ),
             call(
-                error_team_name, CreationAction.CREATE_TEAM, CreationStatus.UNKNOWN, ""
+                error_team_name,
+                CreationAction.CREATE_TEAM,
+                CreationStatus.UNKNOWN,
+                details="",
             ),
         ],
         any_order=True,
