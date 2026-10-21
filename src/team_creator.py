@@ -115,7 +115,12 @@ def main():
     )
     args_parser.add_argument("--github-token")
     args_parser.add_argument("--organisation", default="mozilla-firefox")
-    args_parser.add_argument("--only-team", action="append", default=[])
+    args_parser.add_argument(
+        "--only-team",
+        action="append",
+        default=[],
+        help="Only create/update this team. Can be provided multiple times.",
+    )
     args_parser.add_argument("rules")
 
     arguments = args_parser.parse_args()
