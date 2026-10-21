@@ -1049,7 +1049,9 @@ def test_team_creator_only_team(
 
     _run_team_creator(tmp_path, github_double, args, sample_rules_data)
 
-    assert "Only creating team(s): fluent-reviewers, test-reviewers ..." in caplog.text
+    assert (
+        "Only creating team(s): fluent-reviewers, test-reviewers ..." in caplog.text
+    ), "Missing log message about limited team selection"
     assert (
         "Team ent:fluent-reviewers not in requested subset, skipping creation/update ..."
         in caplog.text
