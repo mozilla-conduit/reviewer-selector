@@ -991,7 +991,7 @@ def test_team_creator_most_args(
         "Only GET requests should have happened in dry-run"
     )
 
-    assert 'DEBUG' in caplog.text, "No DEBUG-level messages logs despite --debug flag"
+    assert "DEBUG" in caplog.text, "No DEBUG-level messages logs despite --debug flag"
 
     outerr = capsys.readouterr()
 
