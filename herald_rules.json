@@ -2721,7 +2721,7 @@
         {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": "^/?browser/installer/windows"
+          "value": "^/?(browser/installer/windows/|toolkit/mozapps/installer/|browser/app/desktop-launcher/|browser/installer/package-manifest\\.in|browser/installer/removed-files\\.in|browser/installer/linux/|python/mozbuild/mozbuild/repackaging/msix\\.py|python/mozbuild/mozbuild/repackaging/msi\\.py|python/mozbuild/mozpack/dmg\\.py|python/mozbuild/mozpack/pkg\\.py)"
         }
       ],
       "actions": [
@@ -4733,6 +4733,135 @@
           ]
         }
       ]
+    },
+    {
+      "id": "H554",
+      "name": "Blocked by mac-reviewers",
+      "author": "shtrom_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/?widget/cocoa/"
+        },
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "mac-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H555",
+      "name": "Blocked by Application Update Reviewers #2",
+      "author": "shtrom_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Abandoned",
+            "Draft",
+            "Changes Planned",
+            "Closed"
+          ]
+        },
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^/?(toolkit/xre/MacLaunchHelper\\.(mm|h)|toolkit/xre/MacRunFromDmgUtils\\.(mm|h)|toolkit/mozapps/macos-frameworks/|toolkit/components/bitsdownload/|modules/libmar/|tools/update-packaging/|python/mozbuild/mozbuild/repackaging/mar\\.py)"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "application-update-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H558",
+      "name": "Blocked by mobiletest-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Abandoned",
+            "Closed",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/mobile/android/(fenix|focus-android)/app/src/androidTest"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "mobiletest-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
     }
   ],
   "groups": {
@@ -4972,6 +5101,7 @@
       "members": [
         "aborondo",
         "cdupuis",
+        "iholmes",
         "nalexander",
         "spohl",
         "yjuglaret"
@@ -5414,6 +5544,17 @@
         "tnikkel"
       ]
     },
+    "mac-reviewers": {
+      "id": "mac-reviewers",
+      "display_name": "mac-reviewers",
+      "members": [
+        "bradwerth",
+        "haik",
+        "jaas",
+        "mstange",
+        "spohl"
+      ]
+    },
     "mach-reviewers": {
       "id": "mach-reviewers",
       "display_name": "mach-reviewers",
@@ -5454,6 +5595,19 @@
       "members": [
         "Gijs",
         "mconley"
+      ]
+    },
+    "mobiletest-reviewers": {
+      "id": "mobiletest-reviewers",
+      "display_name": "mobiletest-reviewers",
+      "members": [
+        "aaronmt",
+        "ajoltan",
+        "cso",
+        "dpop",
+        "isabel_rios",
+        "jajohnson",
+        "ohorvath"
       ]
     },
     "moz-phab-reviewers": {
@@ -5500,7 +5654,6 @@
       "members": [
         "aminomancer",
         "andhuang",
-        "dmose",
         "emcminn",
         "hanna_a",
         "jprickett",
@@ -6104,6 +6257,10 @@
       "username": "travis79",
       "user_id": 7341315
     },
+    "aaronmt": {
+      "username": "AaronMT",
+      "user_id": 102331
+    },
     "aborondo": {
       "username": "antonioborondo",
       "user_id": 5370877
@@ -6143,6 +6300,10 @@
     "ahochheiden": {
       "username": "ahochheiden",
       "user_id": 10782766
+    },
+    "ajoltan": {
+      "username": "AndiAJ",
+      "user_id": 51314259
     },
     "akomar": {
       "username": "akkomar",
@@ -6340,6 +6501,10 @@
       "username": "kala-moz",
       "user_id": 88336547
     },
+    "cso": {
+      "username": "clarmso",
+      "user_id": 1740517
+    },
     "czhou": {
       "username": "chloezhouny",
       "user_id": 52276285
@@ -6407,6 +6572,10 @@
     "dmose": {
       "username": "dmose",
       "user_id": 425657
+    },
+    "dpop": {
+      "username": "delia-pop",
+      "user_id": 89388888
     },
     "dshin": {
       "username": "dshin-moz",
@@ -6592,9 +6761,17 @@
       "username": "ireneni",
       "user_id": 36576160
     },
+    "isabel_rios": {
+      "username": "isabelrios",
+      "user_id": 1897507
+    },
     "issammani": {
       "username": "issammani",
       "user_id": 26678795
+    },
+    "jajohnson": {
+      "username": "jjSDET",
+      "user_id": 107960801
     },
     "janerik": {
       "username": "badboy",
@@ -7468,7 +7645,8 @@
         "H544",
         "H547",
         "H551",
-        "H553"
+        "H553",
+        "H558"
       ]
     },
     {
@@ -7483,6 +7661,13 @@
       "reason": "no_people_directory_cookie",
       "referenced_in": [
         "group:thunderbird-design-reviewers"
+      ]
+    },
+    {
+      "phabricator_username": "jaas",
+      "reason": "no_people_directory_cookie",
+      "referenced_in": [
+        "group:mac-reviewers"
       ]
     },
     {
@@ -7569,6 +7754,13 @@
       ]
     },
     {
+      "phabricator_username": "ohorvath",
+      "reason": "no_people_directory_cookie",
+      "referenced_in": [
+        "group:mobiletest-reviewers"
+      ]
+    },
+    {
       "phabricator_username": "peterv",
       "reason": "no_people_directory_cookie",
       "referenced_in": [
@@ -7603,7 +7795,9 @@
       "reason": "no_people_directory_cookie",
       "referenced_in": [
         "H549",
-        "H550"
+        "H550",
+        "H554",
+        "H555"
       ]
     },
     {
@@ -7680,11 +7874,11 @@
     }
   ],
   "metadata": {
-    "extracted_at": "2026-10-19T05:01:28.416027Z",
-    "total_rules": 101,
-    "total_groups": 105,
-    "total_users_resolved": 323,
-    "total_users_unresolved": 36,
+    "extracted_at": "2026-10-27T23:37:13.704208Z",
+    "total_rules": 104,
+    "total_groups": 107,
+    "total_users_resolved": 329,
+    "total_users_unresolved": 38,
     "phabricator_instance": "phabricator.services.mozilla.com",
     "scrape_status": {
       "rules_complete": true,
