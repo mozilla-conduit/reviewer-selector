@@ -13,7 +13,7 @@ permissions:
 
 env:
   ORG_NAME: mozilla-conduit
-  REPO_NAME: lando
+  REPO_NAME: reviewer-selector
   BASE_TEAM_NAME: all-reviewers
 
 jobs:
@@ -53,6 +53,7 @@ jobs:
 
       - name: Save log
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
         with:
           name: team-creator-log.csv
           path: team-creator-log.csv
