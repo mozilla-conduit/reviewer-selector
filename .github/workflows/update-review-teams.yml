@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'herald-rules.json'
+      - 'herald_rules.json'
   workflow_dispatch: {}
 
 permissions:
@@ -13,6 +13,7 @@ permissions:
 
 env:
   ORG_NAME: mozilla-firefox
+  REPO_NAME: firefox
   BASE_TEAM_NAME: all-reviewers
 
 jobs:
@@ -34,14 +35,21 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Run team-creator
+      - name: Generate token
+        id: generate-token
         env:
           GITHUB_APP_ID: ${{ secrets.TEAM_CREATOR_APP_ID }}
           GITHUB_APP_PRIVKEY: ${{ secrets.TEAM_CREATOR_APP_PRIVKEY }}
         run: |
-          uv run team-creator --github-token $(uv run gh-token-generator) --debug \
+          (echo -n "token="; uv run gh-token-generator) >> ${GITHUB_OUTPUT}
+
+      - name: Run team-creator
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          uv run team-creator --github-token ${GH_TOKEN} --debug \
             --organisation "${ORG_NAME}" --base-team "${BASE_TEAM_NAME}" \
-            ./herald_rules.json
+            ./herald_rules.json --csv > team-creator-log.csv
 
       - name: Save log
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
