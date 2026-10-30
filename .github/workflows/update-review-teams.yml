@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 env:
-  ORG_NAME: mozilla-firefox
-  REPO_NAME: firefox
+  ORG_NAME: mozilla-conduit
+  REPO_NAME: lando
   BASE_TEAM_NAME: all-reviewers
 
 jobs:
