@@ -47,7 +47,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
-          uv run team-creator --github-token ${GH_TOKEN} --debug \
+          uv run team-creator --github-token ${GH_TOKEN} \
             --organisation "${ORG_NAME}" --base-team "${BASE_TEAM_NAME}" \
             ./herald_rules.json --csv > team-creator-log.csv
 
