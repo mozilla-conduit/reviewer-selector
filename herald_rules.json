@@ -4473,49 +4473,6 @@
       ]
     },
     {
-      "id": "H547",
-      "name": "Blocked by device-api-reviewers group",
-      "author": "dkl_admin",
-      "status": "active",
-      "type": "differential-revision",
-      "conditions": [
-        {
-          "type": "repository",
-          "operator": "is-any-of",
-          "value": [
-            "firefox-autoland"
-          ]
-        },
-        {
-          "type": "differential-revision-status",
-          "operator": "is-not-any-of",
-          "value": [
-            "Closed",
-            "Abandoned",
-            "Draft",
-            "Changes Planned"
-          ]
-        },
-        {
-          "type": "differential-affected-files",
-          "operator": "matches-regexp",
-          "value": "/?(dom/(gamepad|webserial|midi(/tests)?)/.*|dom/webidl/Gamepad.*|dom/tests/mochitest/gamepad/.*|testing/web-platform/tests/(gamepad|webmidi)/.*)"
-        }
-      ],
-      "actions": [
-        {
-          "type": "add-reviewers",
-          "reviewers": [
-            {
-              "target": "device-api-reviewers",
-              "blocking": true,
-              "is_group": true
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "H549",
       "name": "Blocked by media webspeech reviewers",
       "author": "shtrom_admin",
@@ -4862,6 +4819,178 @@
           ]
         }
       ]
+    },
+    {
+      "id": "H556",
+      "name": "Blocked by android-tabs-reviewers",
+      "author": "shtrom_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Abandoned",
+            "Closed",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^/?mobile/android/(android-components/components/(browser/tabstray|compose/tabstray|concept/tabstray|feature/tabs|feature/tabgroups-storage|feature/tabdata-coordinator)|fenix/app/src/[^/]+/java/org/mozilla/fenix/(tabstray|tabgroups|components/tabs))/"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "android-tabs-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H559",
+      "name": "Blocked by webserial-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/(dom/webserial|testing/web-platform/tests/serial)/"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "webserial-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H560",
+      "name": "Blocked by webmidi-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Draft",
+            "Changes Planned"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/(dom/midi|dom/midi/tests|testing/web-platform/tests/webmidi)/"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "webmidi-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H561",
+      "name": "Blocked by gamepad-reviewers",
+      "author": "dkl_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "firefox-autoland"
+          ]
+        },
+        {
+          "type": "differential-revision-status",
+          "operator": "is-not-any-of",
+          "value": [
+            "Closed",
+            "Abandoned",
+            "Changes Planned",
+            "Draft"
+          ]
+        },
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "/(dom/(gamepad|webidl/Gamepad|dom/tests/mochitest/gamepad)|testing/web-platform/tests/gamepad)/"
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "gamepad-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
     }
   ],
   "groups": {
@@ -5062,6 +5191,16 @@
         "zfatima"
       ]
     },
+    "android-tabs-reviewers": {
+      "id": "android-tabs-reviewers",
+      "display_name": "android-tabs-reviewers",
+      "members": [
+        "007",
+        "ab-cmqplrhhxreapfrgadp3w3ip",
+        "calu",
+        "jdelorenzo"
+      ]
+    },
     "anti-tracking-reviewers-rotation": {
       "id": "anti-tracking-reviewers-rotation",
       "display_name": "anti-tracking-reviewers-rotation",
@@ -5076,9 +5215,6 @@
       "id": "application-update-reviewers",
       "display_name": "application-update-reviewers",
       "members": [
-        "aborondo",
-        "cdupuis",
-        "iholmes",
         "spohl",
         "yjuglaret"
       ]
@@ -5087,7 +5223,6 @@
       "id": "backup-reviewers-rotation",
       "display_name": "backup-reviewers-rotation",
       "members": [
-        "cdupuis",
         "fchasen",
         "hsohaney",
         "kpatenio",
@@ -5099,9 +5234,6 @@
       "id": "browser-installer-reviewers",
       "display_name": "browser-installer-reviewers",
       "members": [
-        "aborondo",
-        "cdupuis",
-        "iholmes",
         "nalexander",
         "spohl",
         "yjuglaret"
@@ -5184,6 +5316,7 @@
       "members": [
         "aweine",
         "djackson",
+        "goutam",
         "jschanck",
         "keeler"
       ]
@@ -5402,6 +5535,14 @@
         "sfoster"
       ]
     },
+    "gamepad-reviewers": {
+      "id": "gamepad-reviewers",
+      "display_name": "gamepad-reviewers",
+      "members": [
+        "cmartin",
+        "saschanaz"
+      ]
+    },
     "geckodriver-reviewers": {
       "id": "geckodriver-reviewers",
       "display_name": "geckodriver-reviewers",
@@ -5607,7 +5748,7 @@
         "dpop",
         "isabel_rios",
         "jajohnson",
-        "ohorvath"
+        "mbarone"
       ]
     },
     "moz-phab-reviewers": {
@@ -5703,6 +5844,7 @@
         "Standard8",
         "adw",
         "daisuke",
+        "jteow",
         "mak"
       ]
     },
@@ -6154,6 +6296,13 @@
         "tschuster"
       ]
     },
+    "webmidi-reviewers": {
+      "id": "webmidi-reviewers",
+      "display_name": "webmidi-reviewers",
+      "members": [
+        "gsvelto"
+      ]
+    },
     "webrtc-reviewers": {
       "id": "webrtc-reviewers",
       "display_name": "webrtc-reviewers",
@@ -6166,11 +6315,19 @@
         "pehrsons"
       ]
     },
+    "webserial-reviewers": {
+      "id": "webserial-reviewers",
+      "display_name": "webserial-reviewers",
+      "members": [
+        "cmartin",
+        "gstoll",
+        "nika"
+      ]
+    },
     "win-reviewers": {
       "id": "win-reviewers",
       "display_name": "win-reviewers",
       "members": [
-        "cdupuis",
         "cmartin",
         "gstoll",
         "handyman",
@@ -6693,6 +6850,10 @@
       "username": "Gela",
       "user_id": 3746552
     },
+    "goutam": {
+      "username": "gtamvada-mozilla",
+      "user_id": 349888222
+    },
     "gregtatum": {
       "username": "gregtatum",
       "user_id": 1588648
@@ -7024,6 +7185,10 @@
     "maxx": {
       "username": "maxxcrawford",
       "user_id": 2692333
+    },
+    "mbarone": {
+      "username": "mdotb-moz",
+      "user_id": 177202774
     },
     "mbeier": {
       "username": "moritzbeier",
@@ -7528,6 +7693,13 @@
       ]
     },
     {
+      "phabricator_username": "ab-cmqplrhhxreapfrgadp3w3ip",
+      "reason": "no_people_directory_cookie",
+      "referenced_in": [
+        "group:android-tabs-reviewers"
+      ]
+    },
+    {
       "phabricator_username": "ablenkin",
       "reason": "no_people_directory_cookie",
       "referenced_in": [
@@ -7643,10 +7815,12 @@
         "H541",
         "H542",
         "H544",
-        "H547",
         "H551",
         "H553",
-        "H558"
+        "H558",
+        "H559",
+        "H560",
+        "H561"
       ]
     },
     {
@@ -7754,13 +7928,6 @@
       ]
     },
     {
-      "phabricator_username": "ohorvath",
-      "reason": "no_people_directory_cookie",
-      "referenced_in": [
-        "group:mobiletest-reviewers"
-      ]
-    },
-    {
       "phabricator_username": "peterv",
       "reason": "no_people_directory_cookie",
       "referenced_in": [
@@ -7797,7 +7964,8 @@
         "H549",
         "H550",
         "H554",
-        "H555"
+        "H555",
+        "H556"
       ]
     },
     {
@@ -7874,10 +8042,10 @@
     }
   ],
   "metadata": {
-    "extracted_at": "2026-10-27T23:37:13.704208Z",
-    "total_rules": 104,
-    "total_groups": 107,
-    "total_users_resolved": 329,
+    "extracted_at": "2026-11-02T04:15:23.890103Z",
+    "total_rules": 107,
+    "total_groups": 111,
+    "total_users_resolved": 331,
     "total_users_unresolved": 38,
     "phabricator_instance": "phabricator.services.mozilla.com",
     "scrape_status": {
