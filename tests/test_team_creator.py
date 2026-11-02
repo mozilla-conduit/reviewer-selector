@@ -713,42 +713,6 @@ def test_create_teams(
 
     mock_output.report.assert_has_calls(
         [
-            call("all-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "alice-gh",
-                "",
-            ),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "bob-gh",
-                "",
-            ),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "charlie-gh",
-                "",
-            ),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "jdoe-gh",
-                "",
-            ),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "jsmith-gh",
-                "",
-            ),
             call(
                 "fluent-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED
             ),
@@ -846,21 +810,6 @@ def test_create_teams_missing_mappings(
                 CreationStatus.MISSING,
                 "bob",
             ),
-            call("all-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "jsmith-gh",
-                "",
-            ),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "jdoe-gh",
-                "",
-            ),
             call(
                 "fluent-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED
             ),
@@ -904,42 +853,6 @@ def test_create_teams_user_removal(
 
     mock_output.report.assert_has_calls(
         [
-            call("all-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "alice-gh",
-                "",
-            ),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "bob-gh",
-                "",
-            ),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "charlie-gh",
-                "",
-            ),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "jsmith-gh",
-                "",
-            ),
-            call(
-                "all-reviewers",
-                CreationAction.ADD_USER,
-                CreationStatus.CREATED,
-                "jdoe-gh",
-                "",
-            ),
             call(
                 "fluent-reviewers", CreationAction.CREATE_TEAM, CreationStatus.PRESENT
             ),
@@ -1051,10 +964,16 @@ def test_team_creator_most_args(
 def assert_all_rules_teams_up_to_date(
     github_double: GithubDouble, rules: dict[str, Any]
 ):
-    # Add the all-reviewers groups to ensure it contains everyone.
-    rules["groups"]["all-reviewers"] = {
-        "members": [u["username"] for u in rules["github_users"].values()]
+    all_reviewers = {u for g in rules["groups"].values() for u in g["members"]}
+    all_reviewers_members = github_double.get_team_members("all-reviewers")
+    expected_all_reviewers_members = {
+        gh_map["username"]
+        for phab, gh_map in rules["github_users"].items()
+        if phab in all_reviewers
     }
+    assert all_reviewers_members == expected_all_reviewers_members, (
+        "Unexpected members in all-reviewers team"
+    )
 
     for team_name, team in rules["groups"].items():
         members = github_double.get_team_members(team_name)
