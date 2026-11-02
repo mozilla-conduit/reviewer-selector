@@ -194,6 +194,42 @@ def create_teams(
     *,
     only_teams: list[str] | None = None,
 ):
+    teams = build_teams_map(herald_rules, output, only_teams)
+
+    # find base team
+    ensure_team_exists(client, organisation, base_team, dry_run, output)
+    all_users = {username for _, members in teams.items() for username in members}
+    update_team_members(
+        client,
+        organisation,
+        base_team,
+        gate_team,
+        all_users,
+        dry_run,
+        output,
+        remove=not only_teams,
+    )
+
+    groups: RulesGroups = herald_rules.get("groups", {})
+    for team, target_members in teams.items():
+        # create team
+        ensure_team_exists(
+            client,
+            organisation,
+            team,
+            dry_run,
+            output,
+            parent_team=base_team,
+            display_name=groups.get(team, {}).get("display_name"),
+        )
+        update_team_members(
+            client, organisation, team, gate_team, target_members, dry_run, output
+        )
+
+
+def build_teams_map(
+    herald_rules: dict[str, Any], output: Output, only_teams: list[str] | None = None
+) -> GitHubTeams:
     logger.debug("Creating Phabricator->GitHub user map ...")
     github_users: RulesGitHubUsers = herald_rules.get("github_users", {})
     logger.info(f"Found {len(github_users)} Phabricator->GitHub user mappings")
@@ -236,27 +272,7 @@ def create_teams(
 
         teams[group_name] = members
 
-    # find base team
-    ensure_team_exists(client, organisation, base_team, dry_run, output)
-    all_users = {u["username"] for u in github_users.values() if u.get("username")}
-    update_team_members(
-        client, organisation, base_team, gate_team, all_users, dry_run, output
-    )
-
-    for team, target_members in teams.items():
-        # create team
-        ensure_team_exists(
-            client,
-            organisation,
-            team,
-            dry_run,
-            output,
-            parent_team=base_team,
-            display_name=groups.get(team, {}).get("display_name"),
-        )
-        update_team_members(
-            client, organisation, team, gate_team, target_members, dry_run, output
-        )
+    return teams
 
 
 def ensure_team_exists(
@@ -329,8 +345,12 @@ def update_team_members(
     target_members: set[str],
     dry_run: bool,
     output: Output,
+    remove: bool = True,
 ):
-    """Add and remove team members as needed to match target_members."""
+    """Add and remove team members as needed to match target_members.
+
+    Removal can be disabled, in case of a partial update.
+    """
     current_members = get_team_members(client, organisation, team, dry_run)
     logger.info(f"Current members of {team}: {current_members}")
 
@@ -338,6 +358,10 @@ def update_team_members(
         add_team_members(
             client, organisation, team, gate_team, users_to_add, dry_run, output
         )
+
+    if not remove:
+        logger.warning("Not removing users")
+        return
 
     if members_to_remove := current_members - target_members:
         remove_team_members(

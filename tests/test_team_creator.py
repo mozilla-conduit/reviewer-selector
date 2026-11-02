@@ -628,9 +628,8 @@ def test_dry_run(
         )
 
     assert len(members) == 1, "Expected correct member list in dry run"
-    # 2x2 (team + members) GET requests
-    assert len(github_double.request_history) == 4, (
-        "Unexpected number of requests to GitHub (only GETs allowed)"
+    assert all(r.method == "GET" for r in github_double.request_history), (
+        "Unexpected request methods to GitHub (only GETs allowed)"
     )
 
     # /orgs/{organisation}/teams/{team_name}
@@ -648,9 +647,8 @@ def test_dry_run(
 
     # Due to https://github.com/jamielennox/requests-mock/issues/277, we cannot reset
     # the mock to only check the new request.
-    expected_requests = 4 + 1
-    assert len(github_double.request_history) == expected_requests, (
-        "Unexpected number of requests to GitHub (only GETs allowed)"
+    assert all(r.method == "GET" for r in github_double.request_history), (
+        "Unexpected request methods to GitHub (only GETs allowed)"
     )
     assert ret == {}
 
