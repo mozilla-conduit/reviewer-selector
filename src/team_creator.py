@@ -192,6 +192,7 @@ def create_teams(
     logger.info("Creating GitHub Teams member lists ...")
     groups: RulesGroups = herald_rules.get("groups", {})
     teams: GitHubTeams = {}
+    unresolved_seen = set()
     for group_name, group_data in groups.items():
         if only_teams and group_name not in only_teams:
             logger.debug(
@@ -201,6 +202,9 @@ def create_teams(
         members = set()
         for phab_name in group_data.get("members", []):
             if phab_name not in github_users:
+                if phab_name in unresolved_seen:
+                    continue
+                unresolved_seen.add(phab_name)
                 logger.warning(f"Unresolved GitHub username for {phab_name}")
                 output.report(
                     "PHAB_RESOLUTION",
