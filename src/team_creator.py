@@ -235,9 +235,10 @@ def build_teams_map(
             continue
         members = set()
         for phab_name in group_data.get("members", []):
+            if phab_name in unresolved_seen:
+                continue
+
             if phab_name not in github_users:
-                if phab_name in unresolved_seen:
-                    continue
                 unresolved_seen.add(phab_name)
                 logger.warning(f"Unresolved GitHub username for {phab_name}")
                 output.report(
@@ -247,8 +248,10 @@ def build_teams_map(
                     phab_name,
                 )
                 continue
+
             github_name = github_users[phab_name].get("username", "")
             if not github_name:
+                unresolved_seen.add(phab_name)
                 logger.warning(f"Empty or missing GitHub username for {phab_name}")
                 output.report(
                     "PHAB:resolution",

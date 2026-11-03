@@ -856,12 +856,6 @@ def test_create_teams_missing_mappings(
                 "charlie",
             ),
             call(
-                "PHAB:resolution",
-                CreationAction.RESOLVE_USERNAME,
-                CreationStatus.MISSING,
-                "bob",
-            ),
-            call(
                 "TEAM:fluent-reviewers",
                 CreationAction.CREATE_TEAM,
                 CreationStatus.CREATED,
@@ -879,6 +873,17 @@ def test_create_teams_missing_mappings(
         ],
         any_order=True,
     )
+
+    assert (
+        len(
+            [
+                c
+                for c in mock_output.report.call_args_list
+                if c[0][0] == "PHAB:resolution" and c[0][3] == "bob"
+            ]
+        )
+        == 1
+    ), "PHAB:resolution checks for `bob` reported multiple times"
 
 
 def test_create_teams_user_removal(
