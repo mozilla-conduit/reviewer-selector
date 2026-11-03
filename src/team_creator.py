@@ -102,11 +102,6 @@ def main():
     args_parser = ArgumentParser()
     args_parser.add_argument("--base-team", default="all-reviewers")
     args_parser.add_argument(
-        "--gate-team",
-        default="ent:active-scm-level-1",
-        help="Only users already member of this team will be added",
-    )
-    args_parser.add_argument(
         "--debug",
         action="store_true",
         default=False,
@@ -141,7 +136,6 @@ def main():
 
     organisation = arguments.organisation
     base_team = arguments.base_team
-    gate_team = arguments.gate_team
 
     token = arguments.github_token or os.getenv("GH_TOKEN", os.getenv("GITHUB_TOKEN"))
     if not token:
@@ -164,7 +158,6 @@ def main():
             rules,
             organisation,
             base_team,
-            gate_team,
             arguments.dry_run,
             output,
             only_teams=arguments.only_team,
@@ -188,7 +181,6 @@ def create_teams(
     herald_rules: dict[str, Any],
     organisation: str,
     base_team: str,
-    gate_team: str,
     dry_run: bool,
     output: Output,
     *,
@@ -203,7 +195,6 @@ def create_teams(
         client,
         organisation,
         base_team,
-        gate_team,
         all_users,
         dry_run,
         output,
@@ -222,9 +213,7 @@ def create_teams(
             parent_team=base_team,
             display_name=groups.get(team, {}).get("display_name"),
         )
-        update_team_members(
-            client, organisation, team, gate_team, target_members, dry_run, output
-        )
+        update_team_members(client, organisation, team, target_members, dry_run, output)
 
 
 def build_teams_map(
@@ -341,7 +330,6 @@ def update_team_members(
     client: Client,
     organisation: str,
     team: str,
-    gate_team: str,
     target_members: set[str],
     dry_run: bool,
     output: Output,
@@ -355,9 +343,7 @@ def update_team_members(
     logger.info(f"Current members of {team}: {current_members}")
 
     if users_to_add := target_members - current_members:
-        add_team_members(
-            client, organisation, team, gate_team, users_to_add, dry_run, output
-        )
+        add_team_members(client, organisation, team, users_to_add, dry_run, output)
 
     if not remove:
         logger.warning("Not removing users")
@@ -373,7 +359,6 @@ def add_team_members(
     client: Client,
     organisation: str,
     team_name: str,
-    gate_team: str,
     users: set[str],
     dry_run: bool,
     output: Output,
@@ -384,8 +369,8 @@ def add_team_members(
     added_users = []
 
     for user in users:
-        if not confirm_team_membership(client, organisation, gate_team, user, output):
-            logger.warning(f"{user} is not a member of {gate_team}, skipping ...")
+        if not confirm_org_membership(client, organisation, user, output):
+            logger.warning(f"{user} is not a member of {organisation}, skipping addition to team {team_name}...")
             continue
 
         if dry_run:
@@ -417,21 +402,20 @@ def add_team_members(
     logger.info(f"Added users to {team_name}: {added_users}")
 
 
-def confirm_team_membership(
+def confirm_org_membership(
     client: Client,
     organisation: str,
-    team_name: str,
     user: str,
     output: Output,
 ) -> bool:
-    logger.debug(f"Checking team {team_name} membership for {user} ...")
-    check_url = f"orgs/{organisation}/teams/{team_name}/memberships/{user}"
+    logger.debug(f"Checking {organisation} membership for {user} ...")
+    check_url = f"orgs/{organisation}/members/{user}"
 
     try:
         resp: requests.Response = client.get(check_url)
         if resp.status_code == 404:
             output.report_users(
-                team_name,
+                organisation,
                 CreationAction.CHECK_USER,
                 CreationStatus.ABSENT,
                 [user],
@@ -440,22 +424,18 @@ def confirm_team_membership(
         resp.raise_for_status()
     except HTTPError as exc:
         logger.warning(
-            f"Error checking {user}'s membership to {team_name}: {exc.response.text}"
+            f"Error checking {user}'s membership to {organisation}: {exc.response.text}"
         )
         output.report_users(
-            team_name,
+            organisation,
             CreationAction.CHECK_USER,
             CreationStatus.FAILED,
             [user],
             exc.response.text,
         )
         return False
-    membership = resp.json()
 
-    return membership.get("state") == "active" and membership.get("role") in [
-        "maintainer",
-        "member",
-    ]
+    return resp.status_code == 204
 
 
 def remove_team_members(

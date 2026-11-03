@@ -37,6 +37,7 @@ class GithubDouble(Mocker):
     org_name: str
 
     base_url: str
+    org_members: set[str]
     members_per_team: dict[str, set[str]]
 
     def __init__(self, org_name: str = "test-org"):
@@ -44,24 +45,40 @@ class GithubDouble(Mocker):
         self.org_name = org_name
 
         self.base_url = f"https://api.github.com/orgs/{self.org_name}"
+        self.org_members = set()
         self.members_per_team = {}
 
         def catchall_matcher(request: requests.Request) -> requests.Response:
+            if request.url.startswith(f"{self.base_url}/teams"):
+                if request.method == "GET":
+                    # We shouldn't have reached here if the team existed.
+                    return self._make_response(request, 404)
 
-            if (
-                request.url.startswith(f"{self.base_url}/teams")
-                and request.method == "POST"
+                elif request.method == "POST":
+                    payload = request.json()
+                    assert payload, (
+                        "[GithubDouble] missing or non-JSON POST /teams payload."
+                    )
+                    self.create_team(payload["name"])
+                    return self._make_response(request, 201)
+
+            elif (
+                request.url.startswith(f"{self.base_url}/members/")
+                and request.method == "GET"
             ):
-                payload = request.json()
-                assert payload, (
-                    "[GithubDouble] missing or non-JSON POST /teams payload."
-                )
-                self.create_team(payload["name"])
-                resp = self._make_response(request, 201)
-                return resp
+                # /orgs/{organisation}/members/{user}
+                rest_path = urlsplit(request.url)
+                split_url = rest_path.path.split("/")
+
+                if split_url[-1] in self.org_members:
+                    return self._make_response(request, 204)
+
+                return self._make_response(request, 404)
 
             return self._make_response(
-                request, 404, error_reason=f"{request.method} not supported"
+                request,
+                500,
+                error_reason=f"{request.method} {request.url} not supported",
             )
 
         self.adapter.add_matcher(catchall_matcher)
@@ -148,7 +165,12 @@ class GithubDouble(Mocker):
             raise GitHubDoubleException(
                 f"Team {team_name} to add member in doesn't exist"
             )
+        # GitHub sends invitations to non-members when adding them.
+        self.add_org_members(members)
         self.members_per_team[team_name] |= set(members)
+
+    def add_org_members(self, members: Iterable[str]):
+        self.org_members |= set(members)
 
     def delete_member(self, team_name: str, member: str):
         if team_name not in self.members_per_team:
@@ -302,18 +324,15 @@ def test_add_team_members(
     mock_output: Output,
 ):
     team_name = "test-team"
-    gate_team_name = "gate-team"
 
+    github_double.add_org_members({"alice", "bob"})
     github_double.create_team(team_name)
-    github_double.create_team(gate_team_name)
-    github_double.add_members(gate_team_name, {"alice", "bob"})
 
     with github_double:
         add_team_members(
             mocked_github_client,
             github_double.org_name,
             team_name,
-            gate_team_name,
             {"alice", "bob", "eve"},
             False,
             mock_output,
@@ -348,6 +367,17 @@ def test_add_team_members(
         ],
         any_order=True,
     )
+
+    assert (
+        call(
+            f"TEAM:{team_name}",
+            CreationAction.ADD_USER,
+            CreationStatus.CREATED,
+            "eve",
+            "",
+        )
+        not in mock_output.report.call_args_list
+    ), "A non org member was added to the team"
 
 
 def test_ensure_team_exists(
@@ -488,19 +518,16 @@ def test_update_team_members(
     mock_output: Output,
 ):
     team_name = "test-team"
-    gate_team_name = "gate-team"
 
+    github_double.add_org_members(("alice", "bob", "carol"))
     github_double.create_team(team_name)
     github_double.add_members(team_name, ("alice", "bob"))
-    github_double.create_team(gate_team_name)
-    github_double.add_members(gate_team_name, ("alice", "bob", "carol"))
 
     with github_double:
         update_team_members(
             mocked_github_client,
             github_double.org_name,
             team_name,
-            gate_team_name,
             {"alice", "carol", "eve"},
             False,
             mock_output,
@@ -532,13 +559,11 @@ def test_update_team_members(
             [
                 r
                 for r in github_double.adapter.request_history
-                if r.url.startswith(
-                    f"https://api.github.com/orgs/test-org/teams/{gate_team_name}"
-                )
+                if r.url.startswith("https://api.github.com/orgs/test-org/members/")
             ]
         )
         == 2
-    ), f"Unexpected number of GET requests for {gate_team_name}"
+    ), "Unexpected number of GET requests for org membership"
 
     assert (
         github_double.adapter.request_history[4].url
@@ -549,7 +574,11 @@ def test_update_team_members(
     )
 
     mock_output.report.assert_any_call(
-        gate_team_name, CreationAction.CHECK_USER, CreationStatus.ABSENT, "eve", ""
+        github_double.org_name,
+        CreationAction.CHECK_USER,
+        CreationStatus.ABSENT,
+        "eve",
+        "",
     )
     mock_output.report.assert_any_call(
         team_name,
@@ -573,10 +602,7 @@ def test_dry_run(
     mock_output: Output,
 ):
     team_name = "test-team"
-    gate_team_name = "gate-team"
-
-    github_double.create_team(gate_team_name)
-    github_double.add_members(gate_team_name, {"alice", "bob"})
+    github_double.add_org_members({"alice", "bob"})
 
     with github_double:
         # Test failure modes.
@@ -613,7 +639,6 @@ def test_dry_run(
             mocked_github_client,
             github_double.org_name,
             team_name,
-            gate_team_name,
             {"alice", "bob"},
             True,
             mock_output,
@@ -695,16 +720,15 @@ def test_create_teams(
     sample_rules_data: dict[str, Any],
     mock_output: Output,
 ):
-    gate_team_name = "gate-team"
-    _create_gate_team(github_double, "gate-team", sample_rules_data)
-
+    github_double.add_org_members(
+        ghu["username"] for ghu in sample_rules_data.get("github_users", []).values()
+    )
     with github_double:
         create_teams(
             mocked_github_client,
             sample_rules_data,
             github_double.org_name,
             "all-reviewers",
-            gate_team_name,
             False,
             mock_output,
         )
@@ -766,16 +790,12 @@ def test_create_teams_missing_mappings(
     del sample_rules_data["github_users"]["bob"]["username"]
     sample_rules_data["github_users"]["charlie"]["username"] = ""
 
-    gate_team_name = "gate-team"
-    _create_gate_team(github_double, "gate-team", sample_rules_data)
-
     with github_double:
         create_teams(
             mocked_github_client,
             sample_rules_data,
             github_double.org_name,
             "all-reviewers",
-            gate_team_name,
             False,
             mock_output,
         )
@@ -830,13 +850,13 @@ def test_create_teams_user_removal(
     sample_rules_data: dict[str, Any],
     mock_output: Output,
 ):
+    github_double.add_org_members(
+        ghu["username"] for ghu in sample_rules_data.get("github_users", []).values()
+    )
     team_name = next(iter(sample_rules_data["groups"]))
     github_double.create_team(team_name)
     # Add an extra user to be removed.
     github_double.add_members(team_name, ["mallory"])
-
-    gate_team_name = "gate-team"
-    _create_gate_team(github_double, "gate-team", sample_rules_data)
 
     with github_double:
         create_teams(
@@ -844,7 +864,6 @@ def test_create_teams_user_removal(
             sample_rules_data,
             github_double.org_name,
             "all-reviewers",
-            gate_team_name,
             False,
             mock_output,
         )
@@ -922,6 +941,9 @@ def test_team_creator_gh_tokens(
     env_var = "GH_TOKEN" if use_short_env_variable else "GITHUB_TOKEN"
     monkeypatch.setenv(env_var, f"env_{env_var}")
 
+    github_double.add_org_members(
+        ghu["username"] for ghu in sample_rules_data.get("github_users", []).values()
+    )
     _run_team_creator(tmp_path, github_double, [], sample_rules_data)
 
     assert_all_rules_teams_up_to_date(github_double, sample_rules_data)
@@ -962,7 +984,8 @@ def test_team_creator_most_args(
 
 
 def assert_all_rules_teams_up_to_date(
-    github_double: GithubDouble, rules: dict[str, Any]
+    github_double: GithubDouble,
+    rules: dict[str, Any],
 ):
     all_reviewers = {u for g in rules["groups"].values() for u in g["members"]}
     all_reviewers_members = github_double.get_team_members("all-reviewers")
@@ -972,7 +995,7 @@ def assert_all_rules_teams_up_to_date(
         if phab in all_reviewers
     }
     assert all_reviewers_members == expected_all_reviewers_members, (
-        "Unexpected members in all-reviewers team"
+        "Members in all-reviewers team don't match expectations"
     )
 
     for team_name, team in rules["groups"].items():
@@ -980,7 +1003,7 @@ def assert_all_rules_teams_up_to_date(
         assert members == {
             (rules["github_users"].get(m, {}).get("username") or m)
             for m in team["members"]
-        }, f"Unexpected members in team {team_name}"
+        }, f"Members in team {team_name} don't match expectations"
 
 
 def test_team_creator_only_team(
@@ -998,6 +1021,11 @@ def test_team_creator_only_team(
         "--only-team",
         "test-reviewers",
     ]
+
+    # Pre-populate all-reviewers users to make sure they don't get removed by partial
+    # updates.
+    github_double.create_team("all-reviewers")
+    github_double.add_members("all-reviewers", ["user1", "user2"])
 
     _run_team_creator(tmp_path, github_double, args, sample_rules_data)
 
@@ -1032,23 +1060,9 @@ def _run_team_creator(
     rules_path = tmp_path / "sample_rules.json"
     rules_path.write_text(json.dumps(rules))
 
-    gate_team_name = "gate-team"
-    _create_gate_team(github_double, gate_team_name, rules)
-
     args += ["--organisation", github_double.org_name]
-    args += ["--gate-team", gate_team_name]
 
     args += [str(rules_path)]
 
     with patch.object(sys, "argv", ["team_creator"] + args), github_double:
         main()
-
-
-def _create_gate_team(
-    github_double: GithubDouble, gate_team_name: str, sample_rules_data: dict[str, Any]
-):
-    github_double.create_team(gate_team_name)
-    github_double.add_members(
-        gate_team_name,
-        [u.get("username") for _, u in sample_rules_data.get("github_users").items()],
-    )
