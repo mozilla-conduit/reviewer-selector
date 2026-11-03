@@ -48,7 +48,7 @@ class Output(metaclass=ABCMeta):
     @abstractmethod
     def report(
         self,
-        team: str,
+        group: str,
         action: CreationAction,
         status: CreationStatus,
         user: str = "",
@@ -58,20 +58,20 @@ class Output(metaclass=ABCMeta):
 
     def report_users(
         self,
-        team: str,
+        group: str,
         action: CreationAction,
         status: CreationStatus,
         users: Iterable[str],
         details: str = "",
     ):
         for u in users:
-            self.report(team, action, status, u, details)
+            self.report(group, action, status, u, details)
 
 
 class NoopOutput(Output):
     def report(
         self,
-        team: str,
+        group: str,
         action: CreationAction,
         status: CreationStatus,
         user: str = "",
@@ -85,17 +85,17 @@ class CsvOutput(Output):
 
     def __init__(self):
         self.writer = csv.writer(sys.stdout)
-        self.writer.writerow(["team", "action", "status", "user", "details"])
+        self.writer.writerow(["group", "action", "status", "user", "details"])
 
     def report(
         self,
-        team: str,
+        group: str,
         action: CreationAction,
         status: CreationStatus,
         user: str = "",
         details: str = "",
     ):
-        self.writer.writerow([team, action.value, status.value, user, details])
+        self.writer.writerow([group, action.value, status.value, user, details])
 
 
 def main():
@@ -241,7 +241,7 @@ def build_teams_map(
                 unresolved_seen.add(phab_name)
                 logger.warning(f"Unresolved GitHub username for {phab_name}")
                 output.report(
-                    "PHAB_RESOLUTION",
+                    "PHAB:resolution",
                     CreationAction.RESOLVE_USERNAME,
                     CreationStatus.UNRESOLVED,
                     phab_name,
@@ -251,7 +251,7 @@ def build_teams_map(
             if not github_name:
                 logger.warning(f"Empty or missing GitHub username for {phab_name}")
                 output.report(
-                    "PHAB_RESOLUTION",
+                    "PHAB:resolution",
                     CreationAction.RESOLVE_USERNAME,
                     CreationStatus.MISSING,
                     phab_name,
@@ -279,13 +279,15 @@ def ensure_team_exists(
     resp: requests.Response = client.get(team_url)
 
     if resp.status_code == 200:
-        output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT)
+        output.report(
+            f"TEAM:{team_name}", CreationAction.CREATE_TEAM, CreationStatus.PRESENT
+        )
         return resp.json()
 
     if resp.status_code != 404:
         logger.warning(f"Error checking for existence of team {team_name}: {resp.text}")
         output.report(
-            team_name,
+            f"TEAM:{team_name}",
             CreationAction.CREATE_TEAM,
             CreationStatus.UNKNOWN,
             details=resp.text,
@@ -294,7 +296,9 @@ def ensure_team_exists(
 
     if dry_run:
         logger.info(f"[DRY RUN] Would create team {team_name}")
-        output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED)
+        output.report(
+            f"TEAM:{team_name}", CreationAction.CREATE_TEAM, CreationStatus.CREATED
+        )
         return {}
 
     description = "Automatically created by reviewer-selector's team-creator"
@@ -317,10 +321,14 @@ def ensure_team_exists(
     try:
         resp.raise_for_status()
     except HTTPError:
-        output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.FAILED)
+        output.report(
+            f"TEAM:{team_name}", CreationAction.CREATE_TEAM, CreationStatus.FAILED
+        )
         return {}
 
-    output.report(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED)
+    output.report(
+        f"TEAM:{team_name}", CreationAction.CREATE_TEAM, CreationStatus.CREATED
+    )
     logger.info(f"Created team {team_name}")
 
     return resp.json()
@@ -370,13 +378,18 @@ def add_team_members(
 
     for user in users:
         if not confirm_org_membership(client, organisation, user, output):
-            logger.warning(f"{user} is not a member of {organisation}, skipping addition to team {team_name}...")
+            logger.warning(
+                f"{user} is not a member of {organisation}, skipping addition to team {team_name}..."
+            )
             continue
 
         if dry_run:
             logger.info(f"[DRY RUN] Would add user to {team_name}: {user}")
             output.report_users(
-                team_name, CreationAction.ADD_USER, CreationStatus.CREATED, [user]
+                f"TEAM:{team_name}",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                [user],
             )
             added_users.append(user)
             continue
@@ -387,7 +400,7 @@ def add_team_members(
         except HTTPError as exc:
             logger.warning(f"Cannot add {user} to {team_name}: {exc.response.text}")
             output.report_users(
-                team_name,
+                f"TEAM:{team_name}",
                 CreationAction.ADD_USER,
                 CreationStatus.FAILED,
                 [user],
@@ -396,7 +409,10 @@ def add_team_members(
         else:
             added_users.append(user)
             output.report_users(
-                team_name, CreationAction.ADD_USER, CreationStatus.CREATED, [user]
+                f"TEAM:{team_name}",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                [user],
             )
 
     logger.info(f"Added users to {team_name}: {added_users}")
@@ -415,7 +431,7 @@ def confirm_org_membership(
         resp: requests.Response = client.get(check_url)
         if resp.status_code == 404:
             output.report_users(
-                organisation,
+                f"ORG:{organisation}",
                 CreationAction.CHECK_USER,
                 CreationStatus.ABSENT,
                 [user],
@@ -427,7 +443,7 @@ def confirm_org_membership(
             f"Error checking {user}'s membership to {organisation}: {exc.response.text}"
         )
         output.report_users(
-            organisation,
+            f"ORG:{organisation}",
             CreationAction.CHECK_USER,
             CreationStatus.FAILED,
             [user],
@@ -453,7 +469,10 @@ def remove_team_members(
     if dry_run:
         logger.info(f"[DRY RUN] Would remove members from {team_name}: {members}")
         output.report_users(
-            team_name, CreationAction.REMOVE_USER, CreationStatus.REMOVED, members
+            f"TEAM:{team_name}",
+            CreationAction.REMOVE_USER,
+            CreationStatus.REMOVED,
+            members,
         )
         return
 
@@ -469,7 +488,7 @@ def remove_team_members(
                 f"Cannot remove {user} from {team_name}: {exc.response.text}"
             )
             output.report_users(
-                team_name,
+                f"TEAM:{team_name}",
                 CreationAction.REMOVE_USER,
                 CreationStatus.FAILED,
                 [user],
@@ -478,7 +497,10 @@ def remove_team_members(
         else:
             removed_members.append(user)
             output.report_users(
-                team_name, CreationAction.REMOVE_USER, CreationStatus.REMOVED, [user]
+                f"TEAM:{team_name}",
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                [user],
             )
 
     logger.info(f"Removed members from {team_name}: {removed_members}")

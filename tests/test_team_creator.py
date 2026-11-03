@@ -357,13 +357,19 @@ def test_add_team_members(
     mock_output.report.assert_has_calls(
         [
             call(
-                team_name,
+                f"TEAM:{team_name}",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "alice",
                 "",
             ),
-            call(team_name, CreationAction.ADD_USER, CreationStatus.CREATED, "bob", ""),
+            call(
+                f"TEAM:{team_name}",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "bob",
+                "",
+            ),
         ],
         any_order=True,
     )
@@ -442,8 +448,12 @@ def test_ensure_team_exists(
 
     mock_output.report.assert_has_calls(
         [
-            call(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED),
-            call(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT),
+            call(
+                f"TEAM:{team_name}", CreationAction.CREATE_TEAM, CreationStatus.CREATED
+            ),
+            call(
+                f"TEAM:{team_name}", CreationAction.CREATE_TEAM, CreationStatus.PRESENT
+            ),
         ],
     )
 
@@ -495,14 +505,14 @@ def test_remove_team_members(
     mock_output.report.assert_has_calls(
         [
             call(
-                team_name,
+                f"TEAM:{team_name}",
                 CreationAction.REMOVE_USER,
                 CreationStatus.REMOVED,
                 "bob",
                 "",
             ),
             call(
-                team_name,
+                f"TEAM:{team_name}",
                 CreationAction.REMOVE_USER,
                 CreationStatus.REMOVED,
                 "mallory",
@@ -573,26 +583,31 @@ def test_update_team_members(
         "Unexpected request method"
     )
 
-    mock_output.report.assert_any_call(
-        github_double.org_name,
-        CreationAction.CHECK_USER,
-        CreationStatus.ABSENT,
-        "eve",
-        "",
-    )
-    mock_output.report.assert_any_call(
-        team_name,
-        CreationAction.ADD_USER,
-        CreationStatus.CREATED,
-        "carol",
-        "",
-    )
-    mock_output.report.assert_any_call(
-        team_name,
-        CreationAction.REMOVE_USER,
-        CreationStatus.REMOVED,
-        "bob",
-        "",
+    mock_output.report.assert_has_calls(
+        [
+            call(
+                f"ORG:{github_double.org_name}",
+                CreationAction.CHECK_USER,
+                CreationStatus.ABSENT,
+                "eve",
+                "",
+            ),
+            call(
+                f"TEAM:{team_name}",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "carol",
+                "",
+            ),
+            call(
+                f"TEAM:{team_name}",
+                CreationAction.REMOVE_USER,
+                CreationStatus.REMOVED,
+                "bob",
+                "",
+            ),
+        ],
+        any_order=True,
     )
 
 
@@ -679,32 +694,42 @@ def test_dry_run(
 
     mock_output.report.assert_has_calls(
         [
-            call(team_name, CreationAction.CREATE_TEAM, CreationStatus.CREATED),
-            call(team_name, CreationAction.CREATE_TEAM, CreationStatus.PRESENT),
-            call(team_name, CreationAction.ADD_USER, CreationStatus.CREATED, "bob", ""),
             call(
-                team_name,
+                f"TEAM:{team_name}", CreationAction.CREATE_TEAM, CreationStatus.CREATED
+            ),
+            call(
+                f"TEAM:{team_name}", CreationAction.CREATE_TEAM, CreationStatus.PRESENT
+            ),
+            call(
+                f"TEAM:{team_name}",
+                CreationAction.ADD_USER,
+                CreationStatus.CREATED,
+                "bob",
+                "",
+            ),
+            call(
+                f"TEAM:{team_name}",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "alice",
                 "",
             ),
             call(
-                team_name,
+                f"TEAM:{team_name}",
                 CreationAction.REMOVE_USER,
                 CreationStatus.REMOVED,
                 "bob",
                 "",
             ),
             call(
-                team_name,
+                f"TEAM:{team_name}",
                 CreationAction.REMOVE_USER,
                 CreationStatus.REMOVED,
                 "alice",
                 "",
             ),
             call(
-                error_team_name,
+                f"TEAM:{error_team_name}",
                 CreationAction.CREATE_TEAM,
                 CreationStatus.UNKNOWN,
                 details="",
@@ -738,37 +763,43 @@ def test_create_teams(
     mock_output.report.assert_has_calls(
         [
             call(
-                "fluent-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED
+                "TEAM:fluent-reviewers",
+                CreationAction.CREATE_TEAM,
+                CreationStatus.CREATED,
             ),
             call(
-                "fluent-reviewers",
+                "TEAM:fluent-reviewers",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "alice-gh",
                 "",
             ),
             call(
-                "fluent-reviewers",
+                "TEAM:fluent-reviewers",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "bob-gh",
                 "",
             ),
-            call("test-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
             call(
-                "test-reviewers",
+                "TEAM:test-reviewers",
+                CreationAction.CREATE_TEAM,
+                CreationStatus.CREATED,
+            ),
+            call(
+                "TEAM:test-reviewers",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "charlie-gh",
                 "",
             ),
             call(
-                "ent:fluent-reviewers",
+                "TEAM:ent:fluent-reviewers",
                 CreationAction.CREATE_TEAM,
                 CreationStatus.CREATED,
             ),
             call(
-                "ent:fluent-reviewers",
+                "TEAM:ent:fluent-reviewers",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "bob-gh",
@@ -807,35 +838,41 @@ def test_create_teams_missing_mappings(
     mock_output.report.assert_has_calls(
         [
             call(
-                "PHAB_RESOLUTION",
+                "PHAB:resolution",
                 CreationAction.RESOLVE_USERNAME,
                 CreationStatus.UNRESOLVED,
                 "alice",
             ),
             call(
-                "PHAB_RESOLUTION",
+                "PHAB:resolution",
                 CreationAction.RESOLVE_USERNAME,
                 CreationStatus.MISSING,
                 "bob",
             ),
             call(
-                "PHAB_RESOLUTION",
+                "PHAB:resolution",
                 CreationAction.RESOLVE_USERNAME,
                 CreationStatus.MISSING,
                 "charlie",
             ),
             call(
-                "PHAB_RESOLUTION",
+                "PHAB:resolution",
                 CreationAction.RESOLVE_USERNAME,
                 CreationStatus.MISSING,
                 "bob",
             ),
             call(
-                "fluent-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED
+                "TEAM:fluent-reviewers",
+                CreationAction.CREATE_TEAM,
+                CreationStatus.CREATED,
             ),
-            call("test-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
             call(
-                "ent:fluent-reviewers",
+                "TEAM:test-reviewers",
+                CreationAction.CREATE_TEAM,
+                CreationStatus.CREATED,
+            ),
+            call(
+                "TEAM:ent:fluent-reviewers",
                 CreationAction.CREATE_TEAM,
                 CreationStatus.CREATED,
             ),
@@ -873,44 +910,50 @@ def test_create_teams_user_removal(
     mock_output.report.assert_has_calls(
         [
             call(
-                "fluent-reviewers", CreationAction.CREATE_TEAM, CreationStatus.PRESENT
+                "TEAM:fluent-reviewers",
+                CreationAction.CREATE_TEAM,
+                CreationStatus.PRESENT,
             ),
             call(
-                "fluent-reviewers",
+                "TEAM:fluent-reviewers",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "alice-gh",
                 "",
             ),
             call(
-                "fluent-reviewers",
+                "TEAM:fluent-reviewers",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "bob-gh",
                 "",
             ),
             call(
-                "fluent-reviewers",
+                "TEAM:fluent-reviewers",
                 CreationAction.REMOVE_USER,
                 CreationStatus.REMOVED,
                 "mallory",
                 "",
             ),
-            call("test-reviewers", CreationAction.CREATE_TEAM, CreationStatus.CREATED),
             call(
-                "test-reviewers",
+                "TEAM:test-reviewers",
+                CreationAction.CREATE_TEAM,
+                CreationStatus.CREATED,
+            ),
+            call(
+                "TEAM:test-reviewers",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "charlie-gh",
                 "",
             ),
             call(
-                "ent:fluent-reviewers",
+                "TEAM:ent:fluent-reviewers",
                 CreationAction.CREATE_TEAM,
                 CreationStatus.CREATED,
             ),
             call(
-                "ent:fluent-reviewers",
+                "TEAM:ent:fluent-reviewers",
                 CreationAction.ADD_USER,
                 CreationStatus.CREATED,
                 "bob-gh",
@@ -978,7 +1021,7 @@ def test_team_creator_most_args(
 
     outerr = capsys.readouterr()
 
-    assert "team,action,status,user,details" in outerr.out, (
+    assert "group,action,status,user,details" in outerr.out, (
         "Missing CSV header in stdout"
     )
 
