@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import sys
 from collections.abc import Collection, Iterable
 from functools import lru_cache
 from typing import Any
@@ -61,7 +62,7 @@ def cli() -> None:
         )
 
         reviewable = gh_reviewable or reviewable
-    elif args.phabricator_revision_url:
+    elif args.phabricator_revision_url or args.phabricator_revision_phid:
         rules, patch_source, resolver, reviewable = create_phabricator_objects(
             args, rules, repos
         )
@@ -93,7 +94,20 @@ def create_phabricator_objects(
     """Create the Phabricator adapters."""
     phabricator_api_token = resolve_phabricator_credentials(args)
 
-    phabrev = PhabricatorRevision(args.phabricator_revision_url, phabricator_api_token)
+    if args.phabricator_revision_phid:
+        phab_base_url = get_env_secret(args, "PHABRICATOR_BASE_URL")
+        if args.phabricator_revision_phid and not phab_base_url:
+            logger.error("Missing Phabricator base URL for PHID resolution")
+            sys.exit(1)
+        phabrev = PhabricatorRevision.from_phid(
+            phab_base_url, args.phabricator_revision_phid, phabricator_api_token
+        )
+
+    else:
+        phabrev = PhabricatorRevision(
+            args.phabricator_revision_url, phabricator_api_token
+        )
+
     repo_branch = f"{phabrev.repository}"
 
     logger.info(
@@ -155,7 +169,7 @@ def parse_args() -> argparse.Namespace:
         "--repo", action="append", default=[], help="Filter by repository (repeatable)"
     )
 
-    reviewable_type = parser.add_argument_group()
+    reviewable_type = parser.add_mutually_exclusive_group()
 
     # GitHub options.
     reviewable_type.add_argument(
@@ -180,14 +194,24 @@ def parse_args() -> argparse.Namespace:
     )
 
     # Phabricator options.
-    reviewable_type.add_argument(
-        "--phabricator-revision-url",
-        help="HTML URL of the Phabricator Revision to process",
-    )
     parser.add_argument(
         "--phabricator-api-token",
         default=None,
         help="Phabricator API token (env/credentials: PHABRICATOR_API_TOKEN)",
+    )
+    parser.add_argument(
+        "--phabricator-base-url",
+        help="Base URL of the Phabricator instance to resolve PHIDs from (env/credentials: PHABRICATOR_BASE_URL)",
+    )
+
+    reviewable_type.add_argument(
+        "--phabricator-revision-phid",
+        help="PHID of the Phabricator Revision to process (PHID-DREV-...)",
+    )
+
+    reviewable_type.add_argument(
+        "--phabricator-revision-url",
+        help="HTML URL of the Phabricator Revision to process",
     )
 
     parser.add_argument(
