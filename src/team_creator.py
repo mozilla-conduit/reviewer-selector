@@ -357,7 +357,7 @@ def update_team_members(
         add_team_members(client, organisation, team, users_to_add, dry_run, output)
 
     if not remove:
-        logger.warning("Not removing users")
+        logger.info("Not removing users")
         return
 
     if members_to_remove := current_members - target_members:
