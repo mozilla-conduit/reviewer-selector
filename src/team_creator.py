@@ -9,6 +9,7 @@ from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from collections.abc import Generator, Iterable
 from enum import Enum
+from functools import lru_cache
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlsplit
 
@@ -366,6 +367,28 @@ def update_team_members(
         )
 
 
+@lru_cache
+def get_team_members(
+    client: Client, organisation: str, team_name: str, dry_run: bool
+) -> set[str]:
+    logger.debug(f"Getting {team_name} membership ...")
+    team_url = _make_team_url(organisation, team_name)
+
+    try:
+        members = {
+            member["login"]
+            for page in paginated_get(client, f"{team_url}/members")
+            for member in page
+        }
+    except HTTPError:
+        if not dry_run:
+            raise
+        logger.info(f"[DRY RUN] Error getting {team_name} membership, assuming empty")
+        return set()
+
+    return members
+
+
 def add_team_members(
     client: Client,
     organisation: str,
@@ -380,9 +403,15 @@ def add_team_members(
     added_users = []
 
     for user in users:
-        if not confirm_org_membership(client, organisation, user, output):
+        if not confirm_org_membership(client, organisation, user, dry_run, output):
             logger.warning(
                 f"{user} is not a member of {organisation}, skipping addition to team {team_name}..."
+            )
+            output.report_users(
+                f"ORG:{organisation}",
+                CreationAction.CHECK_USER,
+                CreationStatus.ABSENT,
+                [user],
             )
             continue
 
@@ -425,22 +454,13 @@ def confirm_org_membership(
     client: Client,
     organisation: str,
     user: str,
+    dry_run: bool,
     output: Output,
 ) -> bool:
     logger.debug(f"Checking {organisation} membership for {user} ...")
-    check_url = f"orgs/{organisation}/members/{user}"
 
     try:
-        resp: requests.Response = client.get(check_url)
-        if resp.status_code == 404:
-            output.report_users(
-                f"ORG:{organisation}",
-                CreationAction.CHECK_USER,
-                CreationStatus.ABSENT,
-                [user],
-            )
-            return False
-        resp.raise_for_status()
+        members = get_org_members(client, organisation, dry_run)
     except HTTPError as exc:
         logger.warning(
             f"Error checking {user}'s membership to {organisation}: {exc.response.text}"
@@ -454,7 +474,29 @@ def confirm_org_membership(
         )
         return False
 
-    return resp.status_code == 204
+    return user in members
+
+
+@lru_cache
+def get_org_members(client: Client, organisation: str, dry_run: bool) -> set[str]:
+    logger.debug(f"Getting {organisation} membership ...")
+    org_members_url = f"/orgs/{organisation}/members"
+
+    try:
+        members = {
+            member["login"]
+            for page in paginated_get(client, org_members_url)
+            for member in page
+        }
+    except HTTPError:
+        if not dry_run:
+            raise
+        logger.info(
+            f"[DRY RUN] Error getting {organisation} membership, assuming empty"
+        )
+        return set()
+
+    return members
 
 
 def remove_team_members(
@@ -507,27 +549,6 @@ def remove_team_members(
             )
 
     logger.info(f"Removed members from {team_name}: {removed_members}")
-
-
-def get_team_members(
-    client: Client, organisation: str, team_name: str, dry_run: bool
-) -> set[str]:
-    logger.debug(f"Getting {team_name} membership ...")
-    team_url = _make_team_url(organisation, team_name)
-
-    try:
-        members = {
-            member["login"]
-            for page in paginated_get(client, f"{team_url}/members")
-            for member in page
-        }
-    except HTTPError:
-        if not dry_run:
-            raise
-        logger.info(f"[DRY RUN] Error getting {team_name} membership, assuming empty")
-        return set()
-
-    return members
 
 
 def paginated_get(client: Client, url: str) -> Generator[list[Any]]:

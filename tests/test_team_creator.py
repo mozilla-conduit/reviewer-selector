@@ -75,6 +75,19 @@ class GithubDouble(Mocker):
 
                 return self._make_response(request, 404)
 
+            elif (
+                request.url.startswith(f"{self.base_url}/members")
+                and request.method == "GET"
+            ):
+                # /orgs/{organisation}/members[?per_page=...]
+                return self._make_response(
+                    request,
+                    200,
+                    content=json.dumps(
+                        [{"login": u} for u in self.org_members]
+                    ).encode(),
+                )
+
             return self._make_response(
                 request,
                 500,
@@ -341,8 +354,8 @@ def test_add_team_members(
     members = github_double.get_team_members(team_name)
     assert members == {"alice", "bob"}
 
-    # 3 checks, 2 adds
-    assert len(github_double.request_history) == 5, (
+    # 1 org check, 2 adds
+    assert len(github_double.request_history) == 3, (
         "Unexpected number of requests to GitHub"
     )
     assert {
@@ -547,8 +560,8 @@ def test_update_team_members(
 
     assert members == {"alice", "carol"}
 
-    # Get list, check 2, add 1, remove 1
-    assert len(github_double.request_history) == 5, (
+    # Get list, check 1, add 1, remove 1
+    assert len(github_double.request_history) == 4, (
         "Unexpected number of requests to GitHub"
     )
     assert (
@@ -569,17 +582,17 @@ def test_update_team_members(
             [
                 r
                 for r in github_double.adapter.request_history
-                if r.url.startswith("https://api.github.com/orgs/test-org/members/")
+                if r.url.startswith("https://api.github.com/orgs/test-org/members")
             ]
         )
-        == 2
+        == 1
     ), "Unexpected number of GET requests for org membership"
 
     assert (
-        github_double.adapter.request_history[4].url
+        github_double.adapter.request_history[3].url
         == f"https://api.github.com/orgs/test-org/teams/{team_name}/memberships/bob"
     ), "Unexpected request URL"
-    assert github_double.adapter.request_history[4].method == "DELETE", (
+    assert github_double.adapter.request_history[3].method == "DELETE", (
         "Unexpected request method"
     )
 
@@ -644,6 +657,8 @@ def test_dry_run(
             display_name="team_name",
         )
         assert team == {}, "Missing data should be shimmed in dry run"
+
+        get_team_members.cache_clear()
 
         members = get_team_members(
             mocked_github_client, github_double.org_name, team_name, True
