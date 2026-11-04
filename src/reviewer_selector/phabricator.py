@@ -3,7 +3,7 @@ import os
 import re
 from collections.abc import Collection, Iterable, Mapping
 from functools import cached_property
-from typing import Any, final, override
+from typing import Any, Self, final, override
 
 import requests
 
@@ -320,7 +320,12 @@ class PhabricatorRevision:
     _api_token: str
     _session: requests.Session
 
-    def __init__(self, revision_url: str, api_token: str | None = None):
+    def __init__(
+        self,
+        revision_url: str,
+        api_token: str | None = None,
+        phab: PhabricatorClient | None = None,
+    ):
         self.revision_url = revision_url
         try:
             self.base_url, self.revision_id = re.match(
@@ -334,9 +339,28 @@ class PhabricatorRevision:
         self._session = get_http_session()
         self._session.headers.update({"Accept": "application/json"})
 
-        self.phab = PhabricatorClient(
+        self.phab = phab or PhabricatorClient(
             self.base_url, self._api_token, session=self._session
         )
+
+    @classmethod
+    def from_phid(
+        cls, base_url: str, revision_phid: str, api_token: str | None = None
+    ) -> Self:
+
+        phab = PhabricatorClient(base_url, api_token, session=get_http_session())
+        revision_url = cls.find_revision_by_phid(phab, revision_phid)
+
+        return PhabricatorRevision(revision_url, api_token, phab)
+
+    @classmethod
+    def find_revision_by_phid(cls, phab: PhabricatorClient, phid: str):
+        """Look-up a revision URL from a PHID."""
+        result = phab.call_conduit(
+            "differential.revision.search",
+            constraints={"phids": [phid]},
+        )
+        return phab.expect(result, "data", 0, "fields", "uri")
 
     @staticmethod
     def get_token_from_env() -> str:
