@@ -12,7 +12,7 @@ import pytest
 import requests
 
 from reviewer_selector import cli
-from reviewer_selector.cli import get_tc_secret
+from reviewer_selector.cli import get_env_secret, get_tc_secret
 from reviewer_selector.review import Reviewer
 from reviewer_selector.rules import Rules
 
@@ -253,6 +253,38 @@ def test_github_repo_added(
 def mock_sentry_sdk_init():
     m = mock.patch("sentry_sdk.init")
     return m
+
+
+@mock.patch("reviewer_selector.taskcluster.TaskclusterConfig")
+@mock.patch("reviewer_selector.taskcluster.load_secrets")
+@pytest.mark.parametrize(
+    "env,secret,expected",
+    (
+        (None, None, None),
+        ("env", None, "env"),
+        (None, "secret", "secret"),
+        ("env", "secret", "env"),
+    ),
+)
+def test_get_env_secret(
+    mock_tc_load_secrets: mock.Mock,
+    _mock_tc_taskclusterconfig: mock.Mock,
+    monkeypatch: pytest.MonkeyPatch,
+    env: str | None,
+    secret: str | None,
+    expected: str | None,
+):
+    var_name = "TEST_VAR"
+
+    if env:
+        monkeypatch.setenv(var_name, env)
+
+    if secret:
+        mock_tc_load_secrets.return_value = {var_name: secret}
+    else:
+        mock_tc_load_secrets.return_value = None
+
+    assert get_env_secret(mock.Mock(), var_name) == expected
 
 
 @mock.patch("reviewer_selector.github.GitHubApp")

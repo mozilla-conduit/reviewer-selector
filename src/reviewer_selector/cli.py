@@ -88,6 +88,14 @@ def cli() -> None:
     report_status(reviewable, status, resolved, rules.errors)
 
 
+def get_sentry_dsn(args) -> str | None:
+    dsn = get_env_secret(args, "SENTRY_DSN")
+    if dsn:
+        return dsn
+
+    logger.warning("Exceptions will not be reported")
+
+
 def create_phabricator_objects(
     args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
 ) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
@@ -122,6 +130,16 @@ def create_phabricator_objects(
     reviewable = phabrev.reviewable
 
     return default_rules, patch_source, resolver, reviewable
+
+
+def get_env_secret(args, variable: str) -> str | None:
+    """Fetch the named value from the environment, or the TC secrets, in that order."""
+    if value := os.environ.get(variable):
+        return value
+    if tc_secret := get_tc_secret(get_tc_secret_id(args)):
+        return tc_secret.get(variable)
+
+    logger.warning(f"No {variable} found.")
 
 
 def resolve_phabricator_credentials(args: argparse.Namespace):
@@ -229,15 +247,6 @@ def parse_args() -> argparse.Namespace:
         help="Separator for reviewer names in output",
     )
     return parser.parse_args()
-
-
-def get_sentry_dsn(args) -> str | None:
-    if dsn := os.environ.get("SENTRY_DSN"):
-        return dsn
-    if tc_secret := get_tc_secret(get_tc_secret_id(args)):
-        return tc_secret.get("SENTRY_DSN")
-
-    logger.warning("No SENTRY_DSN found. Exception will not be reported.")
 
 
 def create_github_objects(
