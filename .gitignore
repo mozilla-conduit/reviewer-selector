@@ -1,4 +1,6 @@
 .coverage
+htmlcov
+coverage.xml
 .venv
 __pycache__
 mise.toml
