@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import sys
 from collections.abc import Collection, Iterable
 from functools import lru_cache
 from typing import Any
@@ -9,6 +10,7 @@ import sentry_sdk
 
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.patch import Patch, PatchSource, StdinPatchSource
+from reviewer_selector.phabricator import PhabricatorRevision
 from reviewer_selector.review import (
     AddReviewersStatus,
     MappingUserResolver,
@@ -29,7 +31,10 @@ def cli() -> None:
 
     # Honour the highest verbosity level requested.
     if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+        )
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
 
@@ -57,6 +62,10 @@ def cli() -> None:
         )
 
         reviewable = gh_reviewable or reviewable
+    elif args.phabricator_revision_url or args.phabricator_revision_phid:
+        rules, patch_source, resolver, reviewable = create_phabricator_objects(
+            args, rules, repos
+        )
 
     if not reviewable.ready_for_review():
         logger.warning("Reviewable is not ready for review.")
@@ -77,6 +86,79 @@ def cli() -> None:
         status = AddReviewersStatus(0, False)
 
     report_status(reviewable, status, resolved, rules.errors)
+
+
+def get_sentry_dsn(args) -> str | None:
+    dsn = get_env_secret(args, "SENTRY_DSN")
+    if dsn:
+        return dsn
+
+    logger.warning("Exceptions will not be reported")
+
+
+def create_phabricator_objects(
+    args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
+) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
+    """Create the Phabricator adapters."""
+    phabricator_api_token = resolve_phabricator_credentials(args)
+
+    if args.phabricator_revision_phid:
+        phab_base_url = get_env_secret(args, "PHABRICATOR_BASE_URL")
+        if args.phabricator_revision_phid and not phab_base_url:
+            logger.error("Missing Phabricator base URL for PHID resolution")
+            sys.exit(1)
+        phabrev = PhabricatorRevision.from_phid(
+            phab_base_url, args.phabricator_revision_phid, phabricator_api_token
+        )
+
+    else:
+        phabrev = PhabricatorRevision(
+            args.phabricator_revision_url, phabricator_api_token
+        )
+
+    repo_branch = f"{phabrev.repository}"
+
+    logger.info(
+        f"Phabricator Revision URL provided ({args.phabricator_revision_url}); using Phabricator adapters for {repo_branch} ..."
+    )
+
+    repos_to_update.add(repo_branch)
+
+    patch_source = phabrev.patch_source
+    # No need to remap users for Phabricator.
+    resolver = MappingUserResolver("", {})
+    reviewable = phabrev.reviewable
+
+    return default_rules, patch_source, resolver, reviewable
+
+
+def get_env_secret(args, variable: str) -> str | None:
+    """Fetch the named value from the environment, or the TC secrets, in that order."""
+    if value := os.environ.get(variable):
+        return value
+    if tc_secret := get_tc_secret(get_tc_secret_id(args)):
+        return tc_secret.get(variable)
+
+    logger.warning(f"No {variable} found.")
+
+
+def resolve_phabricator_credentials(args: argparse.Namespace):
+    """Resolve Phabricator API Token from CLI options, environment and TaskCluster."""
+    if args.phabricator_api_token:
+        return args.phabricator_api_token
+
+    if conduit_token := PhabricatorRevision.get_token_from_env():
+        return conduit_token
+
+    if tc_secret_id := (args.taskcluster_secret_id or os.environ.get("TC_SECRET_ID")):
+        logger.debug(f"Fetching Phabricator token from TC_SECRET_ID {tc_secret_id} ...")
+        tc = Taskcluster()
+        tc_secret = tc.fetch_secret(tc_secret_id)
+
+        if conduit_token := tc_secret.get("PHABRICATOR_API_TOKEN"):
+            return conduit_token
+
+    raise ValueError("Cannot determine Phabricator API token.")
 
 
 def parse_args() -> argparse.Namespace:
@@ -105,8 +187,10 @@ def parse_args() -> argparse.Namespace:
         "--repo", action="append", default=[], help="Filter by repository (repeatable)"
     )
 
+    reviewable_type = parser.add_mutually_exclusive_group()
+
     # GitHub options.
-    parser.add_argument(
+    reviewable_type.add_argument(
         "--pr-url",
         default=None,
         help="HTML URL of the GitHub PR to process. If app credentials are provided, the reviewers will be set on the PR automatically.",
@@ -114,17 +198,38 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--github-app-id",
         default=None,
-        help="GitHub application ID (credentials: GITHUB_APP_ID)",
+        help="GitHub application ID (env/credentials: GITHUB_APP_ID)",
     )
     parser.add_argument(
         "--github-app-privkey",
         default=None,
-        help="GitHub application private key (credentials: GITHUB_APP_PRIVKEY)",
+        help="GitHub application private key (env/credentials: GITHUB_APP_PRIVKEY)",
     )
     parser.add_argument(
         "--github-token",
         default=None,
-        help="GitHub token (credentials: GITHUB_TOKEN; env: also GH_TOKEN)",
+        help="GitHub token (env/credentials: GITHUB_TOKEN; env: also GH_TOKEN)",
+    )
+
+    # Phabricator options.
+    parser.add_argument(
+        "--phabricator-api-token",
+        default=None,
+        help="Phabricator API token (env/credentials: PHABRICATOR_API_TOKEN)",
+    )
+    parser.add_argument(
+        "--phabricator-base-url",
+        help="Base URL of the Phabricator instance to resolve PHIDs from (env/credentials: PHABRICATOR_BASE_URL)",
+    )
+
+    reviewable_type.add_argument(
+        "--phabricator-revision-phid",
+        help="PHID of the Phabricator Revision to process (PHID-DREV-...)",
+    )
+
+    reviewable_type.add_argument(
+        "--phabricator-revision-url",
+        help="HTML URL of the Phabricator Revision to process",
     )
 
     parser.add_argument(
@@ -142,15 +247,6 @@ def parse_args() -> argparse.Namespace:
         help="Separator for reviewer names in output",
     )
     return parser.parse_args()
-
-
-def get_sentry_dsn(args) -> str | None:
-    if dsn := os.environ.get("SENTRY_DSN"):
-        return dsn
-    if tc_secret := get_tc_secret(get_tc_secret_id(args)):
-        return tc_secret.get("SENTRY_DSN")
-
-    logger.warning("No SENTRY_DSN found. Exception will not be reported.")
 
 
 def create_github_objects(

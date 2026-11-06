@@ -21,6 +21,7 @@ from reviewer_selector.review import (
 )
 from reviewer_selector.rules import Rules
 from reviewer_selector.taskcluster import tc_task_url
+from reviewer_selector.utils import get_http_session
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ class GitHubApiObject(metaclass=ABCMeta):
     def __init__(self, owner: str, repository: str):
         self.owner = owner
         self.repository = repository
-        self._session = requests.Session()
+        self._session = get_http_session()
 
     def set_app_credentials(
         self, *, app_id: str = "", app_privkey: str = "", gh_token: str = ""
@@ -298,11 +299,7 @@ class GitHubReviewable(Reviewable):
                 raise
 
         # Invalidate cached_property.
-        try:
-            del self.reviewers
-        except AttributeError:
-            # There was no cache.
-            pass
+        self.invalidate_reviewers_cache()
 
         if teams := requested_reviewers.get("team_reviewers", []):
             self._report_empty_teams(teams)
@@ -316,6 +313,13 @@ class GitHubReviewable(Reviewable):
             )
 
         return len(added)
+
+    def invalidate_reviewers_cache(self):
+        try:
+            del self.reviewers
+        except AttributeError:
+            # There was no cache.
+            pass
 
     @staticmethod
     def _build_request_reviewers_payload(
