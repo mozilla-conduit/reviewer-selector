@@ -2,18 +2,18 @@ import hashlib
 import json
 from collections import defaultdict
 from copy import deepcopy
+from typing import Any
 
-from typing_extensions import Any
-
-from lando.api.tests.canned_responses.phabricator.diffs import (
-    CANNED_DEFAULT_DIFF_CHANGES,
-    CANNED_RAW_DEFAULT_DIFF,
-)
-from lando.utils.phabricator import (
+from reviewer_selector.lib.phabricator import (
     PhabricatorAPIException,
     PhabricatorClient,
     PhabricatorRevisionStatus,
     ReviewerStatus,
+)
+
+from .phabricator_responses.phabricator.diffs import (
+    CANNED_DEFAULT_DIFF_CHANGES,
+    CANNED_RAW_DEFAULT_DIFF,
 )
 
 
@@ -173,9 +173,9 @@ class PhabricatorDouble:
 
         if handler is None:
             raise ValueError(
-                'PhabricatorDouble does not have support for "{}". '
+                f'PhabricatorDouble does not have support for "{method}". '
                 "If you have added a new call to this method please "
-                "update PhabricatorDouble to support it.".format(method)
+                "update PhabricatorDouble to support it."
             )
 
         return handler(**kwargs)
@@ -265,18 +265,24 @@ class PhabricatorDouble:
         author=None,
         repo=None,
         status=PhabricatorRevisionStatus.ACCEPTED,
-        depends_on=[],
+        depends_on=None,
         bug_id=None,
-        projects=[],
-        comments=[],
+        projects=None,
+        comments=None,
         title="",
         summary="",
         uplift=None,
         merge_conflict_status: dict | None = None,
     ):
+        if comments is None:
+            comments = []
+        if projects is None:
+            projects = []
+        if depends_on is None:
+            depends_on = []
         revision_id = self._new_id(self._revisions)
         phid = self._new_phid("DREV-")
-        uri = "http://phabricator.test/D{}".format(revision_id)
+        uri = f"http://phabricator.test/D{revision_id}"
         title = "no bug: my test revision title" if not title else title
 
         author = self.user() if author is None else author
@@ -344,8 +350,8 @@ class PhabricatorDouble:
                 "uri": uri,
                 "typeName": "Differential Revision",
                 "type": "DREV",
-                "name": "D{}".format(revision_id),
-                "fullName": "D{} {}".format(revision_id, title),
+                "name": f"D{revision_id}",
+                "fullName": f"D{revision_id} {title}",
                 "status": "closed" if status.closed else "open",
             }
         )
@@ -361,17 +367,17 @@ class PhabricatorDouble:
         if users:
             return users[0]
 
-        phid = self._new_phid("USER-{}".format(username))
-        fullname = "{} Name".format(username)
+        phid = self._new_phid(f"USER-{username}")
+        fullname = f"{username} Name"
         if not email:
-            email = "{}@example.com".format(username)
+            email = f"{username}@example.com"
 
         if not api_key:
             api_key = "api-{}".format(
                 hashlib.sha256(email.encode("utf-8")).hexdigest()[:12]
             )
 
-        uri = "http://phabricator.test/p/{}".format(username)
+        uri = f"http://phabricator.test/p/{username}"
         user = {
             "id": self._new_id(self._users),
             "apiKey": api_key,
@@ -411,27 +417,34 @@ class PhabricatorDouble:
         changes=None,
         repo=None,
         author=None,
-        commits=[
-            {
-                "identifier": "b15b8fbc79c2c3977aff9e17f0dfcc34c66ec29f",
-                "tree": None,
-                "parents": ["cff9ba1622714e0dd82c39f912f405210489fce8"],
-                "author": {
-                    "name": "Mark Cote",
-                    "email": "mcote@mozilla.com",
-                    "raw": '"Mark Cote" <mcote@mozilla.com>',
-                    "epoch": 1524854743,
-                },
-                "message": "This is the commit message.",
-            }
-        ],
-        refs=[
-            {"type": "base", "identifier": "cff9ba1622714e0dd82c39f912f405210489fce8"}
-        ],
+        commits=None,
+        refs=None,
     ):
+        if refs is None:
+            refs = [
+                {
+                    "type": "base",
+                    "identifier": "cff9ba1622714e0dd82c39f912f405210489fce8",
+                }
+            ]
+        if commits is None:
+            commits = [
+                {
+                    "identifier": "b15b8fbc79c2c3977aff9e17f0dfcc34c66ec29f",
+                    "tree": None,
+                    "parents": ["cff9ba1622714e0dd82c39f912f405210489fce8"],
+                    "author": {
+                        "name": "Mark Cote",
+                        "email": "mcote@mozilla.com",
+                        "raw": '"Mark Cote" <mcote@mozilla.com>',
+                        "epoch": 1524854743,
+                    },
+                    "message": "This is the commit message.",
+                }
+            ]
         diff_id = self._new_id(self._diffs)
         phid = self._new_phid("DIFF-")
-        uri = "http://phabricator.test/differential/diff/{}/".format(diff_id)
+        uri = f"http://phabricator.test/differential/diff/{diff_id}/"
         revision_id = revision["id"] if revision is not None else None
         revision_phid = revision["phid"] if revision is not None else None
 
@@ -511,8 +524,8 @@ class PhabricatorDouble:
                 "uri": uri,
                 "typeName": "Differential Diff",
                 "type": "DIFF",
-                "name": "Diff {}".format(diff_id),
-                "fullName": "Diff {}".format(diff_id),
+                "name": f"Diff {diff_id}",
+                "fullName": f"Diff {diff_id}",
                 "status": "open",
             }
         )
@@ -528,7 +541,7 @@ class PhabricatorDouble:
         repo_id = self._new_id(self._repos)
         phid = self._new_phid("REPO-")
         callsign = name.upper()
-        uri = "http://phabricator.test/source/{}/".format(name)
+        uri = f"http://phabricator.test/source/{name}/"
         repo = {
             "id": repo_id,
             "type": "REPO",
@@ -556,8 +569,8 @@ class PhabricatorDouble:
                 "uri": uri,
                 "typeName": "Repository",
                 "type": "REPO",
-                "name": "r{}".format(callsign),
-                "fullName": "r{} {}".format(callsign, name),
+                "name": f"r{callsign}",
+                "fullName": f"r{callsign} {name}",
                 "status": "open",
             }
         )
@@ -623,7 +636,7 @@ class PhabricatorDouble:
             attachments = {}
 
         phid = self._new_phid("PROJ-")
-        uri = "http://phabricator.test/tag/{}/".format(name)
+        uri = f"http://phabricator.test/tag/{name}/"
 
         project = {
             "id": self._new_id(self._projects),
@@ -641,7 +654,7 @@ class PhabricatorDouble:
             "dateCreated": 1524762062,
             "dateModified": 1524762062,
             "policy": {"view": "public", "edit": "admin", "join": "admin"},
-            "description": "Project named {}".format(name),
+            "description": f"Project named {name}",
             "attachments": attachments,
         }
         self._projects.append(project)
@@ -784,13 +797,18 @@ class PhabricatorDouble:
         self,
         *,
         queryKey=None,
-        constraints={},
-        attachments={},
+        constraints=None,
+        attachments=None,
         order=None,
         before=None,
         after=None,
         limit=100,
     ):
+        if attachments is None:
+            attachments = {}
+        if constraints is None:
+            constraints = {}
+
         def to_response(i):
             return deepcopy(
                 {
@@ -1383,13 +1401,18 @@ class PhabricatorDouble:
         self,
         *,
         queryKey=None,
-        constraints={},
-        attachments={},
+        constraints=None,
+        attachments=None,
         order=None,
         before=None,
         after=None,
         limit=100,
     ):
+        if attachments is None:
+            attachments = {}
+        if constraints is None:
+            constraints = {}
+
         def to_response(i):
             return deepcopy(
                 {
@@ -1516,12 +1539,15 @@ class PhabricatorDouble:
         self,
         *,
         objectIdentifier=None,
-        constraints={},
+        constraints=None,
         order=None,
         before=None,
         after=None,
         limit=100,
     ):
+        if constraints is None:
+            constraints = {}
+
         def to_response(i):
             # Explicitly tell the developer using the mock that they need to check the
             # type of transaction they are using and make sure it is serialized
@@ -1530,9 +1556,9 @@ class PhabricatorDouble:
             if txn_type not in ("comment", "dummy", "reviewers.add", "inline"):
                 raise ValueError(
                     "PhabricatorDouble transactions do not have support "
-                    'for the "{}" transaction type. '
+                    f'for the "{txn_type}" transaction type. '
                     "If you have added use of a new transaction type please "
-                    "update PhabricatorDouble to support it.".format(txn_type)
+                    "update PhabricatorDouble to support it."
                 )
 
             if txn_type == "reviewers.add":
@@ -1644,13 +1670,18 @@ class PhabricatorDouble:
         self,
         *,
         queryKey=None,
-        constraints={},
-        attachments={},
+        constraints=None,
+        attachments=None,
         order=None,
         before=None,
         after=None,
         limit=100,
     ):
+        if attachments is None:
+            attachments = {}
+        if constraints is None:
+            constraints = {}
+
         def to_response(u):
             return deepcopy(
                 {
@@ -1824,7 +1855,7 @@ class PhabricatorDouble:
         """
         suffix = self._phid_counters.get(prefix, 0)
         self._phid_counters[prefix] = self._phid_counters.get(prefix, 0) + 1
-        return "PHID-{}{}".format(prefix, suffix)
+        return f"PHID-{prefix}{suffix}"
 
     @staticmethod
     def _new_id(items, *, field="id"):
