@@ -1059,6 +1059,7 @@ class PhabricatorDouble:
                     "title": i["title"],
                     "authorPHID": i["authorPHID"],
                     "stackGraph": i["stackGraph"],
+                    "uri": i["uri"],
                     "status": {
                         "value": i["status"].value,
                         "name": i["status"].output_name,
