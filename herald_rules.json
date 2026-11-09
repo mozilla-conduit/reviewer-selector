@@ -6165,6 +6165,7 @@
         "coreycb",
         "darktrojan",
         "freaktechnik",
+        "mkmelin",
         "tobyp"
       ]
     },
@@ -8042,7 +8043,7 @@
     }
   ],
   "metadata": {
-    "extracted_at": "2026-11-02T04:15:23.890103Z",
+    "extracted_at": "2026-11-09T04:15:38.477596Z",
     "total_rules": 107,
     "total_groups": 111,
     "total_users_resolved": 331,
