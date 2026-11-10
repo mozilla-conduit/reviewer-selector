@@ -12,7 +12,7 @@ import pytest
 import requests
 
 from reviewer_selector import cli
-from reviewer_selector.cli import get_tc_secret
+from reviewer_selector.cli import get_env_secret, get_tc_secret
 from reviewer_selector.review import Reviewer
 from reviewer_selector.rules import Rules
 
@@ -61,7 +61,8 @@ def test_cli_log_level(
 
     with mock.patch("logging.basicConfig") as lbc:
         _run_cli([logging_arg, rules_path], sample_diff, capsys)
-        lbc.assert_called_once_with(level=expected_log_level)
+        _, args = lbc.call_args_list[0]
+        assert args["level"] == expected_log_level
 
 
 def test_repo_filter(
@@ -170,6 +171,11 @@ def test_subject_reviewer_blocking(
     assert outerr.out.strip() == "@ent:lando-reviewers!"
 
 
+#
+# GitHub CLI tests
+#
+
+
 def test_github(
     tmp_path: pathlib.Path,
     configurable_mocked_github_request: Callable,
@@ -247,6 +253,38 @@ def test_github_repo_added(
 def mock_sentry_sdk_init():
     m = mock.patch("sentry_sdk.init")
     return m
+
+
+@mock.patch("reviewer_selector.taskcluster.TaskclusterConfig")
+@mock.patch("reviewer_selector.taskcluster.load_secrets")
+@pytest.mark.parametrize(
+    "env,secret,expected",
+    (
+        (None, None, None),
+        ("env", None, "env"),
+        (None, "secret", "secret"),
+        ("env", "secret", "env"),
+    ),
+)
+def test_get_env_secret(
+    mock_tc_load_secrets: mock.Mock,
+    _mock_tc_taskclusterconfig: mock.Mock,
+    monkeypatch: pytest.MonkeyPatch,
+    env: str | None,
+    secret: str | None,
+    expected: str | None,
+):
+    var_name = "TEST_VAR"
+
+    if env:
+        monkeypatch.setenv(var_name, env)
+
+    if secret:
+        mock_tc_load_secrets.return_value = {var_name: secret}
+    else:
+        mock_tc_load_secrets.return_value = None
+
+    assert get_env_secret(mock.Mock(), var_name) == expected
 
 
 @mock.patch("reviewer_selector.github.GitHubApp")
@@ -615,6 +653,45 @@ def test_rule_error_report(
     mock_report_warning.assert_called_once_with(
         "Some rules reported exceptions:\n\n * H1: Problematic pattern: `@^/(bad regex@`",
     )
+
+
+#
+# Phabricator CLI tests
+#
+
+
+@pytest.mark.xfail()
+def test_phabricator(
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    sample_diff: str,
+    sample_rules_data: dict[str, Any],
+):
+    # Empty rules. The real ones should be coming from in-tree.
+    rules_path = _write_rules(tmp_path / "rules.json", {})
+
+    outerr = _run_cli(
+        [
+            rules_path,
+            "--phabricator-revision-url",
+            # "https://phabricator.test/D1",
+            "https://phabricator.services.mozilla.com/D315228",
+            # "https://phabricator.services.mozilla.com/D315229"
+        ],
+        "",
+        capsys,
+    )
+
+    assert "fluent-reviewers" in outerr.out
+    assert "ent:fluent-reviewers" in outerr.out
+    assert "/ent:fluent-reviewers" not in outerr.out, (
+        "Enterprise team name should have been normalised"
+    )
+
+
+#
+# Test utilities
+#
 
 
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:
