@@ -100,7 +100,7 @@ def create_phabricator_objects(
     args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
 ) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
     """Create the Phabricator adapters."""
-    phabricator_api_token = resolve_phabricator_credentials(args)
+    phabricator_api_token = get_env_secret(args, "PHABRICATOR_API_TOKEN")
 
     if args.phabricator_revision_phid:
         phab_base_url = get_env_secret(args, "PHABRICATOR_BASE_URL")
@@ -140,25 +140,6 @@ def get_env_secret(args, variable: str) -> str | None:
         return tc_secret.get(variable)
 
     logger.warning(f"No {variable} found.")
-
-
-def resolve_phabricator_credentials(args: argparse.Namespace):
-    """Resolve Phabricator API Token from CLI options, environment and TaskCluster."""
-    if args.phabricator_api_token:
-        return args.phabricator_api_token
-
-    if conduit_token := PhabricatorRevision.get_token_from_env():
-        return conduit_token
-
-    if tc_secret_id := (args.taskcluster_secret_id or os.environ.get("TC_SECRET_ID")):
-        logger.debug(f"Fetching Phabricator token from TC_SECRET_ID {tc_secret_id} ...")
-        tc = Taskcluster()
-        tc_secret = tc.fetch_secret(tc_secret_id)
-
-        if conduit_token := tc_secret.get("PHABRICATOR_API_TOKEN"):
-            return conduit_token
-
-    raise ValueError("Cannot determine Phabricator API token.")
 
 
 def parse_args() -> argparse.Namespace:
