@@ -5786,7 +5786,8 @@
         "aminomancer",
         "beth",
         "chumphreys",
-        "emcminn"
+        "emcminn",
+        "ralkhulaidi"
       ]
     },
     "omc-reviewers": {
@@ -5801,6 +5802,7 @@
         "mimi",
         "mviar",
         "sachung",
+        "vnagireddy",
         "yazan"
       ]
     },
@@ -7395,6 +7397,10 @@
       "username": "pollym",
       "user_id": 5485248
     },
+    "ralkhulaidi": {
+      "username": "RJAK11",
+      "user_id": 69090627
+    },
     "rconcepcion": {
       "username": "randy-concepcion",
       "user_id": 19533535
@@ -7618,6 +7624,10 @@
     "vinilla": {
       "username": "Vinnl",
       "user_id": 4251
+    },
+    "vnagireddy": {
+      "username": "v3nk3y",
+      "user_id": 44273845
     },
     "vprema": {
       "username": "vpremamozilla",
@@ -8043,10 +8053,10 @@
     }
   ],
   "metadata": {
-    "extracted_at": "2026-11-09T04:15:38.477596Z",
+    "extracted_at": "2026-11-16T04:16:06.218449Z",
     "total_rules": 107,
     "total_groups": 111,
-    "total_users_resolved": 331,
+    "total_users_resolved": 333,
     "total_users_unresolved": 38,
     "phabricator_instance": "phabricator.services.mozilla.com",
     "scrape_status": {
