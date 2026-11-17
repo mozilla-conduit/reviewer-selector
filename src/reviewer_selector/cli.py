@@ -97,16 +97,19 @@ def get_sentry_dsn(args) -> str | None:
 
 
 def create_phabricator_objects(
-    args: argparse.Namespace, default_rules: Rules, repos_to_update: list[str]
+    args: argparse.Namespace, default_rules: Rules, repos_to_update: set[str]
 ) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
     """Create the Phabricator adapters."""
     phabricator_api_token = get_env_secret(args, "PHABRICATOR_API_TOKEN")
 
     if args.phabricator_revision_phid:
         phab_base_url = get_env_secret(args, "PHABRICATOR_BASE_URL")
-        if args.phabricator_revision_phid and not phab_base_url:
+        if not phab_base_url:
             logger.error("Missing Phabricator base URL for PHID resolution")
             sys.exit(1)
+        logger.debug(
+            f"Resolving Revision PHID {args.phabricator_revision_phid} at {phab_base_url} ..."
+        )
         phabrev = PhabricatorRevision.from_phid(
             phab_base_url, args.phabricator_revision_phid, phabricator_api_token
         )
@@ -119,7 +122,7 @@ def create_phabricator_objects(
     repo_branch = f"{phabrev.repository}"
 
     logger.info(
-        f"Phabricator Revision URL provided ({args.phabricator_revision_url}); using Phabricator adapters for {repo_branch} ..."
+        f"Phabricator Revision details provided ({phabrev.revision_url}); using Phabricator adapters for {repo_branch} ..."
     )
 
     repos_to_update.add(repo_branch)
