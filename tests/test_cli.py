@@ -15,6 +15,7 @@ from reviewer_selector import cli
 from reviewer_selector.cli import get_env_secret, get_tc_secret
 from reviewer_selector.review import Reviewer
 from reviewer_selector.rules import Rules
+from tests.phabricator_double import PhabricatorDouble
 
 MAIN_SCRIPT = "reviewer-selector"
 
@@ -660,32 +661,54 @@ def test_rule_error_report(
 #
 
 
-@pytest.mark.xfail()
-def test_phabricator(
-    tmp_path: pathlib.Path,
-    capsys: pytest.CaptureFixture,
-    sample_diff: str,
-    sample_rules_data: dict[str, Any],
-):
-    # Empty rules. The real ones should be coming from in-tree.
-    rules_path = _write_rules(tmp_path / "rules.json", {})
-
-    outerr = _run_cli(
-        [
-            rules_path,
+@mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
+@pytest.mark.parametrize(
+    "args",
+    (
+        (
             "--phabricator-revision-url",
-            # "https://phabricator.test/D1",
-            "https://phabricator.services.mozilla.com/D315228",
-            # "https://phabricator.services.mozilla.com/D315229"
+            # "https://phabricator.services.mozilla.com/D315228",
+            "http://phabricator.test/D1",
+        ),
+        ("--phabricator-revision-phid", "PHID-DREV-0"),
+    ),
+)
+def test_phabricator_revision_url(
+    mock_edit_transaction: mock.Mock,
+    mock_phabricator_base_url: mock.Mock,
+    mock_phabricator_api_token: mock.Mock,
+    tmp_path: pathlib.Path,
+    phabdouble: PhabricatorDouble,
+    capsys: pytest.CaptureFixture,
+    sample_rules_data: dict[str, Any],
+    sample_diff: str,
+    args: list[str],
+):
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    repo = phabdouble.repo(name="infra-testing-autoland")
+    phabdouble.project("fluent-reviewers")
+    phabdouble.project("ent:fluent-reviewers")
+    diff = phabdouble.diff(rawdiff=sample_diff)
+    phabdouble.revision(repo=repo, diff=diff)
+
+    _run_cli(
+        [
+            *args,
+            rules_path,
         ],
         "",
         capsys,
     )
 
-    assert "fluent-reviewers" in outerr.out
-    assert "ent:fluent-reviewers" in outerr.out
-    assert "/ent:fluent-reviewers" not in outerr.out, (
-        "Enterprise team name should have been normalised"
+    assert mock_edit_transaction.call_count > 1, (
+        "Should have at least one call to edit.transation"
+    )
+    first_tx = mock_edit_transaction.call_args_list[0][0]
+
+    assert first_tx[0] == "reviewers.add", "First transaction should be reviewers.add"
+    assert set(first_tx[1]) == {"PHID-PROJ-0", "PHID-PROJ-1"}, (
+        "reviewer.add transaction should add two reviewers"
     )
 
 

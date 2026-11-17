@@ -5,9 +5,7 @@ from collections.abc import Collection, Iterable, Mapping
 from functools import cached_property
 from typing import Any, Self, final, override
 
-import requests
-
-from reviewer_selector.lib.phabricator import PhabricatorAPIException, PhabricatorClient
+from reviewer_selector.lib.phabricator import PhabricatorClient
 from reviewer_selector.patch import PatchSource
 from reviewer_selector.review import Reviewable, Reviewer
 from reviewer_selector.rules import Rules
@@ -323,9 +321,6 @@ class PhabricatorRevision:
 
     phab: PhabricatorClient
 
-    _api_token: str
-    _session: requests.Session
-
     def __init__(
         self,
         revision_url: str,
@@ -370,6 +365,7 @@ class PhabricatorRevision:
 
     @staticmethod
     def get_token_from_env() -> str:
+        logger.debug("Using PHABRICATOR_API_TOKEN from environment")
         if api_token := os.environ.get("PHABRICATOR_API_TOKEN"):
             return api_token
 
