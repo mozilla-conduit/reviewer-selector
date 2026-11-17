@@ -2,8 +2,6 @@
 # NOTE: When bumping this, also update pyproject.toml to match.
 FROM python:3.14-slim
 
-ARG PSEUDO_VERSION=1
-
 ARG GH_VERSION=2.89.0
 
 ARG BUILTIN_HERALD_RULES=herald_rules.json
@@ -37,10 +35,8 @@ ENV PATH="/app/.venv/bin:${PATH}"
 
 # %include .
 
-COPY --exclude=.git topsrcdir/ /app
-# Don't make build cache depend on version number [0].
-# [0] https://setuptools-scm.readthedocs.io/latest/usage/#with-dockerpodman:~:text=To%20optimize%20build%20caching
-RUN SETUPTOOLS_SCM_PRETEND_VERSION_FOR_REVIEWER_SELECTOR=${PSEUDO_VERSION} uv sync --frozen
+COPY topsrcdir/ /app
+RUN uv sync --frozen
 RUN --mount=source=topsrcdir/.git,target=/app/.git,type=bind uv sync --frozen
 
 USER app
