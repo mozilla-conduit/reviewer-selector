@@ -335,24 +335,26 @@ class PhabricatorRevision:
         except AttributeError:
             raise ValueError(f"Not a valid Phabricator revision URL: {revision_url}")
 
-        self._api_token = api_token or self.get_token_from_env()
-
-        self._session = get_http_session()
-        self._session.headers.update({"Accept": "application/json"})
-
-        self.phab = phab or PhabricatorClient(
-            self.base_url, self._api_token, session=self._session
-        )
+        self.phab = phab or self._build_phab_client(self.base_url)
 
     @classmethod
     def from_phid(
         cls, base_url: str, revision_phid: str, api_token: str | None = None
     ) -> Self:
 
-        phab = PhabricatorClient(base_url, api_token, session=get_http_session())
+        phab = cls._build_phab_client(base_url, api_token)
         revision_url = cls.find_revision_by_phid(phab, revision_phid)
 
         return PhabricatorRevision(revision_url, api_token, phab)
+
+    @classmethod
+    def _build_phab_client(
+        cls, base_url: str, api_token: str | None = None
+    ) -> PhabricatorClient:
+        api_token = api_token or cls.get_token_from_env()
+        session = get_http_session()
+        session.headers.update({"Accept": "application/json"})
+        return PhabricatorClient(base_url, api_token, session=session)
 
     @classmethod
     def find_revision_by_phid(cls, phab: PhabricatorClient, phid: str) -> str:
