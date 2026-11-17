@@ -33,8 +33,8 @@ def test_no_arguments(sample_diff: str, capsys: pytest.CaptureFixture):
 def test_full_flow(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -53,8 +53,8 @@ def test_full_flow(
 def test_cli_log_level(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
     logging_arg: str,
     expected_log_level: int,
 ):
@@ -69,8 +69,8 @@ def test_cli_log_level(
 def test_repo_filter(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff_remote: str,
     sample_rules_data: dict[str, Any],
+    sample_diff_remote: str,
 ):
     repo = "firefox-autoland"
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
@@ -93,8 +93,8 @@ def test_repo_filter(
 def test_group_prefix(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -113,8 +113,8 @@ def test_reviewable_not_ready_for_review(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
     caplog: pytest.LogCaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     mock_ready_for_review.return_value = False
 
@@ -128,8 +128,8 @@ def test_reviewable_not_ready_for_review(
 def test_subject_reviewer(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_patch: str,
     sample_rules_data: dict[str, Any],
+    sample_patch: str,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -149,8 +149,8 @@ def test_subject_reviewer_blocking(
     mock_patch_get_subject_reviewers: mock.Mock,
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_patch: str,
     sample_rules_data: dict[str, Any],
+    sample_patch: str,
 ):
     """Test that blocking and non-blocking requests for the same reviewer are flattened
     to only a blocking one."""
@@ -181,8 +181,8 @@ def test_github(
     tmp_path: pathlib.Path,
     configurable_mocked_github_request: Callable,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     # Empty rules. The real ones should be coming from in-tree.
     rules_path = _write_rules(tmp_path / "rules.json", {})
@@ -196,9 +196,9 @@ def test_github(
 
         outerr = _run_cli(
             [
-                rules_path,
                 "--pr-url",
                 "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+                rules_path,
             ],
             "",
             capsys,
@@ -433,8 +433,8 @@ def test_github_env(
     monkeypatch: pytest.MonkeyPatch,
     configurable_mocked_github_request: Callable,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: str,
+    sample_diff: str,
     env_github_token: str,
     env_gh_token: str,
     env_app_id: str,
@@ -540,8 +540,8 @@ def test_github_reports(
     register_mock_issue_comment_handler: Callable,
     register_mock_check_handlers: Callable,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
     type: str,
 ):
     monkeypatch.setenv("GH_TOKEN", "gh_token")
@@ -640,8 +640,8 @@ def test_rule_error_report(
     mock_report_warning: Mock,
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     sample_rules_data["rules"][0]["conditions"][0]["value"] = "^/(bad regex"
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
