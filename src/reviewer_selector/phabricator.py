@@ -166,16 +166,16 @@ class PhabricatorReviewable(Reviewable):
 
         # XXX: Reuse one-by-one retry from GitHub adapter.
         _add_reviewers_tx = self._rev.edit_transaction("reviewers.add", new_phids)
-
-        txs = self.phab.expect(_add_reviewers_tx, "transactions")
-        for tx in txs:
-            try:
-                out = self.phab.call_conduit(
-                    "transaction.search", objectIdentifier=tx["phid"]
-                )
-                logger.debug(f"add_reviewers transaction: {out}")
-            except PhabricatorAPIException:
-                logger.exception(f"Failure when checking transaction {tx}")
+        #
+        # txs = self.phab.expect(_add_reviewers_tx, "transactions")
+        # for tx in txs:
+        #     try:
+        #         out = self.phab.call_conduit(
+        #             "transaction.search", objectIdentifier=tx["phid"]
+        #         )
+        #         logger.debug(f"add_reviewers transaction: {out}")
+        #     except PhabricatorAPIException:
+        #         logger.exception(f"Failure when checking transaction {tx}")
 
         self.invalidate_reviewers_cache()
 
