@@ -1,5 +1,21 @@
 version: 2
 updates:
+- package-ecosystem: "docker"
+  commit-message:
+      prefix: Bug 2046283 - deps(docker)
+  cooldown:
+      default-days: 7
+  directory: "/docker"
+  schedule:
+      interval: monthly
+- package-ecosystem: "github-actions"
+  commit-message:
+      prefix: Bug 2046283 - deps(workflows)
+  cooldown:
+      default-days: 7
+  directory: "/"
+  schedule:
+      interval: monthly
 - package-ecosystem: uv
   allow:
     - dependency-type: all
