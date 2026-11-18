@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # NOTE: When bumping this, also update pyproject.toml to match.
 FROM python:3.14-slim
 
@@ -36,6 +37,7 @@ ENV PATH="/app/.venv/bin:${PATH}"
 
 COPY topsrcdir/ /app
 RUN uv sync --frozen
+RUN --mount=source=topsrcdir/.git,target=/app/.git,type=bind uv sync --frozen
 
 USER app
 ENTRYPOINT [ "/app/docker/entrypoint.sh" ]
