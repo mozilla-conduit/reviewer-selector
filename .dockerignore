@@ -1,5 +1,7 @@
 .coverage
-# .git
+# We need to pass the Git context to Docker so
+# setuptools_scm can determine the version number.
+#.git
 .venv
 __pycache__
 build/
