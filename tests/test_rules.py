@@ -454,6 +454,33 @@ def test_rule_deduplicates_reviewers(sample_rules_data: dict):
     assert len([r for r in reviewers if r.name == "fluent-reviewers"]) <= 1
 
 
+def test_rule_populate_groups(sample_rules_data: dict):
+    rules = Rules(sample_rules_data)
+
+    fluent_reviewers = Reviewer("fluent-reviewers", is_group=True)
+    ent_fluent_reviewers = Reviewer("ent:fluent-reviewers", is_group=True)
+    alice = Reviewer("alice")
+    bob = Reviewer("bob")  # Test that missing reviewers are added.
+    charlie = Reviewer("charlie")
+    reviewers = [alice, charlie, fluent_reviewers, ent_fluent_reviewers]
+
+    updated_reviewers = rules.populate_groups(reviewers)
+
+    assert all(r in updated_reviewers for r in reviewers), (
+        "All existing reviewers still be present"
+    )
+    assert bob in updated_reviewers, (
+        "Missing reviewer from group should have been added to the list"
+    )
+
+    assert all(r in fluent_reviewers.members for r in [alice, bob]), (
+        "All group members should have been populated on the original fluent-reviewers object"
+    )
+    assert all(r in ent_fluent_reviewers.members for r in [bob]), (
+        "All group members should have been populated on the original ent:fluent-reviewers object"
+    )
+
+
 @pytest.mark.parametrize(
     "pattern,expected",
     (

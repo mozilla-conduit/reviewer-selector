@@ -2,7 +2,7 @@ import logging
 import sys
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import override
 
 UserMap = Mapping[str, Mapping[str, str]]
@@ -15,6 +15,7 @@ class Reviewer:
     name: str
     is_group: bool = False
     blocking: bool = False
+    _members: set[Reviewer] = field(default_factory=set, hash=False, compare=False)
 
     def mutate(self, **kwargs) -> Reviewer:
         """Return a mutated Reviewer based on the current instance."""
@@ -25,7 +26,7 @@ class Reviewer:
         return Reviewer(**values)
 
     @staticmethod
-    def flatten_blocking(reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
+    def flatten_blocking(reviewers: Iterable[Reviewer]) -> set[Reviewer]:
         """Flatten a set of reviewers by only preserving blocking ones in case of duplicates."""
         reviewers = set(reviewers)
         reviewers_list = list(reviewers)
@@ -36,6 +37,21 @@ class Reviewer:
                 reviewers_list.remove(r)
 
         return set(reviewers_list)
+
+    @property
+    def members(self) -> set[Reviewer]:
+        if not self.is_group:
+            raise ValueError("Individual reviewers don't have members")
+
+        return self._members
+
+    def assign_members(self, members: Iterable[Reviewer]):
+        if not self.is_group:
+            raise ValueError("Individual reviewers don't have members")
+
+        # Work around immutability of frozen dataclasses.
+        self._members.clear()
+        self._members.update(set(members))
 
 
 @dataclass(frozen=True)

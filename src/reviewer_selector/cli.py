@@ -19,6 +19,7 @@ from reviewer_selector.review import (
 )
 from reviewer_selector.rules import Rules, RulesErrors
 from reviewer_selector.taskcluster import Taskcluster, tc_task_url
+from reviewer_selector.strategies import RoundRobinStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,15 @@ def cli() -> None:
 
     reviewers = Reviewer.flatten_blocking(
         set(patch.get_subject_reviewers()) | set(rules.collect_reviewers(patch, repos))
+    )
+
+    # Group members are added in place.
+    rules.populate_groups(reviewers)
+
+    rrs = RoundRobinStrategy()
+
+    reviewers = rrs.apply(
+        reviewers
     )
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
