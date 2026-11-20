@@ -26,7 +26,7 @@ class Reviewer:
         return Reviewer(**values)
 
     @staticmethod
-    def flatten_blocking(reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
+    def flatten_blocking(reviewers: Iterable[Reviewer]) -> set[Reviewer]:
         """Flatten a set of reviewers by only preserving blocking ones in case of duplicates."""
         reviewers = set(reviewers)
         reviewers_list = list(reviewers)
