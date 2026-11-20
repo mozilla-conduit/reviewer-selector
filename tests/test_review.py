@@ -10,12 +10,17 @@ def test_reviewer_hashable():
     r = Reviewer("bob", is_group=False)
     rbis = Reviewer("bob", is_group=False)
     rgroup = Reviewer("bob", is_group=True)
+    rgroupbis = Reviewer("bob", is_group=True, _members=[r])
 
     assert r == rbis, "Equal reviewers don't compare as equal"
     assert len({r, rbis}) == 1, "Equal reviewers duplicated in set"
     assert r != rgroup, "User and group with the same name should be different"
     assert len({r, rgroup}) == 2, (
         "User and group with the same name should be retained in set"
+    )
+
+    assert rgroup == rgroupbis, (
+        "Identical review groups with different members should compare the same"
     )
 
 
@@ -37,6 +42,31 @@ def test_reviewer_flatten_blocking(input: set[Reviewer], expected: set[Reviewer]
     assert Reviewer.flatten_blocking(input) == expected, (
         "Blocking reviewers were incorrectly flattened"
     )
+
+
+def test_reviewer_set_members():
+    group = Reviewer("group", is_group=True)
+
+    assert len(group.members) == 0, "Initial group should be empty"
+
+    members = [Reviewer("alice"), Reviewer("bob")]
+    group.assign_members(members)
+
+    assert group.members == set(members), "Members shoud have been set (as a set)"
+
+    group.assign_members(members[:1])
+
+    assert group.members == set(members[:1]), "Members shoud have been reset (as a set)"
+
+
+def test_reviewer_individuals_no_members():
+    reviewer = Reviewer("alice")
+
+    with pytest.raises(ValueError, match="Individual reviewers don't have members"):
+        _test = reviewer.members
+
+    with pytest.raises(ValueError, match="Individual reviewers don't have members"):
+        reviewer.assign_members([Reviewer("bob")])
 
 
 def test_user_resolves_user_with_map(sample_rules_data: dict):
