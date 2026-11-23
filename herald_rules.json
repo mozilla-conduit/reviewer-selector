@@ -1592,7 +1592,7 @@
         {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": "/?(toolkit/content/widgets/|toolkit/themes/shared/design-tokens-.*.css$|toolkit/themes/shared/design-system/)"
+          "value": "/?(toolkit/content/tests/widgets/|toolkit/content/widgets/|toolkit/themes/shared/design-tokens-.*.css$|toolkit/themes/shared/design-system/)"
         }
       ],
       "actions": [
@@ -2171,7 +2171,7 @@
           "type": "add-reviewers",
           "reviewers": [
             {
-              "target": "firefox-desktop-core-reviewers",
+              "target": "firefox-desktop-core-reviewers-rotation",
               "blocking": true,
               "is_group": true
             }
@@ -2370,6 +2370,7 @@
           "type": "repository",
           "operator": "is-any-of",
           "value": [
+            "thunderbird-desktop-main",
             "comm-central"
           ]
         },
@@ -2468,6 +2469,7 @@
           "type": "repository",
           "operator": "is-any-of",
           "value": [
+            "thunderbird-desktop-main",
             "comm-central"
           ]
         },
@@ -2516,6 +2518,7 @@
           "type": "repository",
           "operator": "is-any-of",
           "value": [
+            "thunderbird-desktop-main",
             "comm-central"
           ]
         },
@@ -2878,64 +2881,6 @@
       ]
     },
     {
-      "id": "H488",
-      "name": "Blocked by  reusable-components-reviewers-rotation",
-      "author": "dkl_admin",
-      "status": "active",
-      "type": "differential-revision",
-      "conditions": [
-        {
-          "type": "repository",
-          "operator": "is-any-of",
-          "value": [
-            "firefox-autoland"
-          ]
-        },
-        {
-          "type": "differential-revision-status",
-          "operator": "is-not-any-of",
-          "value": [
-            "Closed",
-            "Abandoned",
-            "Draft",
-            "Changes Planned"
-          ]
-        },
-        {
-          "type": "differential-affected-files",
-          "operator": "matches-regexp",
-          "value": "\\.s?css$"
-        },
-        {
-          "type": "differential-file-content",
-          "operator": "contains",
-          "value": "font-size-xsmall"
-        }
-      ],
-      "actions": [
-        {
-          "type": "add-reviewers",
-          "reviewers": [
-            {
-              "target": "reusable-components-reviewers-rotation",
-              "blocking": true,
-              "is_group": true
-            }
-          ]
-        },
-        {
-          "type": "add-reviewers",
-          "reviewers": [
-            {
-              "target": "reusable-components-reviewers",
-              "blocking": false,
-              "is_group": true
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "H493",
       "name": "Blocked by toolkit-telemetry-reviewers",
       "author": "dkl_admin",
@@ -3054,6 +2999,7 @@
           "type": "repository",
           "operator": "is-any-of",
           "value": [
+            "thunderbird-desktop-main",
             "comm-central"
           ]
         }
@@ -3383,6 +3329,7 @@
           "type": "repository",
           "operator": "is-any-of",
           "value": [
+            "thunderbird-desktop-main",
             "comm-central"
           ]
         },
@@ -4355,7 +4302,9 @@
         {
           "type": "repository",
           "operator": "is-any-of",
-          "value": []
+          "value": [
+            "thunderbird-desktop-main"
+          ]
         },
         {
           "type": "differential-revision-status",
@@ -4563,7 +4512,18 @@
       "author": "shtrom_admin",
       "status": "active",
       "type": "differential-revision",
-      "conditions": [],
+      "conditions": [
+        {
+          "type": "differential-affected-files",
+          "operator": "matches-regexp",
+          "value": "^/?(.github/|.lando.ini|tools/tryselect/lando.py)"
+        },
+        {
+          "type": "unknown",
+          "operator": "unknown",
+          "value": "Repository projects include none ofreviewer-selector"
+        }
+      ],
       "actions": [
         {
           "type": "add-reviewers",
@@ -4633,6 +4593,11 @@
           "value": [
             "Review"
           ]
+        },
+        {
+          "type": "unknown",
+          "operator": "unknown",
+          "value": "Repository projects include none ofreviewer-selector"
         }
       ],
       "actions": [
@@ -4675,7 +4640,7 @@
         {
           "type": "differential-affected-files",
           "operator": "matches-regexp",
-          "value": "^(?!/?(third_party|tools/lint/test|mobile/android/gradle/plugins/apilint/[^/]+/src/test/(resources|fake_root))/)/?((.*/)?([^/]+\\.gradle(\\.kts)?|gradle\\.properties|gradlew(\\.bat)?)$|(.*/)?gradle/|mobile/android/(gradle\\.py|gradle\\.configure|mach_commands\\.py|build\\.mk|moz\\.configure)$|mobile/android/(android-components|fenix)/plugins/|mobile/android/config/mozconfigs/|build/moz\\.configure/android-[^/]+\\.configure$|python/mozboot/mozboot/android(\\.py|-packages\\.txt)$|python/mozbuild/mozbuild/android_version_code\\.py$|taskcluster/scripts/(.*/)?[^/]*gradle|taskcluster/scripts/builder/build-android\\.sh$|taskcluster/scripts/misc/repack-android-(sdk|ndk)-)"
+          "value": "^(?!/?(third_party|tools/lint/test|mobile/android/gradle/plugins/apilint/[^/]+/src/test/(resources|fake_root)|mobile/android/android-components/(components|samples))/)/?((.*/)?([^/]+\\.gradle(\\.kts)?|gradle\\.properties|gradlew(\\.bat)?)$|(.*/)?gradle/|mobile/android/(gradle\\.py|gradle\\.configure|mach_commands\\.py|build\\.mk|moz\\.configure)$|mobile/android/(android-components|fenix)/plugins/|mobile/android/config/mozconfigs/|build/moz\\.configure/android-[^/]+\\.configure$|python/mozboot/mozboot/android(\\.py|-packages\\.txt)$|python/mozbuild/mozbuild/android_version_code\\.py$|taskcluster/scripts/(.*/)?[^/]*gradle|taskcluster/scripts/builder/build-android\\.sh$|taskcluster/scripts/misc/repack-android-(sdk|ndk)-)"
         }
       ],
       "actions": [
@@ -4985,6 +4950,76 @@
           "reviewers": [
             {
               "target": "gamepad-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H566",
+      "name": "Infra testing",
+      "author": "shtrom_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "infra-testing-autoland"
+          ]
+        },
+        {
+          "type": "differential-project-tags",
+          "operator": "include-none-of",
+          "value": [
+            "reviewer-selector"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "conduit-reviewers",
+              "blocking": true,
+              "is_group": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H567",
+      "name": "Lando",
+      "author": "shtrom_admin",
+      "status": "active",
+      "type": "differential-revision",
+      "conditions": [
+        {
+          "type": "repository",
+          "operator": "is-any-of",
+          "value": [
+            "lando"
+          ]
+        },
+        {
+          "type": "differential-project-tags",
+          "operator": "include-none-of",
+          "value": [
+            "reviewer-selector"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "type": "add-reviewers",
+          "reviewers": [
+            {
+              "target": "lando-reviewers",
               "blocking": true,
               "is_group": true
             }
@@ -5454,6 +5489,7 @@
       "id": "extension-reviewers",
       "display_name": "extension-reviewers",
       "members": [
+        "kzar",
         "mixedpuppy",
         "robwu",
         "rpl",
@@ -5475,6 +5511,18 @@
     "firefox-desktop-core-reviewers": {
       "id": "firefox-desktop-core-reviewers",
       "display_name": "firefox-desktop-core-reviewers ",
+      "members": [
+        "Gijs",
+        "dao",
+        "mak",
+        "mconley",
+        "mossop",
+        "sclements"
+      ]
+    },
+    "firefox-desktop-core-reviewers-rotation": {
+      "id": "firefox-desktop-core-reviewers-rotation",
+      "display_name": "firefox-desktop-core-reviewers-rotation",
       "members": [
         "Gijs",
         "dao",
@@ -5539,7 +5587,9 @@
       "id": "gamepad-reviewers",
       "display_name": "gamepad-reviewers",
       "members": [
+        "bobowen",
         "cmartin",
+        "jesup",
         "saschanaz"
       ]
     },
@@ -5637,7 +5687,6 @@
         "maxx",
         "mconley",
         "nina-py",
-        "reemhamz",
         "thecount"
       ]
     },
@@ -5666,6 +5715,16 @@
         "jld",
         "mccr8",
         "nika"
+      ]
+    },
+    "lando-reviewers": {
+      "id": "lando-reviewers",
+      "display_name": "lando-reviewers",
+      "members": [
+        "ohensmancrook",
+        "sheehan",
+        "shtrom",
+        "zeid"
       ]
     },
     "layout-reviewers": {
@@ -7129,6 +7188,10 @@
       "username": "92kns",
       "user_id": 7659976
     },
+    "kzar": {
+      "username": "kzar",
+      "user_id": 155710
+    },
     "leplatrem": {
       "username": "leplatrem",
       "user_id": 546692
@@ -7805,7 +7868,6 @@
         "H475",
         "H478",
         "H485",
-        "H488",
         "H493",
         "H495",
         "H496",
@@ -7976,7 +8038,9 @@
         "H550",
         "H554",
         "H555",
-        "H556"
+        "H556",
+        "H566",
+        "H567"
       ]
     },
     {
@@ -8053,10 +8117,10 @@
     }
   ],
   "metadata": {
-    "extracted_at": "2026-11-16T04:16:06.218449Z",
-    "total_rules": 107,
-    "total_groups": 111,
-    "total_users_resolved": 333,
+    "extracted_at": "2026-11-23T04:31:18.107067Z",
+    "total_rules": 108,
+    "total_groups": 113,
+    "total_users_resolved": 334,
     "total_users_unresolved": 38,
     "phabricator_instance": "phabricator.services.mozilla.com",
     "scrape_status": {
