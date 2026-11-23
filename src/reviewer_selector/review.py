@@ -16,6 +16,7 @@ class Reviewer:
     is_group: bool = False
     blocking: bool = False
     _members: set[Reviewer] = field(default_factory=set, hash=False, compare=False)
+    _as_groups: set[str] = field(default_factory=set, hash=False, compare=False)
 
     def mutate(self, **kwargs) -> Reviewer:
         """Return a mutated Reviewer based on the current instance."""
@@ -52,6 +53,22 @@ class Reviewer:
         # Work around immutability of frozen dataclasses.
         self._members.clear()
         self._members.update(set(members))
+
+    @property
+    def as_groups(self) -> set[str]:
+        """Groups that an individual reviewer has been selected as a stand-in."""
+        if self.is_group:
+            raise ValueError("Groups can't stand-in as other groups")
+
+        return self._as_groups
+
+    def assign_as_groups(self, groups: Iterable[str]):
+        if self.is_group:
+            raise ValueError("Groups can't stand-in as other groups")
+
+        # Work around immutability of frozen dataclasses.
+        self._as_groups.clear()
+        self._as_groups.update(set(groups))
 
 
 @dataclass(frozen=True)

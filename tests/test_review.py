@@ -41,7 +41,34 @@ def test_reviewer_hashable():
 def test_reviewer_flatten_blocking(input: set[Reviewer], expected: set[Reviewer]):
     assert Reviewer.flatten_blocking(input) == expected, (
         "Blocking reviewers were incorrectly flattened"
+
+
+def test_reviewer_set_as_groups():
+    reviewer = Reviewer("reviewer")
+
+    assert len(reviewer.as_groups) == 0, (
+        "Initial reviewer's group stand-in should be empty"
     )
+
+    reviewer.assign_as_groups(["some-group", "some-other-group"])
+    assert reviewer.as_groups == {"some-group", "some-other-group"}, (
+        "New groups should have been set (as a set)"
+    )
+
+    reviewer.assign_as_groups(["some-third-group"])
+    assert reviewer.as_groups == {"some-third-group"}, (
+        "Groups should have been reset (as a set)"
+    )
+
+
+def test_reviewer_groups_no_as_groups():
+    group = Reviewer("group", is_group=True)
+
+    with pytest.raises(ValueError, match="Groups can't stand-in as other groups"):
+        _ = group.as_groups
+
+    with pytest.raises(ValueError, match="Groups can't stand-in as other groups"):
+        group.assign_as_groups(["another-group"])
 
 
 def test_reviewer_set_members():
