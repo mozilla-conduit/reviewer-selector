@@ -1,8 +1,9 @@
+import itertools
 import logging
 import sys
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import override
 
 UserMap = Mapping[str, Mapping[str, str]]
@@ -15,6 +16,8 @@ class Reviewer:
     name: str
     is_group: bool = False
     blocking: bool = False
+    _members: set[Reviewer] = field(default_factory=set, hash=False, compare=False)
+    _as_groups: set[str] = field(default_factory=set, hash=False, compare=False)
 
     def mutate(self, **kwargs) -> Reviewer:
         """Return a mutated Reviewer based on the current instance."""
@@ -25,17 +28,64 @@ class Reviewer:
         return Reviewer(**values)
 
     @staticmethod
-    def flatten_blocking(reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
-        """Flatten a set of reviewers by only preserving blocking ones in case of duplicates."""
-        reviewers = set(reviewers)
-        reviewers_list = list(reviewers)
-        for r in reversed(reviewers_list):
-            if r.blocking:
-                continue
-            if r.mutate(blocking=True) in reviewers:
-                reviewers_list.remove(r)
+    def flatten(*reviewers: Iterable[Reviewer]) -> set[Reviewer]:
+        """Flatten a set of reviewers by merging properties of duplicates.
 
-        return set(reviewers_list)
+        * blocking reviewers are preferred
+        * member sets are unioned
+        * as_groups sets are unioned
+        """
+        reviewers_dict = {}
+        for r in itertools.chain(*reviewers):
+            if r.name not in reviewers_dict:
+                reviewers_dict[r.name] = r
+                continue
+
+            current = reviewers_dict[r.name]
+
+            if r.is_group != current.is_group:
+                raise ValueError(f"Group status mismatch for reviewer {r.name}")
+
+            if r.blocking:
+                reviewers_dict[r.name] = current.mutate(blocking=r.blocking)
+
+            if r.is_group:
+                current.assign_members(current.members | r.members)
+            else:
+                current.assign_as_groups(current.as_groups | r.as_groups)
+
+        return set(reviewers_dict.values())
+
+    @property
+    def members(self) -> set[Reviewer]:
+        if not self.is_group:
+            raise ValueError("Individual reviewers don't have members")
+
+        return self._members
+
+    def assign_members(self, members: Iterable[Reviewer]):
+        if not self.is_group:
+            raise ValueError("Individual reviewers don't have members")
+
+        # Work around immutability of frozen dataclasses.
+        self._members.clear()
+        self._members.update(set(members))
+
+    @property
+    def as_groups(self) -> set[str]:
+        """Groups that an individual reviewer has been selected as a stand-in."""
+        if self.is_group:
+            raise ValueError("Groups can't stand-in as other groups")
+
+        return self._as_groups
+
+    def assign_as_groups(self, groups: Iterable[str]):
+        if self.is_group:
+            raise ValueError("Groups can't stand-in as other groups")
+
+        # Work around immutability of frozen dataclasses.
+        self._as_groups.clear()
+        self._as_groups.update(set(groups))
 
 
 @dataclass(frozen=True)

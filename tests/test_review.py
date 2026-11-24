@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from unittest import mock
 
 import pytest
@@ -10,6 +11,7 @@ def test_reviewer_hashable():
     r = Reviewer("bob", is_group=False)
     rbis = Reviewer("bob", is_group=False)
     rgroup = Reviewer("bob", is_group=True)
+    rgroupbis = Reviewer("bob", is_group=True, _members=[r])
 
     assert r == rbis, "Equal reviewers don't compare as equal"
     assert len({r, rbis}) == 1, "Equal reviewers duplicated in set"
@@ -18,25 +20,123 @@ def test_reviewer_hashable():
         "User and group with the same name should be retained in set"
     )
 
+    assert rgroup == rgroupbis, (
+        "Identical review groups with different members should compare the same"
+    )
+
 
 @pytest.mark.parametrize(
     "input,expected",
     (
-        ({Reviewer("alice")}, {Reviewer("alice")}),
         (
-            {Reviewer("alice"), Reviewer("alice", blocking=True)},
-            {Reviewer("alice", blocking=True)},
-        ),
-        (
-            {Reviewer("alice"), Reviewer("bob", blocking=True)},
+            [{Reviewer("alice")}, {Reviewer("bob", blocking=True)}],
             {Reviewer("alice"), Reviewer("bob", blocking=True)},
         ),
     ),
 )
-def test_reviewer_flatten_blocking(input: set[Reviewer], expected: set[Reviewer]):
-    assert Reviewer.flatten_blocking(input) == expected, (
-        "Blocking reviewers were incorrectly flattened"
+def test_reviewer_flatten_merge(
+    input: Iterable[set[Reviewer]], expected: set[Reviewer]
+):
+    flattened = Reviewer.flatten(*input)
+    assert len(flattened) == len(expected), (
+        "Incorrect number of reviewers after flattening"
     )
+    for rev in expected:
+        assert rev in flattened, "Flattened set is missing expected reviewers"
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    (
+        ([{Reviewer("alice")}], Reviewer("alice")),
+        (
+            [{Reviewer("alice")}, {Reviewer("alice", blocking=True)}],
+            Reviewer("alice", blocking=True),
+        ),
+        (
+            [{Reviewer("alice")}, {Reviewer("alice", _as_groups={"some-group"})}],
+            Reviewer("alice", _as_groups={"some-group"}),
+        ),
+        (
+            [
+                {
+                    Reviewer("group", _members={Reviewer("alice")}),
+                    Reviewer("group", _members={Reviewer("bob")}),
+                }
+            ],
+            Reviewer("group", _members={Reviewer("alice"), Reviewer("bob")}),
+        ),
+    ),
+)
+def test_reviewer_flatten_properties(
+    input: Iterable[set[Reviewer]], expected: Reviewer
+):
+    flattened = next(iter(Reviewer.flatten(*input)))
+    assert flattened == expected, "Reviewers were incorrectly flattened"
+    assert flattened.blocking == expected.blocking, (
+        "Reviewers blocking were incorrectly flattened"
+    )
+    if flattened.is_group:
+        assert flattened.members == expected.members, (
+            "Reviewers members were incorrectly flattened"
+        )
+    else:
+        assert flattened.as_groups == expected.as_groups, (
+            "Reviewers as_groups were incorrectly flattened"
+        )
+
+
+def test_reviewer_set_as_groups():
+    reviewer = Reviewer("reviewer")
+
+    assert len(reviewer.as_groups) == 0, (
+        "Initial reviewer's group stand-in should be empty"
+    )
+
+    reviewer.assign_as_groups(["some-group", "some-other-group"])
+    assert reviewer.as_groups == {"some-group", "some-other-group"}, (
+        "New groups should have been set (as a set)"
+    )
+
+    reviewer.assign_as_groups(["some-third-group"])
+    assert reviewer.as_groups == {"some-third-group"}, (
+        "Groups should have been reset (as a set)"
+    )
+
+
+def test_reviewer_groups_no_as_groups():
+    group = Reviewer("group", is_group=True)
+
+    with pytest.raises(ValueError, match="Groups can't stand-in as other groups"):
+        _ = group.as_groups
+
+    with pytest.raises(ValueError, match="Groups can't stand-in as other groups"):
+        group.assign_as_groups(["another-group"])
+
+
+def test_reviewer_set_members():
+    group = Reviewer("group", is_group=True)
+
+    assert len(group.members) == 0, "Initial group should be empty"
+
+    members = [Reviewer("alice"), Reviewer("bob")]
+    group.assign_members(members)
+
+    assert group.members == set(members), "Members shoud have been set (as a set)"
+
+    group.assign_members(members[:1])
+
+    assert group.members == set(members[:1]), "Members shoud have been reset (as a set)"
+
+
+def test_reviewer_individuals_no_members():
+    reviewer = Reviewer("alice")
+
+    with pytest.raises(ValueError, match="Individual reviewers don't have members"):
+        _test = reviewer.members
+
+    with pytest.raises(ValueError, match="Individual reviewers don't have members"):
+        reviewer.assign_members([Reviewer("bob")])
 
 
 def test_user_resolves_user_with_map(sample_rules_data: dict):

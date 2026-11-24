@@ -65,6 +65,48 @@ class Rules(Sized):
                 reviewers.update(self.get_rule_reviewers(rule))
         return reviewers
 
+    def populate_groups(self, reviewers: Iterable[Reviewer]) -> set[Reviewer]:
+        """Add members to review groups.
+
+        Groups are modified in place. Non-existent reviewers are creatd and added to the
+        returned set.
+        """
+        rdict = {r.name: r for r in reviewers}
+
+        rules_groups = self.get_rules().get("groups", {})
+
+        missing_reviewers = {}
+        for group_name, review_group in rdict.items():
+            if not review_group.is_group:
+                continue
+
+            if group_name not in rules_groups:
+                logger.warning(f"Cannot resolve members of {review_group.name}")
+                continue
+
+            group_reviewers = set()
+            group = rules_groups.get(group_name)
+            for member_name in group.get("members", []):
+                reviewer = rdict.get(member_name)
+
+                if reviewer is None:
+                    if member_name in missing_reviewers:
+                        reviewer = missing_reviewers[member_name]
+                    else:
+                        logger.warning(
+                            f"Reviewer {member_name} not found in list, creating ..."
+                        )
+                        reviewer = Reviewer(member_name)
+                        missing_reviewers[reviewer.name] = reviewer
+
+                group_reviewers.add(reviewer)
+
+            review_group.assign_members(group_reviewers)
+
+        rdict.update(missing_reviewers)
+
+        return set(rdict.values())
+
     def rule_matches_repos(self, rule: Rule, repos: Iterable[str]) -> bool:
         """Check if rule passes repository filter."""
         repos_set = list(repos)
