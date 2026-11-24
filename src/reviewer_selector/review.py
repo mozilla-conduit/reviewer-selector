@@ -1,3 +1,4 @@
+import itertools
 import logging
 import sys
 from abc import ABCMeta, abstractmethod
@@ -27,17 +28,33 @@ class Reviewer:
         return Reviewer(**values)
 
     @staticmethod
-    def flatten_blocking(reviewers: Iterable[Reviewer]) -> Iterable[Reviewer]:
-        """Flatten a set of reviewers by only preserving blocking ones in case of duplicates."""
-        reviewers = set(reviewers)
-        reviewers_list = list(reviewers)
-        for r in reversed(reviewers_list):
-            if r.blocking:
-                continue
-            if r.mutate(blocking=True) in reviewers:
-                reviewers_list.remove(r)
+    def flatten(*reviewers: Iterable[Reviewer]) -> set[Reviewer]:
+        """Flatten a set of reviewers by merging properties of duplicates.
 
-        return set(reviewers_list)
+        * blocking reviewers are preferred
+        * member sets are unioned
+        * as_groups sets are unioned
+        """
+        reviewers_dict = {}
+        for r in itertools.chain(*reviewers):
+            if r.name not in reviewers_dict:
+                reviewers_dict[r.name] = r
+                continue
+
+            current = reviewers_dict[r.name]
+
+            if r.is_group != current.is_group:
+                raise ValueError(f"Group status mismatch for reviewer {r.name}")
+
+            if r.blocking:
+                reviewers_dict[r.name] = current.mutate(blocking=r.blocking)
+
+            if r.is_group:
+                current.assign_members(current.members | r.members)
+            else:
+                current.assign_as_groups(current.as_groups | r.as_groups)
+
+        return set(reviewers_dict.values())
 
     @property
     def members(self) -> set[Reviewer]:

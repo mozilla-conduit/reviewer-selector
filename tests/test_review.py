@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from unittest import mock
 
 import pytest
@@ -27,20 +28,62 @@ def test_reviewer_hashable():
 @pytest.mark.parametrize(
     "input,expected",
     (
-        ({Reviewer("alice")}, {Reviewer("alice")}),
         (
-            {Reviewer("alice"), Reviewer("alice", blocking=True)},
-            {Reviewer("alice", blocking=True)},
-        ),
-        (
-            {Reviewer("alice"), Reviewer("bob", blocking=True)},
+            [{Reviewer("alice")}, {Reviewer("bob", blocking=True)}],
             {Reviewer("alice"), Reviewer("bob", blocking=True)},
         ),
     ),
 )
-def test_reviewer_flatten_blocking(input: set[Reviewer], expected: set[Reviewer]):
-    assert Reviewer.flatten_blocking(input) == expected, (
-        "Blocking reviewers were incorrectly flattened"
+def test_reviewer_flatten_merge(
+    input: Iterable[set[Reviewer]], expected: set[Reviewer]
+):
+    flattened = Reviewer.flatten(*input)
+    assert len(flattened) == len(expected), (
+        "Incorrect number of reviewers after flattening"
+    )
+    for rev in expected:
+        assert rev in flattened, "Flattened set is missing expected reviewers"
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    (
+        ([{Reviewer("alice")}], Reviewer("alice")),
+        (
+            [{Reviewer("alice")}, {Reviewer("alice", blocking=True)}],
+            Reviewer("alice", blocking=True),
+        ),
+        (
+            [{Reviewer("alice")}, {Reviewer("alice", _as_groups={"some-group"})}],
+            Reviewer("alice", _as_groups={"some-group"}),
+        ),
+        (
+            [
+                {
+                    Reviewer("group", _members={Reviewer("alice")}),
+                    Reviewer("group", _members={Reviewer("bob")}),
+                }
+            ],
+            Reviewer("group", _members={Reviewer("alice"), Reviewer("bob")}),
+        ),
+    ),
+)
+def test_reviewer_flatten_properties(
+    input: Iterable[set[Reviewer]], expected: Reviewer
+):
+    flattened = next(iter(Reviewer.flatten(*input)))
+    assert flattened == expected, "Reviewers were incorrectly flattened"
+    assert flattened.blocking == expected.blocking, (
+        "Reviewers blocking were incorrectly flattened"
+    )
+    if flattened.is_group:
+        assert flattened.members == expected.members, (
+            "Reviewers members were incorrectly flattened"
+        )
+    else:
+        assert flattened.as_groups == expected.as_groups, (
+            "Reviewers as_groups were incorrectly flattened"
+        )
 
 
 def test_reviewer_set_as_groups():

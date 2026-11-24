@@ -64,8 +64,8 @@ def cli() -> None:
 
     patch = Patch(patch_source.patch, patch_source.get_patch_subject())
 
-    reviewers = Reviewer.flatten_blocking(
-        set(patch.get_subject_reviewers()) | set(rules.collect_reviewers(patch, repos))
+    reviewers = Reviewer.flatten(
+        set(patch.get_subject_reviewers()), set(rules.collect_reviewers(patch, repos))
     )
 
     resolved: Iterable[Reviewer] = resolver.resolve_reviewers(reviewers)
