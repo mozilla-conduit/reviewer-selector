@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class PhabricatorPatchSource(PatchSource):
+    """A PatchSource to provide Patch data from a Phabricator revision."""
+
     phab: PhabricatorClient
 
     _rev: PhabricatorRevision
@@ -29,6 +31,7 @@ class PhabricatorPatchSource(PatchSource):
     @override
     @property
     def patch(self) -> str:
+        """Return a patch from this source."""
         diff_phid = self.phab.expect(self._rev.metadata, "fields", "diffPHID")
         diff_data = self.phab.call_conduit(
             "differential.diff.search", constraints={"phids": [diff_phid]}
@@ -49,14 +52,10 @@ PhabReviewerData = Mapping[str, Any]
 # Local metadata about review statuses of users or projects.
 PhabReviewerMetadata = Mapping[str, Any]
 
-# @dataclass
-# class ReviewerMetadata:
-#     phid: str
-#     blocking: bool
-#     status: str
-
 
 class PhabricatorReviewable(Reviewable):
+    """Implement the Reviewable interface for a PhabricatorRevision."""
+
     phab: PhabricatorClient
 
     _rev: PhabricatorRevision
