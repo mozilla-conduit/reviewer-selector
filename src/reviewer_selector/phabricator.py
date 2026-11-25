@@ -5,7 +5,10 @@ from collections.abc import Collection, Iterable, Mapping
 from functools import cached_property, lru_cache
 from typing import Any, Self, final, override
 
-from reviewer_selector.lib.phabricator import PhabricatorClient
+from reviewer_selector.lib.phabricator import (
+    PhabricatorClient,
+    PhabricatorRevisionStatus,
+)
 from reviewer_selector.patch import PatchSource
 from reviewer_selector.review import Reviewable, Reviewer
 from reviewer_selector.rules import Rules
@@ -271,6 +274,15 @@ class PhabricatorReviewable(Reviewable):
 
         return {r["phid"]: r for r in resolved}
 
+    @override
+    def ready_for_review(self) -> bool:
+        """Allows to skip reviewer selection.
+
+        Criteria:
+        - only needs-review
+        """
+        return self._rev.status == PhabricatorRevision.Status.NEEDS_REVIEW
+
     def invalidate_reviewers_cache(self):
         self._rev.invalidate_metadata()
 
@@ -301,6 +313,8 @@ class PhabricatorReviewable(Reviewable):
 @final
 class PhabricatorRevision:
     PHAB_URL_RE = re.compile(r"(?P<base_url>https?://[^/]+)/(?P<revision>D\d+)")
+
+    Status = PhabricatorRevisionStatus
 
     revision_url: str
 

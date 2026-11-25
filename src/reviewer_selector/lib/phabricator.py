@@ -23,7 +23,7 @@ PHABRICATOR_API_KEY_HEADER = "X-Phabricator-API-Key"
 
 
 @unique
-class PhabricatorRevisionStatus(Enum):
+class PhabricatorRevisionStatus(str, Enum):
     """Enumeration of statuses a revision may have.
 
     These statuses were exhaustive at the time of creation, but

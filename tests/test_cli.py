@@ -13,6 +13,7 @@ import requests
 
 from reviewer_selector import cli
 from reviewer_selector.cli import get_env_secret, get_tc_secret
+from reviewer_selector.phabricator import PhabricatorRevision
 from reviewer_selector.review import Reviewer
 from reviewer_selector.rules import Rules
 from tests.phabricator_double import PhabricatorDouble
@@ -690,7 +691,9 @@ def test_phabricator_revision(
     phabdouble.project("fluent-reviewers")
     phabdouble.project("ent:fluent-reviewers")
     diff = phabdouble.diff(rawdiff=sample_diff)
-    phabdouble.revision(repo=repo, diff=diff)
+    phabdouble.revision(
+        repo=repo, diff=diff, status=PhabricatorRevision.Status.NEEDS_REVIEW
+    )
 
     _run_cli(
         [
