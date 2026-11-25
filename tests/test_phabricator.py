@@ -160,6 +160,30 @@ def test_phabricator_reviewable(
 
 
 @mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
+def test_phabricator_reviewable_blocking(
+    mock_edit_transaction: mock.Mock,
+    mock_phabricator_base_url: str,
+    phabdouble: PhabricatorDouble,
+):
+    individual = Reviewer("individual", is_group=False, blocking=True)
+    group = Reviewer("group", is_group=True, blocking=True)
+
+    user = phabdouble.user(username=individual.name)
+    project = phabdouble.project(group.name)
+
+    double_revision = phabdouble.revision()
+
+    phab_rev = PhabricatorRevision.from_phid(
+        mock_phabricator_base_url, double_revision["phid"]
+    )
+    phab_rev.reviewable.add_new_reviewers([individual, group])
+
+    blocking_phids = [f"blocking({user['phid']})", f"blocking({project['phid']})"]
+
+    (mock_edit_transaction.assert_called_once_with("reviewers.add", blocking_phids),)
+
+
+@mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
 def test_phabricator_reviewable_reports(
     mock_edit_transaction: mock.Mock,
     mock_phabricator_base_url: str,
@@ -182,27 +206,3 @@ def test_phabricator_reviewable_reports(
             mock.call("comment", "(WARNING) warning"),
         ]
     )
-
-
-@mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
-def test_phabricator_reviewable_blocking(
-    mock_edit_transaction: mock.Mock,
-    mock_phabricator_base_url: str,
-    phabdouble: PhabricatorDouble,
-):
-    individual = Reviewer("individual", is_group=False, blocking=True)
-    group = Reviewer("group", is_group=True, blocking=True)
-
-    user = phabdouble.user(username=individual.name)
-    project = phabdouble.project(group.name)
-
-    double_revision = phabdouble.revision()
-
-    phab_rev = PhabricatorRevision.from_phid(
-        mock_phabricator_base_url, double_revision["phid"]
-    )
-    phab_rev.reviewable.add_new_reviewers([individual, group])
-
-    blocking_phids = [f"blocking({user['phid']})", f"blocking({project['phid']})"]
-
-    (mock_edit_transaction.assert_called_once_with("reviewers.add", blocking_phids),)
