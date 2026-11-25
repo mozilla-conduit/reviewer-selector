@@ -123,7 +123,7 @@ def create_phabricator_objects(
             args.phabricator_revision_url, api_token=phabricator_api_token
         )
 
-    repo_branch = f"{phabrev.repository}"
+    repo_branch = phabrev.repository
 
     logger.info(
         f"Phabricator Revision details provided ({phabrev.revision_url}); using Phabricator adapters for {repo_branch} ..."
