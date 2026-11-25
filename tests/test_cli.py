@@ -676,8 +676,8 @@ def test_rule_error_report(
 )
 def test_phabricator_revision(
     mock_edit_transaction: mock.Mock,
-    mock_phabricator_base_url: mock.Mock,
-    mock_phabricator_api_token: mock.Mock,
+    mock_phabricator_base_url: str,
+    mock_phabricator_api_token: str,
     tmp_path: pathlib.Path,
     phabdouble: PhabricatorDouble,
     capsys: pytest.CaptureFixture,
