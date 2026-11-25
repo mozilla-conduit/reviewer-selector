@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from collections.abc import Collection, Iterable, Mapping
-from functools import cached_property
+from functools import cached_property, lru_cache
 from typing import Any, Self, final, override
 
 from reviewer_selector.lib.phabricator import PhabricatorClient
@@ -305,25 +305,44 @@ class PhabricatorRevision:
     revision_url: str
 
     base_url: str
-    revision_id: str
+    rev_monogram: str
+    _cache_phid: str | None  # Used to reuse memoised metadata requests.
 
     phab: PhabricatorClient
 
     def __init__(
         self,
         revision_url: str,
+        *,
         api_token: str | None = None,
         phab: PhabricatorClient | None = None,
+        phid: str | None = None,
     ):
+        """A Phabricator revision with an associated Phabricator client.
+
+        Params:
+
+        revision_url: str
+        api_token: str
+
+            Ignored if a PhabricatorClient is provided.
+
+        phab: PhabricatorClient
+        phid: str | None
+
+            If known, leverage memoisation and avoid re-requesting revision metadata.
+
+        """
         self.revision_url = revision_url
         try:
-            self.base_url, self.revision_id = re.match(
+            self.base_url, self.rev_monogram = re.match(
                 self.PHAB_URL_RE, self.revision_url
             ).groups()
         except AttributeError:
             raise ValueError(f"Not a valid Phabricator revision URL: {revision_url}")
 
-        self.phab = phab or self._build_phab_client(self.base_url)
+        self.phab = phab or self._build_phab_client(self.base_url, api_token)
+        self._cache_phid = phid
 
     @classmethod
     def from_phid(
@@ -331,9 +350,10 @@ class PhabricatorRevision:
     ) -> Self:
 
         phab = cls._build_phab_client(base_url, api_token)
-        revision_url = cls.find_revision_by_phid(phab, revision_phid)
+        revision_data = _fetch_revision_data(phab, phid=revision_phid)
+        revision_url = phab.expect(revision_data, "data", 0, "fields", "uri")
 
-        return PhabricatorRevision(revision_url, api_token, phab)
+        return cls(revision_url, api_token=api_token, phab=phab, phid=revision_phid)
 
     @classmethod
     def _build_phab_client(
@@ -343,15 +363,6 @@ class PhabricatorRevision:
         session = get_http_session()
         session.headers.update({"Accept": "application/json"})
         return PhabricatorClient(base_url, api_token, session=session)
-
-    @classmethod
-    def find_revision_by_phid(cls, phab: PhabricatorClient, phid: str) -> str:
-        """Look-up a revision URL from a PHID."""
-        result = phab.call_conduit(
-            "differential.revision.search",
-            constraints={"phids": [phid]},
-        )
-        return phab.expect(result, "data", 0, "fields", "uri")
 
     @staticmethod
     def get_token_from_env() -> str:
@@ -366,13 +377,17 @@ class PhabricatorRevision:
         return self.phab.expect(self._repository_data, "fields", "shortName")
 
     @cached_property
-    def _repository_data(self) -> str:
+    def _repository_data(self) -> dict[str, Any]:
         phid = self.phab.expect(self.metadata, "fields", "repositoryPHID")
         result = self.phab.call_conduit(
             "diffusion.repository.search",
             constraints={"phids": [phid]},
         )
-        return self.phab.expect(result, "data", 0)
+        repo_data = self.phab.single(result, "data")
+        if repo_data is None:
+            raise ValueError(f"Cannot fetch repository data for {phid}")
+
+        return repo_data
 
     @cached_property
     def patch_source(self) -> PatchSource:
@@ -389,13 +404,25 @@ class PhabricatorRevision:
         return PhabricatorReviewable(self)
 
     @cached_property
+    def status(self) -> Status:
+        status = self.phab.expect(self.metadata, "fields", "status", "value")
+        if status in self.Status:
+            return self.Status(status)
+
+        return self.Status.UNEXPECTED_STATUS
+
+    @cached_property
     def metadata(self):
-        result = self.phab.call_conduit(
-            "differential.revision.search",
-            constraints={"ids": [self.int_rev_id]},
-            attachments={"reviewers": True, "reviewers-extra": True, "projects": True},
-        )
-        return self.phab.expect(result, "data", 0)
+        if self._cache_phid:
+            result = _fetch_revision_data(self.phab, phid=self._cache_phid)
+        else:
+            result = _fetch_revision_data(self.phab, rev_id=self.rev_id)
+
+        revision_data = self.phab.single(result, "data")
+        if revision_data is None:
+            raise ValueError(f"Cannot fetch revision data for D{self.rev_id}")
+
+        return revision_data
 
     def invalidate_metadata(self):
         try:
@@ -405,8 +432,8 @@ class PhabricatorRevision:
             pass
 
     @property
-    def int_rev_id(self):
-        return int(self.revision_id.removeprefix("D"))
+    def rev_id(self) -> int:
+        return int(self.rev_monogram.removeprefix("D"))
 
     def edit_transaction(
         self, ttype: str, value: list[dict[str, Any]] | str
@@ -423,3 +450,38 @@ class PhabricatorRevision:
         )
         # logger.debug(f"{ttype} transaction: {tx}")
         return tx
+
+
+@lru_cache
+def _fetch_revision_data(
+    phab: PhabricatorClient, *, phid: str | None = None, rev_id: int | None = None
+) -> dict[str, Any]:
+    """A memoised metadata request to resolve revision data by PHID or ID.
+
+    Not a method, to avoid memory leaks as per [0].
+
+    [0] https://docs.astral.sh/ruff/rules/cached-instance-method/
+    """
+    REVISION_ATTACHMENTS = {
+        "reviewers": True,
+        "reviewers-extra": True,
+        "projects": True,
+    }
+
+    if phid and rev_id:
+        raise ValueError("Only one of phid or rev_id should be provided")
+
+    if phid:
+        return phab.call_conduit(
+            "differential.revision.search",
+            constraints={"phids": [phid]},
+            attachments=REVISION_ATTACHMENTS,
+        )
+    else:
+        return phab.call_conduit(
+            "differential.revision.search",
+            constraints={"ids": [rev_id]},
+            attachments=REVISION_ATTACHMENTS,
+        )
+
+    raise ValueError("Both rev_id and phid are missing")

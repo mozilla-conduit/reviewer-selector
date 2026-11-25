@@ -29,7 +29,7 @@ def test_url_parsing(
     rev = PhabricatorRevision(url)
 
     assert rev.base_url == base_url
-    assert rev.revision_id == rest_path
+    assert rev.rev_monogram == rest_path
 
 
 def test_phabricator_patch_source(

@@ -673,7 +673,7 @@ def test_rule_error_report(
         ("--phabricator-revision-phid", "PHID-DREV-0"),
     ),
 )
-def test_phabricator_revision_url(
+def test_phabricator_revision(
     mock_edit_transaction: mock.Mock,
     mock_phabricator_base_url: mock.Mock,
     mock_phabricator_api_token: mock.Mock,

@@ -116,7 +116,7 @@ def create_phabricator_objects(
 
     else:
         phabrev = PhabricatorRevision(
-            args.phabricator_revision_url, phabricator_api_token
+            args.phabricator_revision_url, api_token=phabricator_api_token
         )
 
     repo_branch = f"{phabrev.repository}"
