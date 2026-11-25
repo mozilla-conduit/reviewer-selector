@@ -462,9 +462,7 @@ class PhabricatorRevision:
                 },
             ],
         )
-        # logger.debug(f"{ttype} transaction: {tx}")
         return tx
-
 
 @lru_cache
 def _fetch_revision_data(
