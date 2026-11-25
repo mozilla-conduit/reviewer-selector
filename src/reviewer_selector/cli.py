@@ -142,8 +142,10 @@ def create_phabricator_objects(
 def get_env_secret(args, variable: str) -> str | None:
     """Fetch the named value from the environment, or the TC secrets, in that order."""
     if value := os.environ.get(variable):
+        logger.debug(f"Using {variable} from environment")
         return value
     if tc_secret := get_tc_secret(get_tc_secret_id(args)):
+        logger.debug(f"Using {variable} from TC secrets")
         return tc_secret.get(variable)
 
     logger.warning(f"No {variable} found.")
