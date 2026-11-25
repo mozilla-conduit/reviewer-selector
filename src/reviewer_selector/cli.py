@@ -100,10 +100,14 @@ def create_phabricator_objects(
     args: argparse.Namespace, default_rules: Rules, repos_to_update: set[str]
 ) -> tuple[Rules, PatchSource, UserResolver, Reviewable]:
     """Create the Phabricator adapters."""
-    phabricator_api_token = get_env_secret(args, "PHABRICATOR_API_TOKEN")
+    phabricator_api_token = args.phabricator_api_token or get_env_secret(
+        args, "PHABRICATOR_API_TOKEN"
+    )
 
     if args.phabricator_revision_phid:
-        phab_base_url = get_env_secret(args, "PHABRICATOR_BASE_URL")
+        phab_base_url = args.phabricator_base_url or get_env_secret(
+            args, "PHABRICATOR_BASE_URL"
+        )
         if not phab_base_url:
             logger.error("Missing Phabricator base URL for PHID resolution")
             sys.exit(1)
