@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 
+from reviewer_selector.lib.phabricator import PhabricatorRevisionStatus
 from reviewer_selector.phabricator import PhabricatorRevision
 from reviewer_selector.review import Reviewer
 from tests.phabricator_double import PhabricatorDouble
@@ -120,3 +121,35 @@ def test_phabricator_reviewable(
 
     if new_reviewers:
         mock_edit_transaction.assert_called_once_with("reviewers.add", reviewer_phids)
+
+
+@pytest.mark.parametrize(
+    "status,expected",
+    (
+        ("abandoned", False),
+        ("changes-planned", False),
+        ("draft", False),
+        ("", False),  # Ensure we tolerate invalid values.
+        ("needs-review", True),
+    ),
+)
+def test_phabricator_reviewable_ready_for_review(
+    mock_phabricator_base_url: str,
+    phabdouble: PhabricatorDouble,
+    status: str,
+    expected: bool,
+):
+    if not status:
+        status = PhabricatorRevisionStatus.UNEXPECTED_STATUS
+    else:
+        status = PhabricatorRevisionStatus(status)
+
+    double_revision = phabdouble.revision(status=status)
+
+    phab_rev = PhabricatorRevision.from_phid(
+        mock_phabricator_base_url, double_revision["phid"]
+    )
+
+    assert phab_rev.reviewable.ready_for_review() == expected, (
+        "Unexpected review-readiness state"
+    )
