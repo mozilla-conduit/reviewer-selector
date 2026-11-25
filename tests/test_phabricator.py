@@ -53,6 +53,38 @@ def test_phabricator_patch_source(
     assert phabrev.patch_source.patch == patch_text, "Unexpected patch text"
 
 
+@pytest.mark.parametrize(
+    "status,expected",
+    (
+        ("abandoned", False),
+        ("changes-planned", False),
+        ("draft", False),
+        ("", False),  # Ensure we tolerate invalid values.
+        ("needs-review", True),
+    ),
+)
+def test_phabricator_reviewable_ready_for_review(
+    mock_phabricator_base_url: str,
+    phabdouble: PhabricatorDouble,
+    status: str,
+    expected: bool,
+):
+    if not status:
+        status = PhabricatorRevisionStatus.UNEXPECTED_STATUS
+    else:
+        status = PhabricatorRevisionStatus(status)
+
+    double_revision = phabdouble.revision(status=status)
+
+    phab_rev = PhabricatorRevision.from_phid(
+        mock_phabricator_base_url, double_revision["phid"]
+    )
+
+    assert phab_rev.reviewable.ready_for_review() == expected, (
+        "Unexpected review-readiness state"
+    )
+
+
 @mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
 @pytest.mark.parametrize(
     "initial_reviewers,new_reviewers",
@@ -149,38 +181,6 @@ def test_phabricator_reviewable_reports(
             mock.call("comment", "(NOTE) info"),
             mock.call("comment", "(WARNING) warning"),
         ]
-    )
-
-
-@pytest.mark.parametrize(
-    "status,expected",
-    (
-        ("abandoned", False),
-        ("changes-planned", False),
-        ("draft", False),
-        ("", False),  # Ensure we tolerate invalid values.
-        ("needs-review", True),
-    ),
-)
-def test_phabricator_reviewable_ready_for_review(
-    mock_phabricator_base_url: str,
-    phabdouble: PhabricatorDouble,
-    status: str,
-    expected: bool,
-):
-    if not status:
-        status = PhabricatorRevisionStatus.UNEXPECTED_STATUS
-    else:
-        status = PhabricatorRevisionStatus(status)
-
-    double_revision = phabdouble.revision(status=status)
-
-    phab_rev = PhabricatorRevision.from_phid(
-        mock_phabricator_base_url, double_revision["phid"]
-    )
-
-    assert phab_rev.reviewable.ready_for_review() == expected, (
-        "Unexpected review-readiness state"
     )
 
 
