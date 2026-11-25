@@ -715,6 +715,42 @@ def test_phabricator_revision(
     )
 
 
+@mock.patch("reviewer_selector.cli.PhabricatorRevision", wraps=PhabricatorRevision)
+def test_phabricator_cli_overrides(
+    mock_phabricator_revision: mock.Mock,
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    phabdouble: PhabricatorDouble,
+    sample_rules_data: dict[str, Any],
+):
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    repo = phabdouble.repo(name="infra-testing-autoland")
+    phabdouble.revision(repo=repo, status=PhabricatorRevision.Status.DRAFT)
+
+    args = (
+        "--phabricator-base-url",
+        "http://other-phabricator",
+        "--phabricator-api-token",
+        "other-token",
+        "--phabricator-revision-phid",
+        "PHID-DREV-0",
+    )
+
+    _run_cli(
+        [
+            *args,
+            rules_path,
+        ],
+        "",
+        capsys,
+    )
+
+    assert mock_phabricator_revision.method_calls == [
+        mock.call.from_phid("http://other-phabricator", "PHID-DREV-0", "other-token")
+    ], "The revision should have been initialised from CLI arguments"
+
+
 #
 # Test utilities
 #
