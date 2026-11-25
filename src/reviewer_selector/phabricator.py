@@ -11,7 +11,6 @@ from reviewer_selector.lib.phabricator import (
 )
 from reviewer_selector.patch import PatchSource
 from reviewer_selector.review import Reviewable, Reviewer
-from reviewer_selector.rules import Rules
 from reviewer_selector.utils import get_http_session
 
 logger = logging.getLogger(__name__)
@@ -406,11 +405,7 @@ class PhabricatorRevision:
     def patch_source(self) -> PatchSource:
         return PhabricatorPatchSource(self)
 
-    @cached_property
-    def rules(self) -> Rules:
-        # Determine source repo (maybe GitHub)
-        # Fetch from there
-        return Rules({})
+    # TODO: implement in-tree rules fetching.
 
     @cached_property
     def reviewable(self) -> Reviewable:
@@ -462,6 +457,7 @@ class PhabricatorRevision:
             ],
         )
         return tx
+
 
 @lru_cache
 def _fetch_revision_data(

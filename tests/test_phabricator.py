@@ -42,8 +42,10 @@ def test_phabricator_patch_source(
     subject = "reviewer_selector: add Phabricator support (bug 2040264)"
 
     diff = phabdouble.diff(rawdiff=patch_text)
-    phabdouble.revision(title=subject, diff=diff)
-    phabrev = PhabricatorRevision.from_phid(mock_phabricator_base_url, "PHID-DREV-0")
+    double_revision = phabdouble.revision(title=subject, diff=diff)
+    phabrev = PhabricatorRevision.from_phid(
+        mock_phabricator_base_url, double_revision["phid"]
+    )
 
     assert phabrev.patch_source.get_patch_subject() == subject, (
         "Unexpected patch subject"
@@ -58,35 +60,35 @@ def test_phabricator_patch_source(
         (
             (),
             (
-                Reviewer("test-reviewer", False),
-                Reviewer("jsmith", False),
-                Reviewer("fluent-reviewers", True),
-                Reviewer("ent:fluent-reviewers", True),
+                Reviewer("test-reviewer", is_group=False),
+                Reviewer("jsmith", is_group=False),
+                Reviewer("fluent-reviewers", is_group=True),
+                Reviewer("ent:fluent-reviewers", is_group=True),
             ),
         ),
         (
             (
-                Reviewer("test-reviewer", False),
-                Reviewer("fluent-reviewers", True),
+                Reviewer("test-reviewer", is_group=False),
+                Reviewer("fluent-reviewers", is_group=True),
             ),
             (
-                Reviewer("jsmith", False),
-                Reviewer("ent:fluent-reviewers", True),
+                Reviewer("jsmith", is_group=False),
+                Reviewer("ent:fluent-reviewers", is_group=True),
             ),
         ),
         (
             (
-                Reviewer("test-reviewer", False),
-                Reviewer("jsmith", False),
-                Reviewer("fluent-reviewers", True),
-                Reviewer("ent:fluent-reviewers", True),
+                Reviewer("test-reviewer", is_group=False),
+                Reviewer("jsmith", is_group=False),
+                Reviewer("fluent-reviewers", is_group=True),
+                Reviewer("ent:fluent-reviewers", is_group=True),
             ),
             (),
         ),
     ),
 )
 def test_phabricator_reviewable(
-    mock_edit_transaction: str,
+    mock_edit_transaction: mock.Mock,
     mock_phabricator_base_url: str,
     mock_phabricator_api_token: str,
     phabdouble: PhabricatorDouble,
@@ -105,7 +107,9 @@ def test_phabricator_reviewable(
         if reviewer in initial_reviewers:
             phabdouble.reviewer(double_revision, double_reviewer)
 
-    phab_rev = PhabricatorRevision.from_phid(mock_phabricator_base_url, "PHID-DREV-0")
+    phab_rev = PhabricatorRevision.from_phid(
+        mock_phabricator_base_url, double_revision["phid"]
+    )
 
     # initial reviewers present
     for reviewer in initial_reviewers:
@@ -121,6 +125,31 @@ def test_phabricator_reviewable(
 
     if new_reviewers:
         mock_edit_transaction.assert_called_once_with("reviewers.add", reviewer_phids)
+
+
+@mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
+def test_phabricator_reviewable_reports(
+    mock_edit_transaction: mock.Mock,
+    mock_phabricator_base_url: str,
+    phabdouble: PhabricatorDouble,
+):
+    double_revision = phabdouble.revision()
+
+    phab_rev = PhabricatorRevision.from_phid(
+        mock_phabricator_base_url, double_revision["phid"]
+    )
+
+    phab_rev.reviewable.report_error("error")
+    phab_rev.reviewable.report_info("info")
+    phab_rev.reviewable.report_warning("warning")
+
+    mock_edit_transaction.assert_has_calls(
+        [
+            mock.call("comment", "(IMPORTANT) error"),
+            mock.call("comment", "(NOTE) info"),
+            mock.call("comment", "(WARNING) warning"),
+        ]
+    )
 
 
 @pytest.mark.parametrize(
@@ -153,3 +182,27 @@ def test_phabricator_reviewable_ready_for_review(
     assert phab_rev.reviewable.ready_for_review() == expected, (
         "Unexpected review-readiness state"
     )
+
+
+@mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
+def test_phabricator_reviewable_blocking(
+    mock_edit_transaction: mock.Mock,
+    mock_phabricator_base_url: str,
+    phabdouble: PhabricatorDouble,
+):
+    individual = Reviewer("individual", is_group=False, blocking=True)
+    group = Reviewer("group", is_group=True, blocking=True)
+
+    user = phabdouble.user(username=individual.name)
+    project = phabdouble.project(group.name)
+
+    double_revision = phabdouble.revision()
+
+    phab_rev = PhabricatorRevision.from_phid(
+        mock_phabricator_base_url, double_revision["phid"]
+    )
+    phab_rev.reviewable.add_new_reviewers([individual, group])
+
+    blocking_phids = [f"blocking({user['phid']})", f"blocking({project['phid']})"]
+
+    (mock_edit_transaction.assert_called_once_with("reviewers.add", blocking_phids),)
