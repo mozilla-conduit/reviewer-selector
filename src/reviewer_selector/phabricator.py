@@ -426,7 +426,7 @@ class PhabricatorRevision:
         else:
             result = _fetch_revision_data(self.phab, rev_id=self.rev_id)
 
-        revision_data = self.phab.single(result, "data")
+        revision_data = self.phab.single(result, "data", none_when_empty=True)
         if revision_data is None:
             raise ValueError(f"Cannot fetch revision data for D{self.rev_id}")
 
