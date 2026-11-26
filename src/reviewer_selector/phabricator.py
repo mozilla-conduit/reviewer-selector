@@ -395,7 +395,7 @@ class PhabricatorRevision:
             "diffusion.repository.search",
             constraints={"phids": [phid]},
         )
-        repo_data = self.phab.single(result, "data")
+        repo_data = self.phab.single(result, "data", none_when_empty=True)
         if repo_data is None:
             raise ValueError(f"Cannot fetch repository data for {phid}")
 
