@@ -65,6 +65,7 @@ def test_phabricator_patch_source(
 )
 def test_phabricator_reviewable_ready_for_review(
     mock_phabricator_base_url: str,
+    mock_phabricator_api_token: str,
     phabdouble: PhabricatorDouble,
     status: str,
     expected: bool,
