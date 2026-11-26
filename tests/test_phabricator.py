@@ -191,7 +191,6 @@ def test_phabricator_reviewable_reports(
     mock_phabricator_api_token: str,
     mock_phabricator_base_url: str,
     phabdouble: PhabricatorDouble,
-    mock_phabricator_api_token: str,
 ):
     double_revision = phabdouble.revision()
 
