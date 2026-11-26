@@ -444,7 +444,7 @@ class PhabricatorRevision:
         return int(self.rev_monogram.removeprefix("D"))
 
     def edit_transaction(
-        self, ttype: str, value: list[dict[str, Any]] | str
+        self, ttype: str, value: list[str] | str
     ) -> dict[str, Any]:
         tx = self.phab.call_conduit(
             "differential.revision.edit",
