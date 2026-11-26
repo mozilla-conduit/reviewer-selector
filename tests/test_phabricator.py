@@ -182,7 +182,7 @@ def test_phabricator_reviewable_blocking(
 
     blocking_phids = [f"blocking({user['phid']})", f"blocking({project['phid']})"]
 
-    (mock_edit_transaction.assert_called_once_with("reviewers.add", blocking_phids),)
+    mock_edit_transaction.assert_called_once_with("reviewers.add", blocking_phids)
 
 
 @mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
