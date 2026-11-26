@@ -484,7 +484,7 @@ def _fetch_revision_data(
             constraints={"phids": [phid]},
             attachments=REVISION_ATTACHMENTS,
         )
-    else:
+    elif rev_id:
         return phab.call_conduit(
             "differential.revision.search",
             constraints={"ids": [rev_id]},
