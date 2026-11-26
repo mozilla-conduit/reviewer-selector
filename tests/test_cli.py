@@ -12,9 +12,11 @@ import pytest
 import requests
 
 from reviewer_selector import cli
-from reviewer_selector.cli import get_tc_secret
+from reviewer_selector.cli import get_env_secret, get_tc_secret
+from reviewer_selector.phabricator import PhabricatorRevision
 from reviewer_selector.review import Reviewer
 from reviewer_selector.rules import Rules
+from tests.phabricator_double import PhabricatorDouble
 
 MAIN_SCRIPT = "reviewer-selector"
 
@@ -32,8 +34,8 @@ def test_no_arguments(sample_diff: str, capsys: pytest.CaptureFixture):
 def test_full_flow(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -52,8 +54,8 @@ def test_full_flow(
 def test_cli_log_level(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
     logging_arg: str,
     expected_log_level: int,
 ):
@@ -61,14 +63,15 @@ def test_cli_log_level(
 
     with mock.patch("logging.basicConfig") as lbc:
         _run_cli([logging_arg, rules_path], sample_diff, capsys)
-        lbc.assert_called_once_with(level=expected_log_level)
+        _, args = lbc.call_args_list[0]
+        assert args["level"] == expected_log_level
 
 
 def test_repo_filter(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff_remote: str,
     sample_rules_data: dict[str, Any],
+    sample_diff_remote: str,
 ):
     repo = "firefox-autoland"
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
@@ -91,8 +94,8 @@ def test_repo_filter(
 def test_group_prefix(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -111,8 +114,8 @@ def test_reviewable_not_ready_for_review(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
     caplog: pytest.LogCaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     mock_ready_for_review.return_value = False
 
@@ -126,8 +129,8 @@ def test_reviewable_not_ready_for_review(
 def test_subject_reviewer(
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_patch: str,
     sample_rules_data: dict[str, Any],
+    sample_patch: str,
 ):
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
 
@@ -147,8 +150,8 @@ def test_subject_reviewer_blocking(
     mock_patch_get_subject_reviewers: mock.Mock,
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_patch: str,
     sample_rules_data: dict[str, Any],
+    sample_patch: str,
 ):
     """Test that blocking and non-blocking requests for the same reviewer are flattened
     to only a blocking one."""
@@ -170,12 +173,17 @@ def test_subject_reviewer_blocking(
     assert outerr.out.strip() == "@ent:lando-reviewers!"
 
 
+#
+# GitHub CLI tests
+#
+
+
 def test_github(
     tmp_path: pathlib.Path,
     configurable_mocked_github_request: Callable,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     # Empty rules. The real ones should be coming from in-tree.
     rules_path = _write_rules(tmp_path / "rules.json", {})
@@ -189,9 +197,9 @@ def test_github(
 
         outerr = _run_cli(
             [
-                rules_path,
                 "--pr-url",
                 "https://github.com/mozilla-conduit/reviewer-selector/pull/18",
+                rules_path,
             ],
             "",
             capsys,
@@ -247,6 +255,38 @@ def test_github_repo_added(
 def mock_sentry_sdk_init():
     m = mock.patch("sentry_sdk.init")
     return m
+
+
+@mock.patch("reviewer_selector.taskcluster.TaskclusterConfig")
+@mock.patch("reviewer_selector.taskcluster.load_secrets")
+@pytest.mark.parametrize(
+    "env,secret,expected",
+    (
+        (None, None, None),
+        ("env", None, "env"),
+        (None, "secret", "secret"),
+        ("env", "secret", "env"),
+    ),
+)
+def test_get_env_secret(
+    mock_tc_load_secrets: mock.Mock,
+    _mock_tc_taskclusterconfig: mock.Mock,
+    monkeypatch: pytest.MonkeyPatch,
+    env: str | None,
+    secret: str | None,
+    expected: str | None,
+):
+    var_name = "TEST_VAR"
+
+    if env:
+        monkeypatch.setenv(var_name, env)
+
+    if secret:
+        mock_tc_load_secrets.return_value = {var_name: secret}
+    else:
+        mock_tc_load_secrets.return_value = None
+
+    assert get_env_secret(mock.Mock(), var_name) == expected
 
 
 @mock.patch("reviewer_selector.github.GitHubApp")
@@ -394,8 +434,8 @@ def test_github_env(
     monkeypatch: pytest.MonkeyPatch,
     configurable_mocked_github_request: Callable,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: str,
+    sample_diff: str,
     env_github_token: str,
     env_gh_token: str,
     env_app_id: str,
@@ -501,8 +541,8 @@ def test_github_reports(
     register_mock_issue_comment_handler: Callable,
     register_mock_check_handlers: Callable,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
     type: str,
 ):
     monkeypatch.setenv("GH_TOKEN", "gh_token")
@@ -601,8 +641,8 @@ def test_rule_error_report(
     mock_report_warning: Mock,
     tmp_path: pathlib.Path,
     capsys: pytest.CaptureFixture,
-    sample_diff: str,
     sample_rules_data: dict[str, Any],
+    sample_diff: str,
 ):
     sample_rules_data["rules"][0]["conditions"][0]["value"] = "^/(bad regex"
     rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
@@ -615,6 +655,110 @@ def test_rule_error_report(
     mock_report_warning.assert_called_once_with(
         "Some rules reported exceptions:\n\n * H1: Problematic pattern: `@^/(bad regex@`",
     )
+
+
+#
+# Phabricator CLI tests
+#
+
+
+@mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
+@pytest.mark.parametrize(
+    "args",
+    (
+        (
+            "--phabricator-revision-url",
+            # "https://phabricator.services.mozilla.com/D315228",
+            "http://phabricator.test/D1",
+        ),
+        ("--phabricator-revision-phid", "PHID-DREV-0"),
+    ),
+)
+def test_phabricator_revision(
+    mock_edit_transaction: mock.Mock,
+    mock_phabricator_base_url: str,
+    mock_phabricator_api_token: str,
+    tmp_path: pathlib.Path,
+    phabdouble: PhabricatorDouble,
+    capsys: pytest.CaptureFixture,
+    sample_rules_data: dict[str, Any],
+    sample_diff: str,
+    args: list[str],
+):
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    repo = phabdouble.repo(name="infra-testing-autoland")
+    phabdouble.project("fluent-reviewers")
+    phabdouble.project("ent:fluent-reviewers")
+    diff = phabdouble.diff(rawdiff=sample_diff)
+    phabdouble.revision(
+        repo=repo, diff=diff, status=PhabricatorRevision.Status.NEEDS_REVIEW
+    )
+
+    _run_cli(
+        [
+            *args,
+            rules_path,
+        ],
+        "",
+        capsys,
+    )
+
+    # The PhabricatorDouble doesn't update the data based on the transactions,
+    # so the next request to check if there are any reviewers still returns empty.
+    # As a result, a second transaction is sent during this test, to report that no
+    # reviewers are currently assigned. This as due to the test setup, and not a
+    # behaviour that should be expected in this case, so we assert a bit more loosely.
+    assert mock_edit_transaction.call_count > 1, (
+        "Should have at least one call to edit.transation"
+    )
+    first_tx = mock_edit_transaction.call_args_list[0][0]
+
+    assert first_tx[0] == "reviewers.add", "First transaction should be reviewers.add"
+    assert set(first_tx[1]) == {"PHID-PROJ-0", "PHID-PROJ-1"}, (
+        "reviewer.add transaction should add two reviewers"
+    )
+
+
+@mock.patch("reviewer_selector.cli.PhabricatorRevision", wraps=PhabricatorRevision)
+def test_phabricator_cli_overrides(
+    mock_phabricator_revision: mock.Mock,
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture,
+    phabdouble: PhabricatorDouble,
+    sample_rules_data: dict[str, Any],
+):
+    rules_path = _write_rules(tmp_path / "rules.json", sample_rules_data)
+
+    repo = phabdouble.repo(name="infra-testing-autoland")
+    phabdouble.revision(repo=repo, status=PhabricatorRevision.Status.DRAFT)
+
+    args = (
+        "--phabricator-base-url",
+        "http://other-phabricator",
+        "--phabricator-api-token",
+        "other-token",
+        "--phabricator-revision-phid",
+        "PHID-DREV-0",
+    )
+
+    _run_cli(
+        [
+            *args,
+            rules_path,
+        ],
+        "",
+        capsys,
+    )
+
+    assert mock_phabricator_revision.method_calls == [
+        mock.call.from_phid("http://other-phabricator", "PHID-DREV-0", "other-token")
+    ], "The revision should have been initialised from CLI arguments"
+
+
+#
+# Test utilities
+#
 
 
 def _write_rules(rules_path: pathlib.Path, rules_data: dict) -> str:

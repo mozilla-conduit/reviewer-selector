@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from typing import Any
 
 import pytest
@@ -6,6 +6,8 @@ import requests
 import requests_mock
 
 from reviewer_selector.github import GITHUB_CHECK_NAME
+
+from .phabricator_double import PhabricatorDouble
 
 #
 # DIFF FIXTURES
@@ -878,3 +880,31 @@ def sample_rules_data() -> dict[str, Any]:
         },
         "unresolved_users": [],
     }
+
+
+#
+# PHABRICATOR FIXTURES
+#
+
+
+@pytest.fixture
+def mock_phabricator_base_url(monkeypatch: pytest.MonkeyPatch) -> str:
+    """Provide a base URL, and set it in the environment."""
+    base_url = "http://phabricator.test"
+    monkeypatch.setenv("PHABRICATOR_BASE_URL", base_url)
+    return base_url
+
+
+@pytest.fixture
+def mock_phabricator_api_token(monkeypatch: pytest.MonkeyPatch) -> str:
+    """Provide a base URL, and set it in the environment."""
+    api_token = "api-TESTTESTTEST"
+
+    monkeypatch.setenv("PHABRICATOR_API_TOKEN", api_token)
+    return api_token
+
+
+@pytest.fixture
+def phabdouble(monkeypatch: pytest.MonkeyPatch) -> Generator[PhabricatorDouble]:
+    phabdouble = PhabricatorDouble(monkeypatch)
+    yield phabdouble
