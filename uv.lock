@@ -1219,7 +1219,7 @@ wheels = [
 
 [[package]]
 name = "taskcluster"
-version = "113.2.0"
+version = "117.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1230,9 +1230,9 @@ dependencies = [
     { name = "slugid" },
     { name = "taskcluster-urls" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/0d/f91b301f51746621d49919666e80bde31681480dd68f0091fa96fc75185f/taskcluster-113.2.0.tar.gz", hash = "sha256:eb388c7c67d678a82951884e8f423e79bde2e9abe081f8e7ede0f1d896a2f58c", size = 242303, upload-time = "2026-10-21T15:47:56.993Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e2/e3/f4213398b0a635a1946b877ae34a2c496509e1239a2b18b786743186a34a/taskcluster-117.0.0.tar.gz", hash = "sha256:31114d80d7c755dbca04b4b0efba704e0a58a21453eba8657bccd0b1ed34bf8d", size = 292204, upload-time = "2026-11-18T20:31:19.771Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/69/92bc2d0cc1733584f04a5cf0b3ac399a4f72939e0cd48c819fb00e8b9077/taskcluster-113.2.0-py3-none-any.whl", hash = "sha256:8707787a9d861023809dde7512dc1033b004cf8fe1094e7bd569dc94340c1ac0", size = 152105, upload-time = "2026-10-21T15:47:55.365Z" },
+    { url = "https://files.pythonhosted.org/packages/04/84/99bf47556ed76742add9f6c51d5c20c9582d1b24f9cfcb901547fa8fbd71/taskcluster-117.0.0-py3-none-any.whl", hash = "sha256:8660f989056315690682b47ace1391e9d952c9221d1cbbdc969b0a0c45ab39f8", size = 152457, upload-time = "2026-11-18T20:31:18.665Z" },
 ]
 
 [[package]]
