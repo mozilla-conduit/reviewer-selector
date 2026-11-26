@@ -8,6 +8,7 @@ from typing import Any
 
 import sentry_sdk
 
+from reviewer_selector.consts import version
 from reviewer_selector.github import GitHubPR
 from reviewer_selector.patch import Patch, PatchSource, StdinPatchSource
 from reviewer_selector.phabricator import PhabricatorRevision
@@ -37,6 +38,8 @@ def cli() -> None:
         )
     elif args.verbose:
         logging.basicConfig(level=logging.INFO)
+
+    logger.info(f"reviewer-selector v{version}")
 
     if sentry_dsn := get_sentry_dsn(args):
         sentry_sdk.init(
@@ -158,6 +161,12 @@ def parse_args() -> argparse.Namespace:
             curl https://github.com/mozilla-firefox/infra-testing/pull/30.diff | %(prog)s herald_rules.json
 
             Command line options take precedence over environment variables and stored credentials.""",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=version,
+        help="Show version number and exit",
     )
     parser.add_argument("rules_file", help="Path to JSON rules file")
     parser.add_argument(

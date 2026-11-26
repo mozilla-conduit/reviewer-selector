@@ -51,3 +51,9 @@ extend-select = ["I"]
 exclude = [
   "taskcluster/reviewer_selector_taskgraph/transforms/docker-image.py",  # fails to resolve the docker-image module
 ]
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true } }]
