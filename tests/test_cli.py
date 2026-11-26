@@ -704,6 +704,11 @@ def test_phabricator_revision(
         capsys,
     )
 
+    # The PhabricatorDouble doesn't update the data based on the transactions,
+    # so the next request to check if there are any reviewers still returns empty.
+    # As a result, a second transaction is sent during this test, to report that no
+    # reviewers are currently assigned. This as due to the test setup, and not a
+    # behaviour that should be expected in this case, so we assert a bit more loosely.
     assert mock_edit_transaction.call_count > 1, (
         "Should have at least one call to edit.transation"
     )
