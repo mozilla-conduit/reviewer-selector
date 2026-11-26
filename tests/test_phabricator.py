@@ -163,6 +163,7 @@ def test_phabricator_reviewable(
 @mock.patch("reviewer_selector.phabricator.PhabricatorRevision.edit_transaction")
 def test_phabricator_reviewable_blocking(
     mock_edit_transaction: mock.Mock,
+    mock_phabricator_api_token: str,
     mock_phabricator_base_url: str,
     phabdouble: PhabricatorDouble,
 ):
